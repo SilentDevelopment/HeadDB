@@ -1,0 +1,184 @@
+# Конфигурация главного меню HeadDB
+# Main menu configuration for HeadDB
+
+# Название меню (поддерживает MiniMessage формат)
+# Menu title (supports MiniMessage format)
+title: "<red>HeadDB"
+
+# Размер меню (количество строк: 1-6)
+# Menu size (number of rows: 1-6)
+size: 6
+
+# Слоты для категорий (начиная с 0)
+# Category slots (starting from 0)
+categorySlots: [11, 12, 13, 14, 15, 20, 21, 22, 23, 24, 29, 30, 31, 32, 33]
+
+# Предпочитаемый порядок категорий
+# Preferred category order
+preferredCategoryOrder:
+  - "Alphabet"
+  - "Animals"
+  - "Blocks"
+  - "Decoration"
+  - "Food & Drinks"
+  - "Humanoid"
+  - "Humans"
+  - "Miscellaneous"
+  - "Monsters"
+  - "Plants"
+
+# Настройка кнопок категорий
+# Category buttons configuration
+categoryButtons:
+  Alphabet:
+    enabled: true
+    slot: 11
+    texture: ""  # Пусто = использовать голову из базы данных
+    material: "PLAYER_HEAD"
+    name: "<white>Алфавит"
+    lore: []
+  
+  Animals:
+    enabled: true
+    slot: 12
+    texture: ""
+    material: "PLAYER_HEAD"
+    name: "<yellow>Животные"
+    lore: []
+  
+  Blocks:
+    enabled: true
+    slot: 13
+    texture: ""
+    material: "PLAYER_HEAD"
+    name: "<green>Блоки"
+    lore: []
+  
+  Decoration:
+    enabled: true
+    slot: 14
+    texture: ""
+    material: "PLAYER_HEAD"
+    name: "<aqua>Декор"
+    lore: []
+  
+  "Food & Drinks":
+    enabled: true
+    slot: 15
+    texture: ""
+    material: "PLAYER_HEAD"
+    name: "<gold>Еда и напитки"
+    lore: []
+  
+  Humanoid:
+    enabled: true
+    slot: 20
+    texture: ""
+    material: "PLAYER_HEAD"
+    name: "<light_purple>Гуманоиды"
+    lore: []
+  
+  Humans:
+    enabled: true
+    slot: 21
+    texture: ""
+    material: "PLAYER_HEAD"
+    name: "<blue>Люди"
+    lore: []
+  
+  Miscellaneous:
+    enabled: true
+    slot: 22
+    texture: ""
+    material: "PLAYER_HEAD"
+    name: "<gray>Разное"
+    lore: []
+  
+  Monsters:
+    enabled: true
+    slot: 23
+    texture: ""
+    material: "PLAYER_HEAD"
+    name: "<dark_red>Монстры"
+    lore: []
+  
+  Plants:
+    enabled: true
+    slot: 24
+    texture: ""
+    material: "PLAYER_HEAD"
+    name: "<green>Растения"
+    lore: []
+
+# Кнопки меню
+# Menu buttons
+buttons:
+  # Локальные головы
+  # Local heads
+  local:
+    enabled: true
+    slot: 41
+    texture: "7f6bf958abd78295eed6ffc293b1aa59526e80f54976829ea068337c2f5e8"
+    material: "COMPASS"  # Используется если текстура не найдена / Used if texture not found
+    name: "<aqua>Локальные головы"
+    lore: []
+    permission: "headdb.category.local"
+  
+  # Избранное
+  # Favorites
+  favorites:
+    enabled: true
+    slot: 42
+    texture: "76fdd4b13d54f6c91dd5fa765ec93dd9458b19f8aa34eeb5c80f455b119f278"
+    material: "BOOK"
+    name: "<yellow>Избранное"
+    lore: []
+    permission: "headdb.category.favorites"
+  
+  # Дополнительные категории
+  # Custom categories
+  customCategories:
+    enabled: true
+    slot: 38
+    texture: ""  # Берётся из config.yml / Taken from config.yml
+    material: "NETHER_STAR"
+    name: "<rainbow>Дополнительные категории"
+    lore: []
+    permission: "headdb.category.custom"
+  
+  # Поиск
+  # Search
+  search:
+    enabled: true
+    slot: 39
+    texture: ""  # Берётся из config.yml / Taken from config.yml
+    material: "COMPASS"
+    name: "<green>Поиск"
+    lore:
+      - "<gray>Нажмите, чтобы найти голову"
+    permission: "headdb.command.search"
+  
+  # Информация
+  # Info
+  info:
+    enabled: true
+    slot: 53
+    texture: "16439d2e306b225516aa9a6d007a7e75edd2d5015d113b42f44be62a517e574f"
+    material: "BOOK"
+    name: "<red>Не можете найти нужную голову?"
+    lore:
+      - "<yellow>❓ Не нашли идеальную голову в нашей коллекции?"
+      - "<yellow>🎯 Мы постоянно добавляем новые — и вы можете помочь!"
+      - ""
+      - "<yellow>📥 Отправьте свои любимые или оригинальные головы"
+      - "<yellow>✨ Прямо через наш Discord сервер!"
+      - ""
+      - "<yellow>🔗 Discord > https://discord.gg/RJsVvVd"
+
+# Заполнитель границ
+# Border filler
+border:
+  enabled: true
+  material: "BLACK_STAINED_GLASS_PANE"
+  name: ""
+  lore: []

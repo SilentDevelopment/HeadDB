@@ -10,8 +10,8 @@ preloadHeads: true
 # Example: Player is on page 10 of the category, next time they open that category they will start from that page instead of the first.
 trackPage: true
 
-# If enabled shows the info item on how you can add heads to the database.-
-showInfoItem: true
+# Menu configuration moved to menus/ folder
+# Edit menus/main.yml, menus/category.yml, etc. to customize menus
 
 # Limits the maximum amount of heads you can buy at once. 2304 is a full inventory of 64 heads.
 # Note that extra heads that do not fit in the inventory are dropped when purchasing if dropOnFullInventory is true.
@@ -70,31 +70,9 @@ economy:
     head:
       98: 100 # Example for Gold Block
 
+# Menu rows configuration (for category menus)
 headsMenu:
   rows: 4
-  customCategories:
-    head: "e7bc251a6cb0d6d9f05c5711911a6ec24b209dbe64267901a4b03761debcf738"
-    item: "BOOKSHELF"
-  search:
-    head: "9d9cc58ad25a1ab16d36bb5d6d493c8f5898c2bf302b64e325921c41c35867"
-    item: "SPYGLASS"
-  divider:
-    enabled: true
-    row: 5
-    item:
-      material: BLACK_STAINED_GLASS_PANE
-      name: " "
-
-controls:
-  back:
-    head: "e5da4847272582265bdaca367237c96122b139f4e597fbc6667d3fb75fea7cf6"
-    item: "ARROW"
-  info:
-    head: "16439d2e306b225516aa9a6d007a7e75edd2d5015d113b42f44be62a517e574f"
-    item: "PAPER"
-  next:
-    head: "6527ebae9f153154a7ed49c88c02b5a9a9ca7cb1618d9914a3d9df8ccb3c84"
-    item: "ARROW"
 
 # Database Configuration
 database:

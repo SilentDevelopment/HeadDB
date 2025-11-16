@@ -1,0 +1,92 @@
+# Конфигурация меню избранного
+# Favorites menu configuration
+
+# Название меню (поддерживает MiniMessage формат)
+# Menu title (supports MiniMessage format)
+title: "<red>HeadDB <gray>» <gold>Избранное"
+
+# Размер меню (количество строк: 1-6)
+# Menu size (number of rows: 1-6)
+size: 6
+
+# Слоты для отображения голов (начиная с 0)
+# Slots for displaying heads (starting from 0)
+headSlots: [10, 11, 12, 13, 14, 15, 16, 19, 20, 21, 22, 23, 24, 25, 28, 29, 30, 31, 32, 33, 34, 37, 38, 39, 40, 41, 42, 43]
+
+# Элементы управления
+# Control buttons
+controls:
+  # Кнопка "Назад" (предыдущая страница)
+  # Back button (previous page)
+  back:
+    enabled: true
+    slot: 45
+    material: "ARROW"
+    name: "<gold>◀ Назад"
+    lore:
+      - "<gray>Перейти на предыдущую страницу: <green>${{BACK}}"
+  
+  # Информация о странице
+  # Page info
+  info:
+    enabled: true
+    slot: 49
+    material: "PAPER"
+    name: "<gold>ℹ Страница <green>${{CURRENT}}<gray>/<red>${{MAX}}"
+    lore:
+      - "<gray>Нажмите, чтобы вернуться в главное меню."
+  
+  # Кнопка "Далее" (следующая страница)
+  # Next button (next page)
+  next:
+    enabled: true
+    slot: 53
+    material: "ARROW"
+    name: "<gold>Далее ▶"
+    lore:
+      - "<gray>Перейти на следующую страницу: <green>${{NEXT}}"
+
+# Заполнитель границ
+# Border filler
+border:
+  enabled: true
+  material: "YELLOW_STAINED_GLASS_PANE"
+  name: ""
+  lore: []
+
+# Настройки отображения голов
+# Head display settings
+headDisplay:
+  # Показывать ID головы в описании
+  # Show head ID in lore
+  showId: true
+  
+  # Показывать категорию в описании
+  # Show category in lore
+  showCategory: true
+  
+  # Показывать теги в описании
+  # Show tags in lore
+  showTags: true
+  
+  # Формат описания головы
+  # Head lore format
+  loreFormat:
+    - ""
+    - "<gray>ID: <yellow>{id}"
+    - "<gray>Категория: <gold>{category}"
+    - "<gray>Теги: <aqua>{tags}"
+    - ""
+    - "<green>ЛКМ <gray>- Получить голову"
+    - "<red>ПКМ <gray>- Удалить из избранного"
+
+# Сообщение при пустом избранном
+# Empty favorites message
+emptyMessage:
+  enabled: true
+  slot: 22
+  material: "BARRIER"
+  name: "<red>Избранное пусто"
+  lore:
+    - "<gray>У вас пока нет избранных голов"
+    - "<yellow>Добавьте головы, нажав ПКМ"

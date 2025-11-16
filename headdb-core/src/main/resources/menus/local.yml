@@ -1,0 +1,85 @@
+# Конфигурация меню локальных голов
+# Local heads menu configuration
+
+# Название меню (поддерживает MiniMessage формат)
+# Menu title (supports MiniMessage format)
+title: "<red>HeadDB <gray>» <gold>Локальные головы"
+
+# Размер меню (количество строк: 1-6)
+# Menu size (number of rows: 1-6)
+size: 6
+
+# Слоты для отображения голов (начиная с 0)
+# Slots for displaying heads (starting from 0)
+headSlots: [10, 11, 12, 13, 14, 15, 16, 19, 20, 21, 22, 23, 24, 25, 28, 29, 30, 31, 32, 33, 34, 37, 38, 39, 40, 41, 42, 43]
+
+# Элементы управления
+# Control buttons
+controls:
+  # Кнопка "Назад" (предыдущая страница)
+  # Back button (previous page)
+  back:
+    enabled: true
+    slot: 45
+    material: "ARROW"
+    name: "<gold>◀ Назад"
+    lore:
+      - "<gray>Перейти на предыдущую страницу: <green>${{BACK}}"
+  
+  # Информация о странице
+  # Page info
+  info:
+    enabled: true
+    slot: 49
+    material: "PAPER"
+    name: "<gold>ℹ Страница <green>${{CURRENT}}<gray>/<red>${{MAX}}"
+    lore:
+      - "<gray>Нажмите, чтобы вернуться в главное меню."
+  
+  # Кнопка "Далее" (следующая страница)
+  # Next button (next page)
+  next:
+    enabled: true
+    slot: 53
+    material: "ARROW"
+    name: "<gold>Далее ▶"
+    lore:
+      - "<gray>Перейти на следующую страницу: <green>${{NEXT}}"
+
+# Заполнитель границ
+# Border filler
+border:
+  enabled: true
+  material: "LIGHT_BLUE_STAINED_GLASS_PANE"
+  name: ""
+  lore: []
+
+# Настройки отображения голов
+# Head display settings
+headDisplay:
+  # Показывать имя игрока
+  # Show player name
+  showPlayerName: true
+  
+  # Показывать UUID
+  # Show UUID
+  showUUID: false
+  
+  # Формат описания головы
+  # Head lore format
+  loreFormat:
+    - ""
+    - "<gray>Игрок: <aqua>{playerName}"
+    - ""
+    - "<green>ЛКМ <gray>- Получить голову"
+    - "<yellow>ПКМ <gray>- Добавить в избранное"
+
+# Сообщение при отсутствии локальных голов
+# Empty local heads message
+emptyMessage:
+  enabled: true
+  slot: 22
+  material: "BARRIER"
+  name: "<red>Нет локальных голов"
+  lore:
+    - "<gray>На сервере нет игроков"

@@ -74,6 +74,7 @@ command:
 
   open:
     opening: "<gray>Opening the <red>Head Database<gray>."
+    openingFor: "<gray>Opening menu <gold>{menu} <gray>for player <green>{target}<gray>."
     invalidCategory: "<red>Invalid category: <yellow>{category}"
 
   give:

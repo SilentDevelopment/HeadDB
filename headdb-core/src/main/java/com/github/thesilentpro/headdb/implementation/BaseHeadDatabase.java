@@ -1,15 +1,5 @@
 package com.github.thesilentpro.headdb.implementation;
 
-import com.github.thesilentpro.headdb.api.HeadDatabase;
-import com.github.thesilentpro.headdb.api.model.Head;
-import com.github.thesilentpro.headdb.implementation.model.HeadMapper;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -18,10 +8,33 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
-import java.util.*;
-import java.util.concurrent.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.zip.GZIPInputStream;
+
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.github.thesilentpro.headdb.api.HeadDatabase;
+import com.github.thesilentpro.headdb.api.model.Head;
+import com.github.thesilentpro.headdb.implementation.model.HeadMapper;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 public class BaseHeadDatabase implements HeadDatabase {
 
@@ -215,30 +228,27 @@ public class BaseHeadDatabase implements HeadDatabase {
     @Override
     @Nullable
     public List<Head> getHeads() {
-        if (!isReady()) {
-            return Collections.emptyList();
-        }
-        if (this.heads == null) {
+        List<Head> currentHeads = this.heads;
+        if (currentHeads == null) {
             return null;
         }
-        return Collections.unmodifiableList(this.heads);
+        return Collections.unmodifiableList(currentHeads);
     }
 
     @Override
     @NotNull
     public List<Head> getByCategory(String category) {
-        if (!isReady()) {
-            return Collections.emptyList();
-        }
         if (byCategory != null) {
             return byCategory.getOrDefault(category, Collections.emptyList());
         }
-        if (heads == null) {
+        
+        List<Head> currentHeads = heads;
+        if (currentHeads == null || currentHeads.isEmpty()) {
             return Collections.emptyList();
         }
 
         List<Head> result = new ArrayList<>();
-        for (Head head : heads) {
+        for (Head head : currentHeads) {
             if (category.equals(head.getCategory())) {
                 result.add(head);
             }
@@ -249,9 +259,6 @@ public class BaseHeadDatabase implements HeadDatabase {
     @Override
     @NotNull
     public List<Head> getByTags(String... tags) {
-        if (!isReady()) {
-            return Collections.emptyList();
-        }
         if (tags == null || tags.length == 0) {
             return Collections.emptyList();
         }
@@ -266,12 +273,20 @@ public class BaseHeadDatabase implements HeadDatabase {
             return new ArrayList<>(resultSet);
         }
 
-        if (heads == null) {
+        List<Head> currentHeads = heads;
+        if (currentHeads == null || currentHeads.isEmpty()) {
             return Collections.emptyList();
         }
-        Set<String> tagSet = Arrays.stream(tags).filter(Objects::nonNull).collect(Collectors.toSet());
+        
+        Set<String> tagSet = new HashSet<>(tags.length);
+        for (String tag : tags) {
+            if (tag != null) {
+                tagSet.add(tag);
+            }
+        }
+        
         List<Head> result = new ArrayList<>();
-        for (Head head : heads) {
+        for (Head head : currentHeads) {
             for (String hTag : head.getTags()) {
                 if (tagSet.contains(hTag)) {
                     result.add(head);
@@ -285,16 +300,16 @@ public class BaseHeadDatabase implements HeadDatabase {
     @Override
     @Nullable
     public Head getById(int id) {
-        if (!isReady()) {
-            return null;
-        }
         if (byId != null) {
             return byId.get(id);
         }
-        if (heads == null) {
+        
+        List<Head> currentHeads = heads;
+        if (currentHeads == null) {
             return null;
         }
-        for (Head head : heads) {
+        
+        for (Head head : currentHeads) {
             if (head.getId() == id) {
                 return head;
             }
@@ -305,17 +320,17 @@ public class BaseHeadDatabase implements HeadDatabase {
     @Override
     @Nullable
     public Head getByTexture(String texture) {
-        if (!isReady()) {
-            return null;
-        }
         if (byTexture != null) {
             return byTexture.get(texture);
         }
-        if (heads == null) {
+        
+        List<Head> currentHeads = heads;
+        if (currentHeads == null) {
             return null;
         }
-        for (Head head : heads) {
-            if (head.getTexture().equals(texture)) {
+        
+        for (Head head : currentHeads) {
+            if (texture.equals(head.getTexture())) {
                 return head;
             }
         }

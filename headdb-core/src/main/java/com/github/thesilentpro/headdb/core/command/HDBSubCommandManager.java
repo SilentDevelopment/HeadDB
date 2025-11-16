@@ -1,15 +1,15 @@
 package com.github.thesilentpro.headdb.core.command;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import com.github.thesilentpro.headdb.core.HeadDB;
 import com.github.thesilentpro.headdb.core.command.sub.HDBCommandGive;
 import com.github.thesilentpro.headdb.core.command.sub.HDBCommandInfo;
 import com.github.thesilentpro.headdb.core.command.sub.HDBCommandOpen;
 import com.github.thesilentpro.headdb.core.command.sub.HDBCommandSearch;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 public class HDBSubCommandManager {
 
@@ -37,9 +37,12 @@ public class HDBSubCommandManager {
     }
 
     public void register(HDBSubCommand command) {
-        this.commands.put(command.getName(), command);
-        this.realNames.add(command.getName());
-        for (String alias : command.getAliases()) {
+        String name = command.getName();
+        this.commands.put(name, command);
+        this.realNames.add(name);
+        
+        String[] aliases = command.getAliases();
+        for (String alias : aliases) {
             this.commands.put(alias, command);
         }
     }

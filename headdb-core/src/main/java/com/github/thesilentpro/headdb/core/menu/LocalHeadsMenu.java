@@ -20,7 +20,12 @@ import net.kyori.adventure.text.Component;
 public class LocalHeadsMenu extends PaginatedSimplePage {
 
     public LocalHeadsMenu(HeadDB plugin, GUI<Integer> gui, Component title, List<ItemStack> items) {
-        super(gui, title, 6, 48, 49, 50);
+        super(gui, title,
+            plugin.getMenuConfig().getSize("local", 6),
+            plugin.getMenuConfig().getButtonSlot("local", "controls.back", 48),
+            plugin.getMenuConfig().getButtonSlot("local", "controls.info", 49),
+            plugin.getMenuConfig().getButtonSlot("local", "controls.next", 50)
+        );
         preventInteraction();
 
         for (ItemStack item : items) {

@@ -26,7 +26,8 @@ public class PurchaseHeadMenu extends SimplePage {
     private final Head head;
 
     public PurchaseHeadMenu(HeadDB plugin, Player player, Head head, Page parentPage) {
-        super(plugin.getLocalization().getMessage(player.getUniqueId(), "menu.purchase.name").orElseGet(() -> Component.text("HeadDB » " + head.getName() + " » Purchase")).replaceText(builder -> builder.matchLiteral("{name}").replacement(head.getName())), 6);
+        super(plugin.getLocalization().getMessage(player.getUniqueId(), "menu.purchase.name").orElseGet(() -> Component.text("HeadDB » " + head.getName() + " » Purchase")).replaceText(builder -> builder.matchLiteral("{name}").replacement(head.getName())), 
+            plugin.getMenuConfig().getSize("purchase", 3));
         this.plugin = plugin;
         this.head = head;
         preventInteraction();

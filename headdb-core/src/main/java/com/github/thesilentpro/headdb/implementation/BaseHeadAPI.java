@@ -1,20 +1,27 @@
 package com.github.thesilentpro.headdb.implementation;
 
 
-import com.github.thesilentpro.headdb.api.HeadAPI;
-import com.github.thesilentpro.headdb.api.HeadDatabase;
-import com.github.thesilentpro.headdb.api.model.Head;
-import com.github.thesilentpro.headdb.core.factory.ItemFactoryRegistry;
-import com.github.thesilentpro.headdb.core.util.Utils;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.stream.Collectors;
+
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.*;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.stream.Collectors;
+import com.github.thesilentpro.headdb.api.HeadAPI;
+import com.github.thesilentpro.headdb.api.HeadDatabase;
+import com.github.thesilentpro.headdb.api.model.Head;
+import com.github.thesilentpro.headdb.core.factory.ItemFactoryRegistry;
+import com.github.thesilentpro.headdb.core.util.Utils;
 
 /**
  * Default implementation of {@link HeadAPI} using BaseHeadDatabase.
@@ -48,18 +55,29 @@ public class BaseHeadAPI implements HeadAPI {
     @NotNull
     @Override
     public CompletableFuture<List<Head>> searchByName(@NotNull String name, boolean lenient) {
-        return getHeads().thenApplyAsync(heads ->
-                heads.stream()
-                        .filter(h -> lenient ? Utils.matches(h.getName(), name) : h.getName().equalsIgnoreCase(name))
-                        .collect(Collectors.toList()), executor);
+        return CompletableFuture.supplyAsync(() -> {
+            List<Head> heads = database.getHeads();
+            if (heads == null || heads.isEmpty()) {
+                return Collections.emptyList();
+            }
+            return heads.stream()
+                    .filter(h -> lenient ? Utils.matches(h.getName(), name) : h.getName().equalsIgnoreCase(name))
+                    .collect(Collectors.toList());
+        }, executor);
     }
 
     @NotNull
     @Override
     public CompletableFuture<Optional<Head>> findByName(@NotNull String name, boolean lenient) {
-        return getHeads().thenApplyAsync(heads -> heads.stream()
-                        .filter(h -> lenient ? Utils.matches(h.getName(), name) : h.getName().equalsIgnoreCase(name))
-                        .findAny(), executor);
+        return CompletableFuture.supplyAsync(() -> {
+            List<Head> heads = database.getHeads();
+            if (heads == null || heads.isEmpty()) {
+                return Optional.empty();
+            }
+            return heads.stream()
+                    .filter(h -> lenient ? Utils.matches(h.getName(), name) : h.getName().equalsIgnoreCase(name))
+                    .findAny();
+        }, executor);
     }
 
     @NotNull
@@ -95,17 +113,16 @@ public class BaseHeadAPI implements HeadAPI {
     @NotNull
     @Override
     public List<String> findKnownCategories() {
-        if (database.getHeads() == null) {
+        List<Head> heads = database.getHeads();
+        if (heads == null || heads.isEmpty()) {
             return Collections.emptyList();
         }
 
-        List<String> result = new ArrayList<>();
-        for (Head head : database.getHeads()) {
-            if (!result.contains(head.getCategory())) {
-                result.add(head.getCategory());
-            }
+        Set<String> categories = new LinkedHashSet<>();
+        for (Head head : heads) {
+            categories.add(head.getCategory());
         }
-        return result;
+        return new ArrayList<>(categories);
     }
 
     @NotNull

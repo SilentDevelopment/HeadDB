@@ -1,17 +1,23 @@
 package com.github.thesilentpro.headdb.core.command.sub;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+
+import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
+
 import com.github.thesilentpro.headdb.api.model.Head;
 import com.github.thesilentpro.headdb.core.HeadDB;
 import com.github.thesilentpro.headdb.core.command.HDBSubCommand;
 import com.github.thesilentpro.headdb.core.menu.gui.HeadsGUI;
 import com.github.thesilentpro.headdb.core.util.Compatibility;
-import net.kyori.adventure.text.Component;
-import org.bukkit.command.CommandSender;
-import org.bukkit.entity.Player;
 
-import java.util.*;
-import java.util.concurrent.CompletableFuture;
-import java.util.stream.Collectors;
+import net.kyori.adventure.text.Component;
 
 public class HDBCommandSearch extends HDBSubCommand {
 
@@ -34,8 +40,16 @@ public class HDBCommandSearch extends HDBSubCommand {
         CompletableFuture.supplyAsync(() -> {
             // detect & strip --any
             // Enables loose search (match if any filter passes instead of all).
-            boolean any = Arrays.stream(args).anyMatch(a -> a.equalsIgnoreCase("--any"));
-            List<String> parts = Arrays.stream(args, 1, args.length).filter(a -> !a.equalsIgnoreCase("--any")).toList();
+            boolean any = false;
+            List<String> parts = new ArrayList<>(args.length - 1);
+            for (int i = 1; i < args.length; i++) {
+                if (args[i].equalsIgnoreCase("--any")) {
+                    any = true;
+                } else {
+                    parts.add(args[i]);
+                }
+            }
+            final boolean finalAny = any;
 
             // parse filters
             String category = null;
@@ -79,20 +93,23 @@ public class HDBCommandSearch extends HDBSubCommand {
                                 .replaceText(builder -> builder.matchLiteral("{category}").replacement(finalCategory != null ? finalCategory : "/"))
                                 .replaceText(builder -> builder.matchLiteral("{tags}").replacement(!tags.isEmpty() ? String.join(",", tags) : "/"))
                                 .replaceText(builder -> builder.matchLiteral("{ids}").replacement(!ids.isEmpty() ? String.join(",", ids.stream().map(String::valueOf).toArray(String[]::new)) : "/"))
-                                .replaceText(builder -> builder.matchLiteral("{mode}").replacement(any ? "ANY" : "ALL"))
+                                .replaceText(builder -> builder.matchLiteral("{mode}").replacement(finalAny ? "ANY" : "ALL"))
                 );
             });
 
             // lower all your query bits once
             String qCat = category == null ? null : category.toLowerCase(Locale.ROOT);
             String qName = nameQuery.trim().toLowerCase(Locale.ROOT);
-            Set<String> tagSet = tags.stream().map(t -> t.toLowerCase(Locale.ROOT)).collect(Collectors.toSet());
+            Set<String> tagSet = new HashSet<>(tags.size());
+            for (String tag : tags) {
+                tagSet.add(tag.toLowerCase(Locale.ROOT));
+            }
             Set<Integer> idSet = new HashSet<>(ids);
 
             List<Head> allHeads = plugin.getHeadApi().getHeads().join();
             List<Head> result   = new ArrayList<>();
 
-            if (any) {
+            if (finalAny) {
                 // ANY‑mode: match if _one_ of the filters hits
                 for (Head h : allHeads) {
                     // grab once per head

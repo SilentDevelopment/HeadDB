@@ -1,0 +1,81 @@
+# Конфигурация меню дополнительных категорий
+# Custom categories menu configuration
+
+# Название меню (поддерживает MiniMessage формат)
+# Menu title (supports MiniMessage format)
+title: "<red>HeadDB <gray>» <gold>Дополнительные категории"
+
+# Размер меню (количество строк: 1-6)
+# Menu size (number of rows: 1-6)
+size: 6
+
+# Слоты для отображения категорий (начиная с 0)
+# Slots for displaying categories (starting from 0)
+categorySlots: [10, 11, 12, 13, 14, 15, 16, 19, 20, 21, 22, 23, 24, 25, 28, 29, 30, 31, 32, 33, 34, 37, 38, 39, 40, 41, 42, 43]
+
+# Элементы управления
+# Control buttons
+controls:
+  # Кнопка "Назад" (предыдущая страница)
+  # Back button (previous page)
+  back:
+    enabled: true
+    slot: 45
+    material: "ARROW"
+    name: "<gold>◀ Назад"
+    lore:
+      - "<gray>Перейти на предыдущую страницу: <green>${{BACK}}"
+  
+  # Информация о странице
+  # Page info
+  info:
+    enabled: true
+    slot: 49
+    material: "PAPER"
+    name: "<gold>ℹ Страница <green>${{CURRENT}}<gray>/<red>${{MAX}}"
+    lore:
+      - "<gray>Нажмите, чтобы вернуться в главное меню."
+  
+  # Кнопка "Далее" (следующая страница)
+  # Next button (next page)
+  next:
+    enabled: true
+    slot: 53
+    material: "ARROW"
+    name: "<gold>Далее ▶"
+    lore:
+      - "<gray>Перейти на следующую страницу: <green>${{NEXT}}"
+
+# Заполнитель границ
+# Border filler
+border:
+  enabled: true
+  material: "PURPLE_STAINED_GLASS_PANE"
+  name: ""
+  lore: []
+
+# Настройки отображения категорий
+# Category display settings
+categoryDisplay:
+  # Показывать количество голов в категории
+  # Show head count in category
+  showHeadCount: true
+  
+  # Формат описания категории
+  # Category lore format
+  loreFormat:
+    - ""
+    - "<gray>Голов в категории: <gold>{count}"
+    - ""
+    - "<green>Нажмите, чтобы открыть"
+
+# Сообщение при отсутствии дополнительных категорий
+# Empty custom categories message
+emptyMessage:
+  enabled: true
+  slot: 22
+  material: "BARRIER"
+  name: "<red>Нет дополнительных категорий"
+  lore:
+    - "<gray>Дополнительные категории не настроены"
+    - "<yellow>Настройте их в categories.yml"

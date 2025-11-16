@@ -1,0 +1,92 @@
+noPermission: "<red>Нет прав доступа!"
+noConsole: "<red>Только для игроков!"
+invalidSubCommand: "<red>Неверная подкоманда » ${1}"
+commandUsage: "<red>Использование » <yellow>{usage}"
+invalidTarget: "<red>Игрок не найден » <yellow>{target}"
+invalidNumber: "<red>Неверное число » <yellow>{number}"
+
+favoritesNone: "<red>У вас нет избранных голов!"
+localNone: "<red>Нет локальных голов!"
+customCategoriesNone: "<red>Нет дополнительных категорий!"
+
+purchase:
+  invalidFunds: "<red>У вас недостаточно денег!"
+  success: "<gray>Вы купили <green>{amount}<gray>x <green>{name} <gray>за <green>{cost}"
+  noEconomy: "<gray>Вы получили <green>{amount}<gray>x <green>{name}"
+
+menu:
+  local:
+    name: "<red>HeadDB <gray>» <gold>Локальные головы"
+  favorites:
+    name: "<red>HeadDB <gray>» <gold>Избранное"
+    add: "<gold>{name} <gray>был <green>ДОБАВЛЕН <gray>в избранное!"
+    remove: "<gold>{name} <gray>был <red>УДАЛЁН <gray>из избранного!"
+  search:
+    name: "<red>HeadDB <gray>» <gold>Поиск <gray>» <gold>{name}"
+  customCategories:
+    name: "<red>HeadDB <gray>» <gold>Дополнительные категории"
+  purchase:
+    name: "<red>HeadDB <gray>» <gold>{name} <gray>» <gold>Покупка"
+
+  main:
+    name: "<red>HeadDB"
+    local:
+      name: "<aqua>Локальные головы"
+    favorites:
+      name: "<yellow>Избранное"
+    search:
+      name: "<green>Поиск"
+    customCategories:
+      name: "<rainbow>Дополнительные категории"
+    category:
+      decoration:
+        name: "<gold>Декорации"
+
+  category:
+    alphabet: "<red>HeadDB <gray>» <gold>Алфавит"
+    animals: "<red>HeadDB <gray>» <gold>Животные"
+    blocks: "<red>HeadDB <gray>» <gold>Блоки"
+    decoration: "<red>HeadDB <gray>» <gold>Декорации"
+    food & drinks: "<red>HeadDB <gray>» <gold>Еда и напитки"
+    humanoid: "<red>HeadDB <gray>» <gold>Гуманоиды"
+    humans: "<red>HeadDB <gray>» <gold>Люди"
+    miscellaneous: "<red>HeadDB <gray>» <gold>Разное"
+    monsters: "<red>HeadDB <gray>» <gold>Монстры"
+    plants: "<red>HeadDB <gray>» <gold>Растения"
+
+  controls:
+    back:
+      name: "<gold>◀ Назад"
+      lore: "<gray>Перейти на предыдущую страницу: <green>${{BACK}}"
+    info:
+      name: "<gold>ℹ Страница <green>${{CURRENT}}<gray>/<red>${{MAX}}"
+      lore: "<gray>Нажмите, чтобы вернуться в главное меню."
+    next:
+      name: "<gold>Далее ▶"
+      lore: "<gray>Перейти на следующую страницу: <green>${{NEXT}}"
+
+command:
+
+  open:
+    opening: "<gray>Открытие <red>базы данных голов<gray>."
+    openingFor: "<gray>Открытие меню <gold>{menu} <gray>для игрока <green>{target}<gray>."
+    invalidCategory: "<red>Неверная категория: <yellow>{category}"
+
+  give:
+    invalidId: "<red>Неверный ID головы » <yellow>{id}"
+    success: "<gray>Выдано <green>{amount}<gray>x <green>{name} <gray>игроку <green>{target}"
+
+  search:
+    input: "<gray>Введите поисковый запрос и фильтры:"
+    start: "<gray> ⏳ Поиск..."
+    none: "<red>Головы не найдены!"
+    found: "<gray>Найдено <green>{amount} <gray>голов!"
+    filter: |
+      
+      <gray>🔎 <bold>Фильтры</bold>
+      <dark_gray>───────────────</dark_gray>
+      <gray>• <white>Название</white> » <gold>{name}
+      <gray>• <white>Категория</white> » <gold>{category}
+      <gray>• <white>Теги</white> » <gold>{tags}
+      <gray>• <white>ID</white> » <gold>{ids}
+      <gray>• <white>Режим</white> » <gold>{mode}

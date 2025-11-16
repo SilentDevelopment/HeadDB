@@ -1,6 +1,5 @@
 package com.github.thesilentpro.headdb.core.util;
 
-import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -9,10 +8,12 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
 
+import javax.annotation.Nullable;
+
 public class Utils {
 
     private static final Pattern SPACE_PATTERN = Pattern.compile(" ");
-    private static final AtomicInteger poolNumber = new AtomicInteger(1);
+    private static final AtomicInteger POOL_NUMBER = new AtomicInteger(1);
 
     /**
      * Splits the given list into sublists of the given chunkSize.
@@ -51,8 +52,7 @@ public class Utils {
 
     public static ExecutorService executorService(int nThreads, String namePrefix) {
         ThreadFactory factory = r -> {
-            Thread t = new Thread(r);
-            t.setName(namePrefix + " #" + poolNumber.getAndIncrement());
+            Thread t = new Thread(r, namePrefix + " #" + POOL_NUMBER.getAndIncrement());
             t.setDaemon(true);
             return t;
         };

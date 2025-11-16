@@ -32,8 +32,6 @@ public class Config {
     private static final String DEFAULT_BACK_TEXTURE = "e5da4847272582265bdaca367237c96122b139f4e597fbc6667d3fb75fea7cf6";
     private static final String DEFAULT_INFO_TEXTURE = "93e5cb83cfdf42e9c4d8a3ecb4f889f6a5f418dce0a894c97e416a0eaf0d58";
     private static final String DEFAULT_NEXT_TEXTURE = "62bfb7ed2bd9f1d1f85c3d6ffb1626f252c5ecfd79d51a3f56ebf8e0c3c91";
-    private static final String DEFAULT_CUSTOM_CATEGORY_TEXTURE = "62bfb7ed2bd9f1d1f85c3d6ffb1626f252c5ecfd79d51a3f56ebf8e0c3c91";
-    private static final String DEFAULT_SEARCH_TEXTURE = "9d9cc58ad25a1ab16d36bb5d6d493c8f5898c2bf302b64e325921c41c35867";
 
     private final HeadDB plugin;
     private final FileConfiguration config;
@@ -58,8 +56,8 @@ public class Config {
     private Component headName;
 
     // Control items (back, next, etc.)
-    private String backTexture, infoTexture, nextTexture, customCategoryTexture, searchTexture;
-    private Material backItem, infoItem, nextItem, customCategoryItem, searchItem;
+    private String backTexture, infoTexture, nextTexture;
+    private Material backItem, infoItem, nextItem;
 
     // Economy
     private String economyProvider;
@@ -136,20 +134,20 @@ public class Config {
     }
 
     private void loadHeadsLore() {
-        List<String> lore;
-        if (plugin.getCfg().getEconomyProvider() == null || plugin.getCfg().getEconomyProvider().isBlank()) {
-            headName = MiniMessage.miniMessage().deserialize(config.getString("head.name.default", "{name}"));
-            lore = config.getStringList("head.lore.default");
-        } else {
-            headName = MiniMessage.miniMessage().deserialize(config.getString("head.name.economy", "{name}"));
-            lore = config.getStringList("head.lore.economy");
-        }
+        boolean hasEconomy = economyProvider != null && !economyProvider.isBlank();
+        
+        String nameKey = hasEconomy ? "head.name.economy" : "head.name.default";
+        String loreKey = hasEconomy ? "head.lore.economy" : "head.lore.default";
+        
+        headName = MiniMessage.miniMessage().deserialize(config.getString(nameKey, "{name}"));
+        List<String> lore = config.getStringList(loreKey);
 
-        LOGGER.trace("Loaded heads lore template ({}):", plugin.getEconomyProvider() == null ? "no-econ" : "econ");
+        LOGGER.trace("Loaded heads lore template ({}):", hasEconomy ? "econ" : "no-econ");
+        MiniMessage miniMessage = MiniMessage.miniMessage();
         for (String line : lore) {
-            this.headsLore.add(MiniMessage.miniMessage().deserialize(line));
+            this.headsLore.add(miniMessage.deserialize(line));
             LOGGER.trace(line);
-        };
+        }
     }
 
     private void loadControls() {
@@ -162,12 +160,6 @@ public class Config {
         nextTexture = config.getString("controls.next.head", DEFAULT_NEXT_TEXTURE);
         nextItem = parseMaterial("controls.next.item", "ARROW");
 
-        customCategoryTexture = config.getString("headsMenu.customCategories.head", DEFAULT_CUSTOM_CATEGORY_TEXTURE);
-        customCategoryItem = parseMaterial("headsMenu.customCategories.item", "BOOKSHELF");
-
-        searchTexture = config.getString("headsMenu.search.head", DEFAULT_SEARCH_TEXTURE);
-        searchItem = parseMaterial("headsMenu.search.item", "SPYGLASS");
-
         LOGGER.trace("Loaded Controls Config:");
         LOGGER.trace(" - backTexture = {}", backTexture);
         LOGGER.trace(" - backItem = {}", backItem);
@@ -175,16 +167,14 @@ public class Config {
         LOGGER.trace(" - infoItem = {}", infoItem);
         LOGGER.trace(" - nextTexture = {}", nextTexture);
         LOGGER.trace(" - nextItem = {}", nextItem);
-        LOGGER.trace(" - customCategoryTexture = {}", customCategoryTexture);
-        LOGGER.trace(" - customCategoryItem = {}", customCategoryItem);
-        LOGGER.trace(" - searchTexture = {}", searchTexture);
-        LOGGER.trace(" - searchItem = {}", searchItem);
     }
 
     private void loadEconomy() {
         economyProvider = config.getString("economy.provider", null);
         categoryPrices.clear();
-        if (!economyProvider.isEmpty() && !economyProvider.equalsIgnoreCase("NONE")) {
+        headPrices.clear();
+        
+        if (economyProvider != null && !economyProvider.isEmpty() && !economyProvider.equalsIgnoreCase("NONE")) {
             ConfigurationSection section = config.getConfigurationSection("economy.cost.category");
             if (section != null) {
                 for (String category : section.getKeys(false)) {
@@ -193,12 +183,14 @@ public class Config {
                     LOGGER.trace("Loaded price: category='{}' price={}", category, price);
                 }
             }
+            
             ConfigurationSection headSection = config.getConfigurationSection("economy.cost.head");
             if (headSection != null) {
                 for (String headId : headSection.getKeys(false)) {
                     try {
+                        int id = Integer.parseInt(headId);
                         double price = headSection.getDouble(headId, 0D);
-                        headPrices.put(Integer.parseInt(headId), price);
+                        headPrices.put(id, price);
                         LOGGER.trace("Loaded price: head='{}' price='{}'", headId, price);
                     } catch (NumberFormatException nfe) {
                         LOGGER.error("Invalid head id '{}' in config", headId);
@@ -289,15 +281,17 @@ public class Config {
     }
 
     public @Nullable Index[] resolveEnabledIndexes() {
-        if (!indexingEnabled) return null;
+        if (!indexingEnabled) {
+            return null;
+        }
 
-        List<Index> indexes = new ArrayList<>();
+        List<Index> indexes = new ArrayList<>(4);
         if (indexById) indexes.add(Index.ID);
         if (indexByCategory) indexes.add(Index.CATEGORY);
         if (indexByTexture) indexes.add(Index.TEXTURE);
         if (indexByTag) indexes.add(Index.TAG);
 
-        return indexes.isEmpty() ? null : indexes.toArray(new Index[0]);
+        return indexes.isEmpty() ? null : indexes.toArray(Index[]::new);
     }
 
     // === Getters ===
@@ -334,10 +328,6 @@ public class Config {
     public Material getInfoItem() { return infoItem; }
     public String getNextTexture() { return nextTexture; }
     public Material getNextItem() { return nextItem; }
-    public String getCustomCategoryTexture() { return customCategoryTexture; }
-    public Material getCustomCategoryItem() { return customCategoryItem; }
-    public String getSearchTexture() { return searchTexture; }
-    public Material getSearchItem() { return searchItem; }
 
     public @Nullable String getEconomyProvider() { return economyProvider; }
     public double getCategoryPrice(String id) { return categoryPrices.getOrDefault(id, 0D); }

@@ -21,7 +21,12 @@ import net.kyori.adventure.text.Component;
 public class FavoritesHeadsMenu extends PaginatedSimplePage {
 
     public FavoritesHeadsMenu(HeadDB plugin, GUI<Integer> gui, Component title, List<Head> heads, List<ItemStack> items) {
-        super(gui, title, 6, 48, 49, 50);
+        super(gui, title,
+            plugin.getMenuConfig().getSize("favorites", 6),
+            plugin.getMenuConfig().getButtonSlot("favorites", "controls.back", 48),
+            plugin.getMenuConfig().getButtonSlot("favorites", "controls.info", 49),
+            plugin.getMenuConfig().getButtonSlot("favorites", "controls.next", 50)
+        );
         preventInteraction();
 
         for (Head head : heads) {

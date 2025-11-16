@@ -1,5 +1,16 @@
 package com.github.thesilentpro.headdb.core;
 
+import java.util.List;
+import java.util.function.BiConsumer;
+
+import org.bukkit.Bukkit;
+import org.bukkit.command.PluginCommand;
+import org.bukkit.inventory.InventoryView;
+import org.bukkit.plugin.ServicePriority;
+import org.bukkit.plugin.java.JavaPlugin;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.github.thesilentpro.grim.listener.PageListeners;
 import com.github.thesilentpro.grim.page.registry.PageRegistry;
 import com.github.thesilentpro.headdb.api.HeadAPI;
@@ -21,16 +32,6 @@ import com.github.thesilentpro.headdb.core.util.Utils;
 import com.github.thesilentpro.headdb.implementation.BaseHeadAPI;
 import com.github.thesilentpro.headdb.implementation.BaseHeadDatabase;
 import com.github.thesilentpro.inputs.paper.PaperInputListener;
-import org.bukkit.Bukkit;
-import org.bukkit.command.PluginCommand;
-import org.bukkit.inventory.InventoryView;
-import org.bukkit.plugin.ServicePriority;
-import org.bukkit.plugin.java.JavaPlugin;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.List;
-import java.util.function.BiConsumer;
 
 public class HeadDB extends JavaPlugin {
 
@@ -158,26 +159,24 @@ public class HeadDB extends JavaPlugin {
         return this.configManager.getConfig();
     }
 
+    public com.github.thesilentpro.headdb.core.config.MenuConfig getMenuConfig() {
+        return this.configManager.getMenuConfig();
+    }
+
     public HeadAPI getHeadApi() {
         return headApi;
     }
 
     private static final BiConsumer<Config, List<Head>> DATABASE_UPDATE_ACTION = (config, heads) -> {
-        LOGGER.info("Loaded {} heads!", heads.size());
+        int total = heads.size();
+        LOGGER.info("Loaded {} heads!", total);
 
-        if (config.isPreloadHeads()) {
-            int total = heads.size();
-            if (total == 0) {
-                LOGGER.info("No heads to preload.");
-                return;
-            }
-
+        if (config.isPreloadHeads() && total > 0) {
             int[] milestones = {25, 50, 75, 100};
             int nextMilestoneIndex = 0;
 
             for (int i = 0; i < total; i++) {
-                Head head = heads.get(i);
-                head.getItem(); // Loads the ItemStack in memory
+                heads.get(i).getItem(); // Loads the ItemStack in memory
 
                 int percent = (int) (((i + 1) / (double) total) * 100);
                 if (nextMilestoneIndex < milestones.length && percent >= milestones[nextMilestoneIndex]) {

@@ -1,0 +1,139 @@
+# Конфигурация меню покупки
+# Purchase menu configuration
+
+# Название меню (поддерживает MiniMessage формат)
+# Menu title (supports MiniMessage format)
+# {name} - название головы, {cost} - стоимость
+# Примечание: title для purchase берется из messages/ (menu.purchase.name)
+title: "<red>HeadDB <gray>» <gold>{name} <gray>» <gold>Покупка"
+
+# Размер меню (количество строк: 1-6)
+# Menu size (number of rows: 1-6)
+size: 3
+
+# Позиция предмета для покупки
+# Item position
+itemSlot: 13
+
+# Кнопки покупки
+# Purchase buttons
+purchaseButtons:
+  # Купить 1 штуку
+  # Buy 1 item
+  buy1:
+    enabled: true
+    slot: 10
+    material: "LIME_STAINED_GLASS_PANE"
+    name: "<green>Купить x1"
+    lore:
+      - ""
+      - "<gray>Стоимость: <gold>{cost}"
+      - ""
+      - "<green>Нажмите, чтобы купить"
+  
+  # Купить 8 штук
+  # Buy 8 items
+  buy8:
+    enabled: true
+    slot: 11
+    material: "LIME_STAINED_GLASS_PANE"
+    name: "<green>Купить x8"
+    lore:
+      - ""
+      - "<gray>Стоимость: <gold>{cost}"
+      - ""
+      - "<green>Нажмите, чтобы купить"
+  
+  # Купить 16 штук
+  # Buy 16 items
+  buy16:
+    enabled: true
+    slot: 12
+    material: "LIME_STAINED_GLASS_PANE"
+    name: "<green>Купить x16"
+    lore:
+      - ""
+      - "<gray>Стоимость: <gold>{cost}"
+      - ""
+      - "<green>Нажмите, чтобы купить"
+  
+  # Купить 32 штуки
+  # Buy 32 items
+  buy32:
+    enabled: true
+    slot: 14
+    material: "LIME_STAINED_GLASS_PANE"
+    name: "<green>Купить x32"
+    lore:
+      - ""
+      - "<gray>Стоимость: <gold>{cost}"
+      - ""
+      - "<green>Нажмите, чтобы купить"
+  
+  # Купить 64 штуки
+  # Buy 64 items
+  buy64:
+    enabled: true
+    slot: 15
+    material: "LIME_STAINED_GLASS_PANE"
+    name: "<green>Купить x64"
+    lore:
+      - ""
+      - "<gray>Стоимость: <gold>{cost}"
+      - ""
+      - "<green>Нажмите, чтобы купить"
+  
+  # Купить стак (64 штуки)
+  # Buy stack (64 items)
+  buyStack:
+    enabled: true
+    slot: 16
+    material: "LIME_STAINED_GLASS_PANE"
+    name: "<green>Купить стак"
+    lore:
+      - ""
+      - "<gray>Количество: <yellow>64"
+      - "<gray>Стоимость: <gold>{cost}"
+      - ""
+      - "<green>Нажмите, чтобы купить"
+
+# Кнопка отмены
+# Cancel button
+cancelButton:
+  enabled: true
+  slot: 22
+  material: "RED_STAINED_GLASS_PANE"
+  name: "<red>Отмена"
+  lore:
+    - ""
+    - "<gray>Вернуться назад"
+
+# Заполнитель
+# Filler
+border:
+  enabled: true
+  material: "GRAY_STAINED_GLASS_PANE"
+  name: ""
+  lore: []
+
+# Настройки отображения предмета
+# Item display settings
+itemDisplay:
+  # Показывать стоимость в описании
+  # Show cost in lore
+  showCost: true
+  
+  # Показывать ID
+  # Show ID
+  showId: true
+  
+  # Формат описания
+  # Lore format
+  loreFormat:
+    - ""
+    - "<gray>ID: <yellow>{id}"
+    - "<gray>Категория: <gold>{category}"
+    - ""
+    - "<gray>Стоимость за 1 шт: <gold>{cost}"
+    - ""
+    - "<yellow>Выберите количество для покупки"
