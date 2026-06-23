@@ -107,7 +107,7 @@ jobs:
       - name: Publish to Hangar
         uses: benwoo1110/hangar-upload-action@v1
         with:
-          api_token: ${{ secrets.HANGAR_API_TOKEN }}
+          api_token: ${{ secrets.HANGAR_TOKEN }}
           slug: ${{ vars.HANGAR_PROJECT_SLUG }}
           version: ${{ steps.meta.outputs.version }}
           channel: ${{ steps.meta.outputs.hangar_channel }}

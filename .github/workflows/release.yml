@@ -111,10 +111,6 @@ jobs:
           cp headdb-platforms/headdb-paper/target/HeadDB.jar "$jar_name"
           sha256sum "$jar_name" > "${jar_name}.sha256"
 
-          test -f LICENSE
-          test -f LICENSES/Apache-2.0.txt
-          test -f LICENSES/GPL-3.0-or-later.txt
-
           echo "jar=${jar_name}" >> "$GITHUB_OUTPUT"
           echo "sha=${jar_name}.sha256" >> "$GITHUB_OUTPUT"
 
@@ -126,6 +122,7 @@ jobs:
           set -euo pipefail
 
           prerelease_flag=""
+
           if [[ "${{ steps.version.outputs.base_version }}" == *-* ]]; then
             prerelease_flag="--prerelease"
           fi
@@ -133,9 +130,6 @@ jobs:
           gh release create "${{ steps.version.outputs.tag }}" \
             "${{ steps.assets.outputs.jar }}" \
             "${{ steps.assets.outputs.sha }}" \
-            LICENSE \
-            LICENSES/Apache-2.0.txt \
-            LICENSES/GPL-3.0-or-later.txt \
             --target "${GITHUB_SHA}" \
             --title "HeadDB ${{ steps.version.outputs.build_version }}" \
             --notes "Build ${{ steps.version.outputs.build_version }} from commit ${GITHUB_SHA}." \
