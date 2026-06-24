@@ -31,7 +31,7 @@
         <maven-shade-plugin.version>3.6.2</maven-shade-plugin.version>
 
         <lib.atlas.version>32c85d1450</lib.atlas.version>
-        <lib.relay.version>c18bf437db</lib.relay.version>
+        <lib.relay.version>3fc62454e3</lib.relay.version>
         <lib.hermes.version>3505fd1883</lib.hermes.version>
         <lib.grafik.version>d78876b0e2</lib.grafik.version>
         <lib.prompts.version>c7122eab41</lib.prompts.version>

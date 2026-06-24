@@ -91,6 +91,7 @@ public final class RootCommand extends AbstractPaperCommandGroup {
         return CommandBuilder.<CommandSender>literal("hdb")
                 .description("HeadDB main command.")
                 .alias("headdb")
+                .suggestAliases(true)
                 .noArgs();
     }
 }
