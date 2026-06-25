@@ -3,7 +3,7 @@ import { defineConfig } from 'vitepress';
 export default defineConfig({
   title: 'HeadDB',
   description: 'Modern head database plugin for Paper and Folia servers.',
-  base: '/HeadDB/',
+  base: '/',
   cleanUrls: true,
   lastUpdated: true,
   head: [
