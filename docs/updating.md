@@ -11,17 +11,15 @@ HeadDB-<version>.jar
 HeadDB-<version>.jar.sha256
 ```
 
-Use the checksum file to verify the JAR when available:
+Verify checksums when available:
 
 ```bash
 sha256sum -c HeadDB-<version>.jar.sha256
 ```
 
-Checksums help detect corrupted or incomplete downloads. They are not a replacement for artifact signing, but they are useful release hygiene.
+Checksums help detect corrupted or incomplete downloads. They are useful release hygiene, but they are not a replacement for artifact signing.
 
 ## Manual update
-
-Recommended process:
 
 1. Stop the server.
 2. Back up `plugins/HeadDB/`.
@@ -67,21 +65,7 @@ Recommended production default is `false`.
 
 When automatic installation is enabled, HeadDB can retrieve a newer plugin JAR, validate that it is a HeadDB plugin JAR, keep a backup where possible, and place the new JAR where the server can load it on the next restart.
 
-HeadDB does not restart the server automatically. Restart the server to load a downloaded or staged update.
-
-## Messages
-
-When an update is available:
-
-```text
-New version available: <version> | Download: <link>
-```
-
-When a new version is downloaded:
-
-```text
-Downloaded new version: <version> | Restart the server to load it.
-```
+HeadDB does not restart the server automatically.
 
 ## Troubleshooting
 

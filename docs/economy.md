@@ -14,7 +14,7 @@ plugins/HeadDB/economy.yml
 | --- | --- |
 | Vault | Required when economy support is enabled. |
 | Economy provider | Any compatible economy plugin supported by Vault. |
-| HeadDB economy enabled | `enabled: true` in `economy.yml`. |
+| Economy enabled | `enabled: true` in `economy.yml`. |
 
 If economy is disabled, HeadDB does not charge players for heads.
 
@@ -32,13 +32,6 @@ prices:
   heads: {}
 ```
 
-Enable economy:
-
-```yaml
-enabled: true
-provider: vault
-```
-
 ## Pricing priority
 
 HeadDB resolves prices from most specific to least specific.
@@ -53,34 +46,12 @@ HeadDB resolves prices from most specific to least specific.
 
 ## Examples
 
-All heads free:
-
-```yaml
-prices:
-  any-head: 0.0
-  player-heads: 0.0
-  categories: {}
-  custom-categories: {}
-  heads: {}
-```
-
 Flat price:
 
 ```yaml
 prices:
   any-head: 10.0
   player-heads: 10.0
-  categories: {}
-  custom-categories: {}
-  heads: {}
-```
-
-Player heads cost more:
-
-```yaml
-prices:
-  any-head: 5.0
-  player-heads: 25.0
 ```
 
 Category prices:
@@ -91,15 +62,6 @@ prices:
   categories:
     blocks: 2.0
     decoration: 8.0
-```
-
-More Categories prices:
-
-```yaml
-prices:
-  custom-categories:
-    event_shop: 50.0
-    donor_heads: 100.0
 ```
 
 Per-head prices:
@@ -118,8 +80,7 @@ Quote keys that contain special characters.
 
 | Problem | Likely cause | Fix |
 | --- | --- | --- |
-| Heads are free | Economy disabled or price is `0.0`. | Set `enabled: true` and configure prices. |
+| Heads are free | Economy disabled or price is `0.0`. | Enable economy and configure prices. |
 | Economy unavailable | Vault or provider missing. | Install Vault and a compatible economy plugin. |
 | Player cannot buy | Insufficient balance or permission issue. | Check balance, permissions, and console. |
 | Wrong price | A more specific price overrides fallback. | Check per-head, custom-category, and category entries. |
-| YAML error | Unquoted keys with special characters. | Quote typed IDs under `heads`. |

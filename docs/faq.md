@@ -60,33 +60,9 @@ After a new JAR is downloaded or staged, the server must restart to load the new
 
 For most production servers, keep automatic installation disabled and use notifications/manual updates.
 
-Recommended:
-
-```yaml
-update-checker:
-  enabled: true
-
-auto-updater:
-  install-updates: false
-```
-
 ## What should I back up?
 
-Back up:
-
-```text
-plugins/HeadDB/config.yml
-plugins/HeadDB/economy.yml
-plugins/HeadDB/gui.yml
-plugins/HeadDB/messages/
-plugins/HeadDB/storage/headdb.db
-```
-
-The most important local-data file is `plugins/HeadDB/storage/headdb.db`.
-
-## Can I delete the cache?
-
-Usually yes, but HeadDB will need to refresh the public database again. Do not delete storage unless you intentionally want to remove local data.
+Back up `config.yml`, `economy.yml`, `gui.yml`, `messages/`, and `storage/headdb.db`.
 
 ## Can another plugin use HeadDB?
 

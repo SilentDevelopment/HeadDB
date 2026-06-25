@@ -14,13 +14,11 @@ HeadDB separates public database data from server-local mutable data. Public dat
 
 Remote heads come from the public HeadDB catalog. Server owners can browse, search, give, price, favorite, locally override, and hide/show them.
 
-Server owners do not need to manage the public database implementation.
-
 ## Local overrides
 
 Local overrides customize public remote heads for your server only.
 
-Supported concepts include:
+Supported concepts:
 
 - display name;
 - lore;
@@ -36,18 +34,7 @@ Use cases:
 - add local lore for shop information;
 - group heads differently for an event.
 
-Config:
-
-```yaml
-remote-overrides:
-  enabled: true
-```
-
 ## Player heads
-
-Player heads are generated from player profiles.
-
-Config:
 
 ```yaml
 player-heads:
@@ -63,20 +50,9 @@ Command:
 /hdb player <name|uuid> [player] [amount]
 ```
 
-Permissions:
-
-```text
-headdb.player-heads
-headdb.player-heads.others
-```
-
-Disable external lookup if you want HeadDB to use only local/known player profiles.
-
 ## More Heads
 
 More Heads are server-local custom heads.
-
-Config:
 
 ```yaml
 custom-heads:
@@ -107,34 +83,9 @@ custom:staff_pick_01
 
 More Categories are server-local custom categories. They are useful for shop groups, event rewards, seasonal menus, staff picks, donor cosmetics, and server-themed collections.
 
-Permissions:
-
-```text
-headdb.more-categories
-headdb.more-categories.admin
-```
-
 ## Favorites
 
 Favorites are stored per player and let players quickly reopen frequently used heads.
-
-Permissions:
-
-```text
-headdb.favorites
-headdb.gui.favorites
-headdb.gui.favorites.toggle
-```
-
-## Local storage
-
-Local mutable data is stored in SQLite by default:
-
-```text
-plugins/HeadDB/storage/headdb.db
-```
-
-This can include favorites, custom heads, local overrides, custom categories, and player-head cache data.
 
 ## Cache vs storage
 
@@ -143,14 +94,4 @@ This can include favorites, custom heads, local overrides, custom categories, an
 | `cache/` | Verified public database cache and runtime cache files. | Usually yes, but the plugin must refresh again. |
 | `storage/headdb.db` | Server-local durable data. | No, unless you intentionally want to delete local data. |
 
-## Backup recommendation
-
-Back up:
-
-```text
-plugins/HeadDB/config.yml
-plugins/HeadDB/economy.yml
-plugins/HeadDB/gui.yml
-plugins/HeadDB/messages/
-plugins/HeadDB/storage/headdb.db
-```
+Back up `config.yml`, `economy.yml`, `gui.yml`, `messages/`, and `storage/headdb.db`.

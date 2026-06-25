@@ -1,6 +1,6 @@
 # API
 
-HeadDB exposes a public API module for other plugins that want to integrate with the database, models, identifiers, queries, and service interfaces.
+HeadDB exposes a public API module for other plugins that want to integrate with database models, identifiers, queries, and service interfaces.
 
 ## Modules
 
@@ -10,7 +10,7 @@ HeadDB exposes a public API module for other plugins that want to integrate with
 | `headdb-core` | Core implementation used by HeadDB. External plugins normally do not depend on this. |
 | `headdb-platforms/headdb-paper` | Paper/Folia plugin runtime. External plugins should treat this as the installed server plugin. |
 
-Use `headdb-api` as a `provided` dependency when integrating from another plugin.
+Use `headdb-api` as a `provided` dependency.
 
 ## Maven dependency
 
@@ -27,15 +27,11 @@ Use the version matching the HeadDB release you target.
 
 ## Head IDs
 
-HeadDB uses typed IDs:
-
 ```text
 123
 custom:melon
 player:f16df3ef-06b8-443e-9166-fba6689585b4
 ```
-
-Example:
 
 ```java
 import io.github.silentdevelopment.headdb.model.HeadId;
@@ -106,19 +102,6 @@ public final class HeadLookupExample {
 
 ## Integration guidance
 
-Do:
+Do depend on `headdb-api`, handle loading/failed states, handle missing heads gracefully, and store HeadDB IDs instead of raw textures where possible.
 
-- depend on `headdb-api`, not internal Paper classes;
-- handle HeadDB being absent, disabled, loading, or failed;
-- handle missing heads gracefully;
-- store HeadDB IDs instead of raw textures where possible;
-- keep server-thread work minimal.
-
-Do not:
-
-- read cache files directly;
-- modify HeadDB storage while the server is running;
-- assume GUI internals are stable API;
-- assume a remote head ID will always exist forever.
-
-The API module is the intended integration surface. Internal implementation packages can change between releases.
+Do not read cache files directly, modify HeadDB storage while the server is running, depend on GUI internals, or assume a remote head ID will always exist forever.
