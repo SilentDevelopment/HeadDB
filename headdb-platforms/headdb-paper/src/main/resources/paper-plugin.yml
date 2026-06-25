@@ -45,6 +45,7 @@ permissions:
       headdb.head-edit: true
       headdb.gui-admin: true
       headdb.database: true
+      headdb.admin.update: true
       headdb.category.*: true
       headdb.command.help: true
 
@@ -52,6 +53,7 @@ permissions:
     description: Allows basic player HeadDB usage.
     children:
       headdb.command.help: true
+      headdb.command.version: true
       headdb.settings: true
       headdb.open: true
       headdb.browse: true
@@ -199,12 +201,16 @@ permissions:
       headdb.command.verify: true
       headdb.command.refresh: true
       headdb.command.reload: true
+      headdb.admin.update: true
       headdb.command.itemcache: true
 
   # Command actions
 
   headdb.command.help:
     description: Allows using /hdb help.
+
+  headdb.command.version:
+    description: Allows using /hdb version.
 
   headdb.command.status:
     description: Allows using /hdb status.
@@ -220,6 +226,9 @@ permissions:
 
   headdb.command.reload:
     description: Allows using /hdb reload.
+
+  headdb.admin.update:
+    description: Allows using /hdb update.
 
   headdb.command.search:
     description: Allows executing HeadDB searches with /hdb search and GUI search input.

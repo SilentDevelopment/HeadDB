@@ -71,7 +71,6 @@ public final class PluginConfig {
     @Comment("HTTP read timeout in seconds.")
     private int readTimeoutSeconds = 30;
 
-
     @Required
     @Key("storage.sqlite.file")
     @Comment({
@@ -131,6 +130,43 @@ public final class PluginConfig {
             "If true, /hdb opens the main GUI for players with headdb.gui.main."
     })
     private boolean guiOpenMainCommand = true;
+
+    @Key("update-checker.enabled")
+    @Comment({
+            "Update checker settings.",
+            "Checks the official HeadDB GitHub Releases feed for newer versions and builds.",
+            "The GitHub repository is hardcoded by the plugin."
+    })
+    private boolean updateCheckerEnabled = true;
+
+    @Key("update-checker.check-on-startup")
+    @Comment("Checks for updates shortly after HeadDB starts or reloads.")
+    private boolean updateCheckerCheckOnStartup = true;
+
+    @Key("update-checker.notify-console")
+    @Comment("Logs update notifications to console when an update is available.")
+    private boolean updateCheckerNotifyConsole = true;
+
+    @Key("update-checker.notify-admins")
+    @Comment("Notifies online players with headdb.admin.update when an update is available.")
+    private boolean updateCheckerNotifyAdmins = true;
+
+    @Key("update-checker.include-prereleases")
+    @Comment("Includes prerelease GitHub Releases such as alpha, beta, and rc versions.")
+    private boolean updateCheckerIncludePrereleases = true;
+
+    @Key("update-checker.include-builds")
+    @Comment("Includes newer build metadata releases such as 7.0.0-rc.2+build.5.")
+    private boolean updateCheckerIncludeBuilds = true;
+
+    @Key("auto-updater.install-updates")
+    @Comment({
+            "Auto updater settings.",
+            "If true, the newest plugin jar is installed in place when possible or staged in the server update folder.",
+            "The server is not restarted automatically. Restart the server to load the new version.",
+            "Disabled by default."
+    })
+    private boolean autoUpdaterInstallUpdates = false;
 
     @Key("debug")
     @Comment({
@@ -198,7 +234,6 @@ public final class PluginConfig {
         return Duration.ofSeconds(readTimeoutSeconds);
     }
 
-
     public @NotNull Path localStoreDatabase(@NotNull Path pluginDataDirectory) {
         Objects.requireNonNull(pluginDataDirectory, "pluginDataDirectory");
         return pluginDataDirectory.resolve(localStoreSqliteFile).normalize();
@@ -247,6 +282,34 @@ public final class PluginConfig {
 
     public boolean guiOpenMainCommand() {
         return guiOpenMainCommand;
+    }
+
+    public boolean updateCheckerEnabled() {
+        return updateCheckerEnabled;
+    }
+
+    public boolean updateCheckerCheckOnStartup() {
+        return updateCheckerCheckOnStartup;
+    }
+
+    public boolean updateCheckerNotifyConsole() {
+        return updateCheckerNotifyConsole;
+    }
+
+    public boolean updateCheckerNotifyAdmins() {
+        return updateCheckerNotifyAdmins;
+    }
+
+    public boolean updateCheckerIncludePrereleases() {
+        return updateCheckerIncludePrereleases;
+    }
+
+    public boolean updateCheckerIncludeBuilds() {
+        return updateCheckerIncludeBuilds;
+    }
+
+    public boolean autoUpdaterInstallUpdates() {
+        return autoUpdaterInstallUpdates;
     }
 
     public boolean isDebug() {

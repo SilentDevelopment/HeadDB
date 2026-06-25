@@ -10,6 +10,8 @@ import io.github.silentdevelopment.atlas.document.MutableCommentedConfigDocument
 import io.github.silentdevelopment.atlas.io.PathConfigResource;
 import org.jetbrains.annotations.NotNull;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Objects;
@@ -33,6 +35,8 @@ public final class ConfigLoader {
 
             if (!resource.exists()) {
                 generateDefaultConfig(resource, codec);
+            } else {
+                appendMissingDefaults(configPath);
             }
 
             BoundConfig<PluginConfig> boundConfig = ConfigBindings.config()
@@ -43,8 +47,6 @@ public final class ConfigLoader {
 
             PluginConfig config = boundConfig.value();
             config.validate();
-
-            saveConfig(resource, codec, config);
 
             return config;
         } catch (Exception exception) {
@@ -67,5 +69,16 @@ public final class ConfigLoader {
                 .build();
 
         loader.save(document);
+    }
+
+    private void appendMissingDefaults(@NotNull Path configPath) throws IOException {
+        String content = Files.readString(configPath, StandardCharsets.UTF_8);
+        String merged = ConfigDefaultsMerger.mergeMissingDefaults(content);
+
+        if (merged.equals(content)) {
+            return;
+        }
+
+        Files.writeString(configPath, merged, StandardCharsets.UTF_8);
     }
 }

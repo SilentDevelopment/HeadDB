@@ -35,6 +35,7 @@ public final class HelpFormatter {
 
         addSection(lines, sender, new HelpSection("General", List.of(
                 new HelpEntry(List.of("help"), "h", List.of(), "/hdb help", "Show this command reference.", Permissions.HELP),
+                new HelpEntry(List.of("version"), null, List.of(), "/hdb version", "Show version and build information.", Permissions.VERSION),
                 new HelpEntry(List.of("open"), "o", List.of(), "/hdb open", "Open the main HeadDB GUI.", Permissions.OPEN)
         )));
 
@@ -79,6 +80,7 @@ public final class HelpFormatter {
         )));
 
         addSection(lines, sender, new HelpSection("Admin", List.of(
+                new HelpEntry(List.of("update"), null, List.of(), "/hdb update", "Check for and download the latest version.", Permissions.UPDATE),
                 new HelpEntry(List.of("itemcache", "clear"), "ic clear", List.of(), "/hdb itemcache clear", "Clear generated item cache.", Permissions.ITEM_CACHE)
         )));
 

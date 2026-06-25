@@ -34,6 +34,7 @@ import io.github.silentdevelopment.headdb.paper.runtime.PluginRuntime;
 import io.github.silentdevelopment.headdb.paper.runtime.RuntimeDiagnostics;
 import io.github.silentdevelopment.headdb.paper.runtime.StartupChecks;
 import io.github.silentdevelopment.headdb.paper.service.PaperHeadDBService;
+import io.github.silentdevelopment.headdb.paper.updater.UpdateService;
 import io.github.silentdevelopment.hermes.id.LocaleId;
 import io.github.silentdevelopment.hermes.paper.core.Hermes;
 import io.github.silentdevelopment.hermes.paper.messenger.PaperMessenger;
@@ -59,6 +60,7 @@ public final class HeadDBPlugin extends JavaPlugin {
     private FavoriteHeadService favoriteHeadService;
     private CustomCategoryService customCategoryService;
     private EconomyService economyService;
+    private UpdateService updateService;
 
     @Override
     public void onEnable() {
@@ -74,6 +76,8 @@ public final class HeadDBPlugin extends JavaPlugin {
             getServer().getPluginManager().registerEvents(new HeadEditListener(this), this);
 
             registerCommands();
+            cleanupSuccessfulUpdateBackup();
+            startUpdater();
 
         } catch (ConfigException exception) {
             getSLF4JLogger().error("HeadDB config could not be loaded.", exception);
@@ -98,10 +102,17 @@ public final class HeadDBPlugin extends JavaPlugin {
             promptInputService.shutdown();
         }
 
+        if (updateService != null) {
+            updateService.close();
+        }
+
+        HeadDBMetrics.unregister(this);
+
         adminModes.clear();
         favoriteHeadService = null;
         customCategoryService = null;
         economyService = null;
+        updateService = null;
         runtime = null;
         config = null;
         guiConfig = null;
@@ -131,6 +142,7 @@ public final class HeadDBPlugin extends JavaPlugin {
         CustomCategoryService createdCustomCategoryService = new CustomCategoryService(localStoreDatabase);
         EconomyService createdEconomyService = EconomyService.create(this, loadedEconomyConfig);
         GuiService createdGuiService = new GuiService(this, createdItemFactory);
+        UpdateService createdUpdateService = new UpdateService(this, loadedConfig);
 
         RuntimeDiagnostics.logConfig(this, loadedConfig);
 
@@ -141,6 +153,7 @@ public final class HeadDBPlugin extends JavaPlugin {
         createdRuntime.start();
 
         PluginRuntime previousRuntime = this.runtime;
+        UpdateService previousUpdateService = this.updateService;
 
         this.config = loadedConfig;
         this.guiConfig = loadedGuiConfig;
@@ -152,9 +165,14 @@ public final class HeadDBPlugin extends JavaPlugin {
         this.favoriteHeadService = createdFavoriteHeadService;
         this.customCategoryService = createdCustomCategoryService;
         this.economyService = createdEconomyService;
+        this.updateService = createdUpdateService;
 
         clearItemCache();
         clearSearchCache();
+
+        if (previousUpdateService != null) {
+            previousUpdateService.close();
+        }
 
         if (previousRuntime != null) {
             previousRuntime.close();
@@ -165,6 +183,27 @@ public final class HeadDBPlugin extends JavaPlugin {
         registerServices();
 
         HeadDBMetrics.register(this);
+    }
+
+
+    public synchronized void startUpdater() {
+        UpdateService currentUpdateService = updateService;
+
+        if (currentUpdateService == null) {
+            throw new IllegalStateException("HeadDB update service is not initialized");
+        }
+
+        currentUpdateService.start();
+    }
+
+    public synchronized void cleanupSuccessfulUpdateBackup() {
+        UpdateService currentUpdateService = updateService;
+
+        if (currentUpdateService == null) {
+            throw new IllegalStateException("HeadDB update service is not initialized");
+        }
+
+        currentUpdateService.cleanupBackupAfterSuccessfulLoad();
     }
 
     public @NotNull HeadItemFactory itemFactory() {
@@ -269,6 +308,14 @@ public final class HeadDBPlugin extends JavaPlugin {
             throw new IllegalStateException("HeadDB economy service is not initialized");
         }
         return currentEconomyService;
+    }
+
+    public @NotNull UpdateService updater() {
+        UpdateService currentUpdateService = updateService;
+        if (currentUpdateService == null) {
+            throw new IllegalStateException("HeadDB update service is not initialized");
+        }
+        return currentUpdateService;
     }
 
     public @NotNull Messages messages() {
