@@ -12,7 +12,7 @@ export default defineConfig({
     ['meta', { property: 'og:description', content: 'Documentation for installing, configuring, and using HeadDB.' }]
   ],
   themeConfig: {
-    logo: '/logo.png',
+    logo: '/logo.svg',
     siteTitle: 'HeadDB',
     search: {
       provider: 'local'

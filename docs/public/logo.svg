@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="HeadDB logo">
+  <defs>
+    <linearGradient id="g" x1="16" x2="112" y1="16" y2="112" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#ef4444"/>
+      <stop offset="1" stop-color="#f59e0b"/>
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="28" fill="#18181b"/>
+  <rect x="24" y="24" width="80" height="80" rx="18" fill="url(#g)"/>
+  <rect x="42" y="46" width="14" height="14" rx="3" fill="#18181b"/>
+  <rect x="72" y="46" width="14" height="14" rx="3" fill="#18181b"/>
+  <rect x="48" y="76" width="32" height="8" rx="4" fill="#18181b"/>
+</svg>
