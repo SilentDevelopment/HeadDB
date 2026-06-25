@@ -1,0 +1,15 @@
+# HeadDB
+
+- [[Home]]
+- [[Installation]]
+- [[Getting Started]]
+- [[Commands]]
+- [[Permissions]]
+- [[Configuration]]
+- [[GUI]]
+- [[Heads and Local Data]]
+- [[Economy]]
+- [[Updating]]
+- [[API]]
+- [[Troubleshooting]]
+- [[FAQ]]
