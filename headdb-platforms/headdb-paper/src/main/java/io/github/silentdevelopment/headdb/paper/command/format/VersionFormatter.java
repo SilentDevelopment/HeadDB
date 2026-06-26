@@ -29,7 +29,13 @@ public final class VersionFormatter {
 
         BuildInfo buildInfo = BuildInfo.read(plugin);
         List<Component> lines = new ArrayList<>();
+
+        lines.add(Component.empty());
+        lines.add(Component.empty());
+
+        lines.add(Component.empty());
         lines.add(runningLine(plugin));
+        lines.add(Component.empty());
         lines.add(versionLine(buildInfo.version(), updateResult));
 
         if (plugin.config().isDebug()) {
@@ -38,6 +44,9 @@ public final class VersionFormatter {
             lines.add(field("Commit", value(buildInfo.commit())));
             lines.add(field("Timestamp", value(buildInfo.buildTime())));
         }
+
+        lines.add(Component.empty());
+        lines.add(Component.empty());
 
         return joinLines(lines);
     }
@@ -106,8 +115,7 @@ public final class VersionFormatter {
     }
 
     private static @NotNull Component field(@NotNull String key, @NotNull String value) {
-        return Component.text(key + ": ", NamedTextColor.GRAY)
-                .append(Component.text(value, NamedTextColor.GOLD));
+        return Component.text(key + ": ", NamedTextColor.GRAY).append(Component.text(value, NamedTextColor.GOLD));
     }
 
     private static @Nullable Component updateActions(@Nullable UpdateCheckResult updateResult) {

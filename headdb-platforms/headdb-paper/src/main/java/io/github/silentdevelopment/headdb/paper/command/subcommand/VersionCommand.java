@@ -31,6 +31,7 @@ public final class VersionCommand extends AbstractPaperCommand {
     @Override
     protected @NotNull Command buildCommand() {
         return PaperCommands.literal("version")
+                .alias("v")
                 .description("Shows plugin version and build information.")
                 .requirement(CommandRequirements.permission(Permissions.VERSION))
                 .noArgs()

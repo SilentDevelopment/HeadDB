@@ -157,7 +157,7 @@ public final class PluginConfig {
 
     @Key("update-checker.include-builds")
     @Comment("Includes newer build metadata releases such as 7.0.0-rc.2+build.5.")
-    private boolean updateCheckerIncludeBuilds = true;
+    private boolean updateCheckerIncludeBuilds = false;
 
     @Key("auto-updater.install-updates")
     @Comment({

@@ -127,35 +127,16 @@ public final class UpdateService {
             return;
         }
 
-        Path recordedActiveJar = pendingUpdate.activeJar().toAbsolutePath().normalize();
-
-        if (currentJar != null) {
+        if (currentJar != null && config.isDebug()) {
             Path normalizedCurrentJar = currentJar.toAbsolutePath().normalize();
+            Path recordedActiveJar = pendingUpdate.activeJar().toAbsolutePath().normalize();
 
-            if (!normalizedCurrentJar.equals(recordedActiveJar) && config.isDebug()) {
+            if (!normalizedCurrentJar.equals(recordedActiveJar)) {
                 plugin.getSLF4JLogger().debug(
                         "Loaded plugin jar path differs from the update record. Loaded={}, recorded={}.",
                         normalizedCurrentJar,
                         recordedActiveJar
                 );
-            }
-
-            String diskVersion = readJarVersion(normalizedCurrentJar);
-
-            if (diskVersion == null || diskVersion.isBlank()) {
-                plugin.getSLF4JLogger().warn("Update backup retained because the loaded plugin jar version could not be verified.");
-                return;
-            }
-
-            HeadDBVersion installed = HeadDBVersion.parse(diskVersion);
-
-            if (running.compareTo(installed) != 0) {
-                plugin.getSLF4JLogger().info(
-                        "Update backup retained because the jar on disk is version {} while the loaded version is {}. Restart is still required.",
-                        diskVersion,
-                        runningVersion
-                );
-                return;
             }
         }
 
@@ -166,6 +147,7 @@ public final class UpdateService {
         }
 
         deleteUpdateState();
+
         if (config.isDebug()) {
             plugin.getSLF4JLogger().debug(
                     "Removed the previous update backup after successfully loading version {}.",
@@ -235,6 +217,25 @@ public final class UpdateService {
         } catch (IOException exception) {
             plugin.getSLF4JLogger().warn("The previous update backup could not be deleted: {}", backup);
             debugFailure("Backup cleanup failure details.", exception);
+            return false;
+        }
+    }
+
+    private boolean deleteUnneededBackup(@NotNull Path backup) {
+        try {
+            boolean deleted = Files.deleteIfExists(backup);
+
+            if (deleted && config.isDebug()) {
+                plugin.getSLF4JLogger().debug(
+                        "Removed unneeded update backup because the active plugin jar was not replaced: {}.",
+                        backup.toAbsolutePath().normalize()
+                );
+            }
+
+            return true;
+        } catch (IOException exception) {
+            plugin.getSLF4JLogger().warn("An unneeded update backup could not be deleted: {}", backup);
+            debugFailure("Unneeded update backup cleanup failure details.", exception);
             return false;
         }
     }
@@ -369,6 +370,11 @@ public final class UpdateService {
             }
 
             Path fallback = moveDownloadedJarToUpdateDirectory(temporary, currentFileName);
+
+            if (deleteUnneededBackup(backup)) {
+                return new InstallResult(fallback, null);
+            }
+
             return new InstallResult(fallback, backup);
         }
     }
@@ -676,7 +682,7 @@ public final class UpdateService {
 
         return Component.text("New version available: ", NamedTextColor.GRAY)
                 .append(Component.text(release.tagName(), NamedTextColor.GOLD))
-                .append(Component.text(" | Download: ", NamedTextColor.GRAY))
+                .append(Component.text(" | Run /hdb reload or download: ", NamedTextColor.GRAY))
                 .append(link(url, url));
     }
 

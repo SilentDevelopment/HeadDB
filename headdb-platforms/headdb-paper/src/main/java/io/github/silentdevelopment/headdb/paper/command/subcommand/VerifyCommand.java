@@ -50,7 +50,6 @@ public final class VerifyCommand extends AbstractPaperCommand {
     @Override
     protected @NotNull Command buildCommand() {
         return PaperCommands.literal("verify")
-                .alias("v")
                 .description("Verifies the remote database without replacing the active database.")
                 .requirement(CommandRequirements.permission(Permissions.VERIFY))
                 .noArgs()
