@@ -46,8 +46,6 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
-          cache: maven
-          cache-dependency-path: '**/pom.xml'
 
       - name: Verify API and core
         run: mvn -B -ntp -pl headdb-api,headdb-core -am verify
@@ -79,11 +77,9 @@ jobs:
         with:
           distribution: temurin
           java-version: '25'
-          cache: maven
-          cache-dependency-path: '**/pom.xml'
 
       - name: Package Paper plugin
-        run: mvn -B -ntp -pl headdb-platforms/headdb-paper -am package
+        run: mvn -B -ntp -U -pl headdb-platforms/headdb-paper -am package
 
       - name: Inspect packaged plugin
         shell: bash
