@@ -79,7 +79,15 @@ jobs:
           java-version: '25'
 
       - name: Package Paper plugin
-        run: mvn -B -ntp -U -pl headdb-platforms/headdb-paper -am package
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mvn -B -ntp -U -pl headdb-platforms/headdb-paper -am package || {
+            echo "Initial Maven build failed. Clearing potentially corrupted Maven Resolver artifact and retrying once."
+            rm -rf "$HOME/.m2/repository/org/apache/maven/resolver/maven-resolver-named-locks/1.9.18"
+            mvn -B -ntp -U -pl headdb-platforms/headdb-paper -am package
+          }
 
       - name: Inspect packaged plugin
         shell: bash
