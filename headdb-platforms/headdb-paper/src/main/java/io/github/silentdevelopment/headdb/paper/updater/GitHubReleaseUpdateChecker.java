@@ -24,6 +24,7 @@ public final class GitHubReleaseUpdateChecker {
     public static final String REPOSITORY = "SilentDevelopment/HeadDB";
 
     private static final int MAX_RELEASES = 50;
+
     private final HttpClient httpClient;
     private final Duration readTimeout;
     private final String userAgent;
@@ -42,7 +43,11 @@ public final class GitHubReleaseUpdateChecker {
                 .build();
     }
 
-    public @NotNull UpdateCheckResult check(@NotNull String currentVersion, boolean includePrereleases, boolean includeBuilds) throws IOException, InterruptedException {
+    public @NotNull UpdateCheckResult check(
+            @NotNull String currentVersion,
+            boolean includePrereleases,
+            boolean includeBuilds
+    ) throws IOException, InterruptedException {
         Objects.requireNonNull(currentVersion, "currentVersion");
 
         HeadDBVersion current = HeadDBVersion.parse(currentVersion);
@@ -73,8 +78,12 @@ public final class GitHubReleaseUpdateChecker {
                 continue;
             }
 
+            if (isBuildReleaseTag(tagName)) {
+                continue;
+            }
+
             HeadDBVersion candidateVersion = HeadDBVersion.parse(tagName);
-            UpdateKind candidateKind = candidateVersion.updateKindComparedTo(current, includeBuilds);
+            UpdateKind candidateKind = candidateVersion.updateKindComparedTo(current, false);
 
             if (candidateKind == UpdateKind.NONE) {
                 continue;
@@ -118,7 +127,12 @@ public final class GitHubReleaseUpdateChecker {
         return parsed.getAsJsonArray();
     }
 
-    private static @NotNull GitHubRelease releaseFrom(@NotNull JsonObject object, @NotNull String tagName, boolean prerelease, @NotNull HeadDBVersion version) {
+    private static @NotNull GitHubRelease releaseFrom(
+            @NotNull JsonObject object,
+            @NotNull String tagName,
+            boolean prerelease,
+            @NotNull HeadDBVersion version
+    ) {
         String name = stringValue(object, "name");
 
         if (name == null || name.isBlank()) {
@@ -181,6 +195,10 @@ public final class GitHubReleaseUpdateChecker {
         }
 
         return fallback;
+    }
+
+    private static boolean isBuildReleaseTag(@NotNull String tagName) {
+        return tagName.toLowerCase(Locale.ROOT).contains("+build.");
     }
 
     private static @NotNull String encodeRepository(@NotNull String repository) {
