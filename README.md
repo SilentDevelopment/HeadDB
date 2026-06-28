@@ -83,7 +83,7 @@ Add the API module as a dependency if you want to integrate with HeadDB from ano
 <dependency>
     <groupId>io.github.silentdevelopment.headdb</groupId>
     <artifactId>headdb-api</artifactId>
-    <version>7.0.0-rc.2</version>
+    <version>7.0.0-rc.3</version>
     <scope>provided</scope>
 </dependency>
 ```
