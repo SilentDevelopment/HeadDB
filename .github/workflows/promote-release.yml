@@ -3,13 +3,17 @@ name: Promote Release
 on:
   workflow_dispatch:
     inputs:
-      source_tag:
-        description: Existing build release tag to promote, for example v7.0.0-rc.1+build.7
+      source_run_id:
+        description: GitHub Actions run ID containing the CI artifact to promote
         required: true
         type: string
-      target_tag:
-        description: Clean public release tag, for example v7.0.0-rc.1. Leave empty to strip +build.N automatically.
+      source_artifact_name:
+        description: Artifact name to promote. Leave empty if the run contains exactly one HeadDB-paper artifact.
         required: false
+        type: string
+      target_tag:
+        description: Clean public release tag, for example v7.0.0-rc.1
+        required: true
         type: string
       publish_modrinth:
         description: Publish promoted release to Modrinth
@@ -24,14 +28,15 @@ on:
 
 permissions:
   contents: write
+  actions: read
 
 concurrency:
-  group: promote-release-${{ inputs.source_tag }}-${{ inputs.target_tag }}
+  group: promote-release-${{ inputs.source_run_id }}-${{ inputs.target_tag }}
   cancel-in-progress: false
 
 jobs:
   promote:
-    name: Promote and publish release
+    name: Promote CI artifact and publish release
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
@@ -44,20 +49,13 @@ jobs:
         run: |
           set -euo pipefail
 
-          source_tag="${{ inputs.source_tag }}"
+          source_run_id="${{ inputs.source_run_id }}"
+          source_artifact_name="${{ inputs.source_artifact_name }}"
           target_tag="${{ inputs.target_tag }}"
 
-          if [[ "$source_tag" != v* ]]; then
-            source_tag="v${source_tag}"
-          fi
-
-          if [[ -z "$target_tag" ]]; then
-            if [[ "$source_tag" != *+build.* ]]; then
-              echo "target_tag is required when source_tag does not contain +build." >&2
-              exit 1
-            fi
-
-            target_tag="${source_tag%%+build.*}"
+          if [[ -z "$source_run_id" ]]; then
+            echo "source_run_id is required." >&2
+            exit 1
           fi
 
           if [[ "$target_tag" != v* ]]; then
@@ -69,39 +67,38 @@ jobs:
             exit 1
           fi
 
-          if [[ "$source_tag" == "$target_tag" ]]; then
-            echo "source_tag and target_tag must be different." >&2
-            exit 1
-          fi
-
-          if ! gh release view "$source_tag" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
-            echo "Source release does not exist: ${source_tag}" >&2
-            exit 1
-          fi
-
           if gh release view "$target_tag" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
             echo "Target release already exists: ${target_tag}" >&2
             exit 1
           fi
 
-          source_commit="$(
-            gh release view "$source_tag" \
+          run_json="$(
+            gh run view "$source_run_id" \
               --repo "${GITHUB_REPOSITORY}" \
-              --json targetCommitish \
-              --jq '.targetCommitish'
+              --json headSha,url,displayTitle,createdAt,status,conclusion
           )"
 
+          source_commit="$(jq -r '.headSha // ""' <<< "$run_json")"
+          source_url="$(jq -r '.url // ""' <<< "$run_json")"
+          source_title="$(jq -r '.displayTitle // ""' <<< "$run_json")"
+          source_created_at="$(jq -r '.createdAt // ""' <<< "$run_json")"
+          source_status="$(jq -r '.status // ""' <<< "$run_json")"
+          source_conclusion="$(jq -r '.conclusion // ""' <<< "$run_json")"
+
           if [[ -z "$source_commit" || "$source_commit" == "null" ]]; then
-            echo "Could not resolve target commit from source release: ${source_tag}" >&2
+            echo "Could not resolve source commit from workflow run: ${source_run_id}" >&2
             exit 1
           fi
 
-          source_url="$(
-            gh release view "$source_tag" \
-              --repo "${GITHUB_REPOSITORY}" \
-              --json url \
-              --jq '.url'
-          )"
+          if [[ "$source_status" != "completed" ]]; then
+            echo "Source workflow run is not completed: status=${source_status}" >&2
+            exit 1
+          fi
+
+          if [[ "$source_conclusion" != "success" ]]; then
+            echo "Source workflow run did not succeed: conclusion=${source_conclusion}" >&2
+            exit 1
+          fi
 
           target_version="${target_tag#v}"
 
@@ -119,16 +116,19 @@ jobs:
             hangar_channel="Beta"
           fi
 
-          echo "source_tag=${source_tag}" >> "$GITHUB_OUTPUT"
-          echo "target_tag=${target_tag}" >> "$GITHUB_OUTPUT"
-          echo "target_version=${target_version}" >> "$GITHUB_OUTPUT"
+          echo "source_run_id=${source_run_id}" >> "$GITHUB_OUTPUT"
+          echo "source_artifact_name=${source_artifact_name}" >> "$GITHUB_OUTPUT"
           echo "source_commit=${source_commit}" >> "$GITHUB_OUTPUT"
           echo "source_url=${source_url}" >> "$GITHUB_OUTPUT"
+          echo "source_title=${source_title}" >> "$GITHUB_OUTPUT"
+          echo "source_created_at=${source_created_at}" >> "$GITHUB_OUTPUT"
+          echo "target_tag=${target_tag}" >> "$GITHUB_OUTPUT"
+          echo "target_version=${target_version}" >> "$GITHUB_OUTPUT"
           echo "github_prerelease=${github_prerelease}" >> "$GITHUB_OUTPUT"
           echo "modrinth_channel=${modrinth_channel}" >> "$GITHUB_OUTPUT"
           echo "hangar_channel=${hangar_channel}" >> "$GITHUB_OUTPUT"
 
-      - name: Download source release jar
+      - name: Download source CI artifact
         id: asset
         shell: bash
         env:
@@ -138,15 +138,25 @@ jobs:
 
           mkdir -p dist/source dist/promoted
 
-          gh release download "${{ steps.meta.outputs.source_tag }}" \
-            --repo "${GITHUB_REPOSITORY}" \
-            --pattern "HeadDB-*.jar" \
-            --dir dist/source
+          if [[ -n "${{ steps.meta.outputs.source_artifact_name }}" ]]; then
+            gh run download "${{ steps.meta.outputs.source_run_id }}" \
+              --repo "${GITHUB_REPOSITORY}" \
+              --name "${{ steps.meta.outputs.source_artifact_name }}" \
+              --dir dist/source
+          else
+            gh run download "${{ steps.meta.outputs.source_run_id }}" \
+              --repo "${GITHUB_REPOSITORY}" \
+              --dir dist/source
+          fi
 
-          mapfile -t jars < <(find dist/source -maxdepth 1 -type f -name 'HeadDB-*.jar' | sort)
+          mapfile -t jars < <(
+            find dist/source -type f \( -name 'HeadDB.jar' -o -name 'HeadDB-*.jar' \) |
+              grep -Ev 'sources|javadoc|original' |
+              sort
+          )
 
           if [[ "${#jars[@]}" -ne 1 ]]; then
-            echo "Expected exactly one HeadDB jar in source release, found ${#jars[@]}." >&2
+            echo "Expected exactly one HeadDB jar in source artifact, found ${#jars[@]}." >&2
             printf '%s\n' "${jars[@]}" >&2
             exit 1
           fi
@@ -163,6 +173,15 @@ jobs:
 
           echo "jar=${promoted_jar}" >> "$GITHUB_OUTPUT"
           echo "sha=${promoted_sha}" >> "$GITHUB_OUTPUT"
+
+          mapfile -t build_json < <(find dist/source -type f -name 'build.json' | sort)
+
+          if [[ "${#build_json[@]}" -gt 0 ]]; then
+            cp "${build_json[0]}" dist/promoted/source-build.json
+            echo "build_json=dist/promoted/source-build.json" >> "$GITHUB_OUTPUT"
+          else
+            echo "build_json=" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Resolve previous public release tag
         id: previous
@@ -226,21 +245,32 @@ jobs:
           fi
 
           gh api "${args[@]}" > generated-release-notes.json
-
           jq -r '.body // ""' generated-release-notes.json > generated-body.md
 
           cat > release-notes.md <<EOF
           ## HeadDB ${{ steps.meta.outputs.target_version }}
 
-          This release promotes an already-built GitHub release artifact.
+          This release promotes a verified GitHub Actions CI artifact.
 
-          Source build: ${{ steps.meta.outputs.source_tag }}
-          Source release: ${{ steps.meta.outputs.source_url }}
+          Source run: ${{ steps.meta.outputs.source_run_id }}
+          Source workflow: ${{ steps.meta.outputs.source_url }}
           Source commit: ${{ steps.meta.outputs.source_commit }}
+          Source created at: ${{ steps.meta.outputs.source_created_at }}
 
-          The attached jar and .sha256 checksum are promoted from the source build release.
+          The attached jar and .sha256 checksum are promoted from the source CI artifact.
 
           EOF
+
+          if [[ -n "${{ steps.asset.outputs.build_json }}" ]]; then
+            {
+              echo "### Source build metadata"
+              echo
+              echo '```json'
+              cat "${{ steps.asset.outputs.build_json }}"
+              echo '```'
+              echo
+            } >> release-notes.md
+          fi
 
           cat generated-body.md >> release-notes.md
 

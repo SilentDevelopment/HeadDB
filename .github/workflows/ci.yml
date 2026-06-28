@@ -26,6 +26,7 @@ jobs:
     if: >-
       ${{
         github.event_name == 'workflow_dispatch' ||
+        github.event_name == 'pull_request' ||
         (
           !contains(github.event.head_commit.message, '[ci skip]') &&
           !contains(github.event.head_commit.message, '[skip ci]') &&
@@ -55,6 +56,7 @@ jobs:
     if: >-
       ${{
         github.event_name == 'workflow_dispatch' ||
+        github.event_name == 'pull_request' ||
         (
           !contains(github.event.head_commit.message, '[ci skip]') &&
           !contains(github.event.head_commit.message, '[skip ci]') &&
@@ -78,16 +80,52 @@ jobs:
           distribution: temurin
           java-version: '25'
 
+      - name: Resolve CI build version
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          base_version="$(mvn -B -ntp help:evaluate -Dexpression=project.version -q -DforceStdout)"
+          short_sha="${GITHUB_SHA::7}"
+
+          if [[ "$base_version" == *-SNAPSHOT ]]; then
+            release_base="${base_version%-SNAPSHOT}-snapshot"
+          else
+            release_base="$base_version"
+          fi
+
+          build_version="${release_base}+build.${GITHUB_RUN_NUMBER}"
+          artifact_version="$(printf '%s' "$build_version" | tr '+/' '--')"
+          artifact_name="HeadDB-paper-${artifact_version}-${short_sha}"
+
+          echo "base_version=${base_version}" >> "$GITHUB_OUTPUT"
+          echo "build_version=${build_version}" >> "$GITHUB_OUTPUT"
+          echo "build_number=${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
+          echo "build_attempt=${GITHUB_RUN_ATTEMPT}" >> "$GITHUB_OUTPUT"
+          echo "short_sha=${short_sha}" >> "$GITHUB_OUTPUT"
+          echo "artifact_name=${artifact_name}" >> "$GITHUB_OUTPUT"
+
       - name: Package Paper plugin
         shell: bash
         run: |
           set -euo pipefail
 
-          mvn -B -ntp -U -pl headdb-platforms/headdb-paper -am package || {
-            echo "Initial Maven build failed. Clearing potentially corrupted Maven Resolver artifact and retrying once."
-            rm -rf "$HOME/.m2/repository/org/apache/maven/resolver/maven-resolver-named-locks/1.9.18"
-            mvn -B -ntp -U -pl headdb-platforms/headdb-paper -am package
-          }
+          mvn -B -ntp -U -pl headdb-platforms/headdb-paper -am package \
+            -Dheaddb.build.version="${{ steps.version.outputs.build_version }}" \
+            -Dheaddb.build.base-version="${{ steps.version.outputs.base_version }}" \
+            -Dheaddb.build.number="${{ steps.version.outputs.build_number }}" \
+            -Dheaddb.build.attempt="${{ steps.version.outputs.build_attempt }}" \
+            -Dheaddb.build.commit="${{ github.sha }}" || {
+              echo "Initial Maven build failed. Clearing potentially corrupted Maven Resolver artifact and retrying once."
+              rm -rf "$HOME/.m2/repository/org/apache/maven/resolver/maven-resolver-named-locks/1.9.18"
+              mvn -B -ntp -U -pl headdb-platforms/headdb-paper -am package \
+                -Dheaddb.build.version="${{ steps.version.outputs.build_version }}" \
+                -Dheaddb.build.base-version="${{ steps.version.outputs.base_version }}" \
+                -Dheaddb.build.number="${{ steps.version.outputs.build_number }}" \
+                -Dheaddb.build.attempt="${{ steps.version.outputs.build_attempt }}" \
+                -Dheaddb.build.commit="${{ github.sha }}"
+            }
 
       - name: Inspect packaged plugin
         shell: bash
@@ -122,19 +160,69 @@ jobs:
           grep -Fq 'headdb.build.attempt=' /tmp/git.properties
           grep -Fq 'headdb.build.commit=' /tmp/git.properties
 
+      - name: Prepare CI artifact
+        shell: bash
+        env:
+          BUILD_VERSION: ${{ steps.version.outputs.build_version }}
+          BASE_VERSION: ${{ steps.version.outputs.base_version }}
+          BUILD_NUMBER: ${{ steps.version.outputs.build_number }}
+          BUILD_ATTEMPT: ${{ steps.version.outputs.build_attempt }}
+          SHORT_SHA: ${{ steps.version.outputs.short_sha }}
+          ARTIFACT_NAME: ${{ steps.version.outputs.artifact_name }}
+        run: |
+          set -euo pipefail
+
+          mkdir -p build/ci-artifact
+          cp headdb-platforms/headdb-paper/target/HeadDB.jar build/ci-artifact/HeadDB.jar
+
+          (
+            cd build/ci-artifact
+            sha256sum HeadDB.jar > HeadDB.jar.sha256
+          )
+
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          payload = {
+              "name": "HeadDB",
+              "artifact": os.environ["ARTIFACT_NAME"],
+              "version": os.environ["BUILD_VERSION"],
+              "baseVersion": os.environ["BASE_VERSION"],
+              "buildNumber": os.environ["BUILD_NUMBER"],
+              "runId": os.environ["GITHUB_RUN_ID"],
+              "runAttempt": os.environ["BUILD_ATTEMPT"],
+              "commit": os.environ["GITHUB_SHA"],
+              "shortCommit": os.environ["SHORT_SHA"],
+              "ref": os.environ["GITHUB_REF"],
+              "refName": os.environ["GITHUB_REF_NAME"],
+              "event": os.environ["GITHUB_EVENT_NAME"],
+              "repository": os.environ["GITHUB_REPOSITORY"],
+              "serverUrl": os.environ["GITHUB_SERVER_URL"],
+              "runUrl": f"{os.environ['GITHUB_SERVER_URL']}/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}",
+          }
+
+          Path("build/ci-artifact/build.json").write_text(
+              json.dumps(payload, indent=2, sort_keys=True) + "\n",
+              encoding="utf-8",
+          )
+          PY
+
       - name: Upload CI jar
         uses: actions/upload-artifact@v4
         with:
-          name: HeadDB-paper-${{ github.sha }}
-          path: headdb-platforms/headdb-paper/target/HeadDB.jar
+          name: ${{ steps.version.outputs.artifact_name }}
+          path: build/ci-artifact/
           if-no-files-found: error
-          retention-days: 14
+          retention-days: 30
 
   licenses:
     name: License files
     if: >-
       ${{
         github.event_name == 'workflow_dispatch' ||
+        github.event_name == 'pull_request' ||
         (
           !contains(github.event.head_commit.message, '[ci skip]') &&
           !contains(github.event.head_commit.message, '[skip ci]') &&
@@ -167,6 +255,7 @@ jobs:
     if: >-
       ${{
         github.event_name == 'workflow_dispatch' ||
+        github.event_name == 'pull_request' ||
         (
           !contains(github.event.head_commit.message, '[ci skip]') &&
           !contains(github.event.head_commit.message, '[skip ci]') &&

@@ -2,33 +2,25 @@ name: Release
 
 on:
   push:
-    branches:
-      - main
-      - master
-      - release
+    tags:
+      - 'v*'
   workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing clean release tag to publish, for example v7.0.0-rc.1
+        required: true
+        type: string
 
 permissions:
   contents: write
 
 concurrency:
-  group: release-${{ github.ref }}
+  group: release-${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
   cancel-in-progress: false
 
 jobs:
   release:
     name: Release Paper plugin
-    if: >-
-      ${{
-        github.event_name == 'workflow_dispatch' ||
-        (
-          !contains(github.event.head_commit.message, '[ci skip]') &&
-          !contains(github.event.head_commit.message, '[skip ci]') &&
-          !contains(github.event.head_commit.message, '[no ci]') &&
-          !contains(github.event.head_commit.message, '[skip actions]') &&
-          !contains(github.event.head_commit.message, '[actions skip]')
-        )
-      }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -39,66 +31,122 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Set up JDK 25
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '25'
-          cache: maven
-          cache-dependency-path: '**/pom.xml'
-
-      - name: Resolve build version
-        id: version
+      - name: Resolve release metadata
+        id: meta
         shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
 
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            tag="${{ inputs.tag }}"
+          else
+            tag="${GITHUB_REF_NAME}"
+          fi
+
+          if [[ "$tag" != v* ]]; then
+            tag="v${tag}"
+          fi
+
+          if [[ "$tag" == *+build.* ]]; then
+            echo "Build metadata tags are not public releases: ${tag}" >&2
+            exit 1
+          fi
+
+          git fetch --tags --force
+
+          if ! git rev-parse -q --verify "${tag}^{commit}" >/dev/null; then
+            echo "Tag does not exist: ${tag}" >&2
+            exit 1
+          fi
+
+          if gh release view "$tag" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
+            echo "GitHub Release already exists for tag: ${tag}" >&2
+            exit 1
+          fi
+
+          git checkout --detach "$tag"
+
+          commit="$(git rev-parse HEAD)"
+          version="${tag#v}"
           base_version="$(mvn -B -ntp help:evaluate -Dexpression=project.version -q -DforceStdout)"
-          short_sha="${GITHUB_SHA::7}"
 
           if [[ "$base_version" == *-SNAPSHOT ]]; then
             echo "Snapshot versions are not released." >&2
             exit 1
           fi
 
-          git fetch --tags --force
-
-          escaped_base="$(printf '%s\n' "$base_version" | sed 's/[][\.^$*+?{}|()]/\\&/g')"
-
-          latest_build="$(
-            {
-              git tag --list "v${base_version}+build.*" |
-                sed -E "s/^v${escaped_base}\+build\.([0-9]+)$/\1/" |
-                grep -E '^[0-9]+$' ||
-                true
-            } |
-              sort -n |
-              tail -n 1
-          )"
-
-          if [[ -z "$latest_build" ]]; then
-            build_number="1"
-          else
-            build_number="$((latest_build + 1))"
+          github_prerelease="false"
+          if [[ "$version" == *-* ]]; then
+            github_prerelease="true"
           fi
 
-          build_version="${base_version}+build.${build_number}"
-          tag="v${build_version}"
-
-          echo "base_version=${base_version}" >> "$GITHUB_OUTPUT"
-          echo "build_version=${build_version}" >> "$GITHUB_OUTPUT"
-          echo "build_number=${build_number}" >> "$GITHUB_OUTPUT"
-          echo "build_attempt=${GITHUB_RUN_ATTEMPT}" >> "$GITHUB_OUTPUT"
-          echo "short_sha=${short_sha}" >> "$GITHUB_OUTPUT"
           echo "tag=${tag}" >> "$GITHUB_OUTPUT"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "base_version=${base_version}" >> "$GITHUB_OUTPUT"
+          echo "commit=${commit}" >> "$GITHUB_OUTPUT"
+          echo "github_prerelease=${github_prerelease}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
 
       - name: Package Paper plugin
+        shell: bash
         run: |
-          mvn -B -ntp -pl headdb-platforms/headdb-paper -am clean package \
-            -Dheaddb.build.version="${{ steps.version.outputs.build_version }}" \
-            -Dheaddb.build.number="${{ steps.version.outputs.build_number }}" \
-            -Dheaddb.build.attempt="${{ steps.version.outputs.build_attempt }}" \
-            -Dheaddb.build.commit="${{ github.sha }}"
+          set -euo pipefail
+
+          mvn -B -ntp -U -pl headdb-platforms/headdb-paper -am clean package \
+            -Dheaddb.build.version="${{ steps.meta.outputs.version }}" \
+            -Dheaddb.build.base-version="${{ steps.meta.outputs.base_version }}" \
+            -Dheaddb.build.number="${{ github.run_number }}" \
+            -Dheaddb.build.attempt="${{ github.run_attempt }}" \
+            -Dheaddb.build.commit="${{ steps.meta.outputs.commit }}" || {
+              echo "Initial Maven build failed. Clearing potentially corrupted Maven Resolver artifact and retrying once."
+              rm -rf "$HOME/.m2/repository/org/apache/maven/resolver/maven-resolver-named-locks/1.9.18"
+              mvn -B -ntp -U -pl headdb-platforms/headdb-paper -am clean package \
+                -Dheaddb.build.version="${{ steps.meta.outputs.version }}" \
+                -Dheaddb.build.base-version="${{ steps.meta.outputs.base_version }}" \
+                -Dheaddb.build.number="${{ github.run_number }}" \
+                -Dheaddb.build.attempt="${{ github.run_attempt }}" \
+                -Dheaddb.build.commit="${{ steps.meta.outputs.commit }}"
+            }
+
+      - name: Inspect packaged plugin
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          jar_path="headdb-platforms/headdb-paper/target/HeadDB.jar"
+          test -s "$jar_path"
+
+          jar tf "$jar_path" | grep -Fxq 'paper-plugin.yml'
+          jar tf "$jar_path" | grep -Fxq 'messages/en-US.yml'
+          jar tf "$jar_path" | grep -Fxq 'gui.yml'
+          jar tf "$jar_path" | grep -Fxq 'economy.yml'
+          jar tf "$jar_path" | grep -Fxq 'git.properties'
+
+          unzip -p "$jar_path" paper-plugin.yml > /tmp/paper-plugin.yml
+
+          if grep -Eq '@project\.version@|\$\{project\.version\}|\$\{headdb\.build\.version\}' /tmp/paper-plugin.yml; then
+            echo 'paper-plugin.yml version was not filtered.' >&2
+            exit 1
+          fi
+
+          grep -Fq "main: io.github.silentdevelopment.headdb.paper.HeadDBPlugin" /tmp/paper-plugin.yml
+          grep -Fq "api-version: '1.21'" /tmp/paper-plugin.yml
+          grep -Fq 'Vault:' /tmp/paper-plugin.yml
+          grep -Fq 'required: false' /tmp/paper-plugin.yml
+
+          unzip -p "$jar_path" git.properties > /tmp/git.properties
+          grep -Fq "headdb.build.version=${{ steps.meta.outputs.version }}" /tmp/git.properties
+          grep -Fq "headdb.build.base-version=${{ steps.meta.outputs.base_version }}" /tmp/git.properties
+          grep -Fq 'headdb.build.number=' /tmp/git.properties
+          grep -Fq 'headdb.build.attempt=' /tmp/git.properties
+          grep -Fq "headdb.build.commit=${{ steps.meta.outputs.commit }}" /tmp/git.properties
 
       - name: Prepare release assets
         id: assets
@@ -106,29 +154,93 @@ jobs:
         run: |
           set -euo pipefail
 
-          jar_name="HeadDB-${{ steps.version.outputs.build_version }}.jar"
+          mkdir -p dist
 
-          cp headdb-platforms/headdb-paper/target/HeadDB.jar "$jar_name"
-          sha256sum "$jar_name" > "${jar_name}.sha256"
+          jar_name="HeadDB-${{ steps.meta.outputs.version }}.jar"
+          jar_path="dist/${jar_name}"
 
-          echo "jar=${jar_name}" >> "$GITHUB_OUTPUT"
-          echo "sha=${jar_name}.sha256" >> "$GITHUB_OUTPUT"
+          cp headdb-platforms/headdb-paper/target/HeadDB.jar "$jar_path"
 
-      - name: Create build release notes
+          (
+            cd dist
+            sha256sum "$jar_name" > "${jar_name}.sha256"
+          )
+
+          echo "jar=${jar_path}" >> "$GITHUB_OUTPUT"
+          echo "sha=${jar_path}.sha256" >> "$GITHUB_OUTPUT"
+
+      - name: Resolve previous public release tag
+        id: previous
         shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
 
-          {
-            echo "## HeadDB ${{ steps.version.outputs.build_version }}"
-            echo
-            echo "Build from commit: ${GITHUB_SHA}"
-            echo
-            echo "### Commit message"
-            echo
-            git log -1 --pretty=format:%s%n%n%b
-            echo
-          } > release-notes.md
+          current_tag="${{ steps.meta.outputs.tag }}"
+
+          previous_tag="$(
+            gh release list \
+              --repo "${GITHUB_REPOSITORY}" \
+              --limit 100 \
+              --json tagName,isDraft,publishedAt \
+              --jq '
+                [
+                  .[]
+                  | select(.isDraft == false)
+                  | select(.tagName != "'"${current_tag}"'")
+                  | select(.tagName | contains("+build.") | not)
+                ]
+                | sort_by(.publishedAt)
+                | reverse
+                | .[0].tagName // ""
+              '
+          )"
+
+          echo "tag=${previous_tag}" >> "$GITHUB_OUTPUT"
+
+          if [[ -n "$previous_tag" ]]; then
+            echo "Previous public release: ${previous_tag}"
+          else
+            echo "No previous public release found."
+          fi
+
+      - name: Generate release notes
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          args=(
+            repos/${GITHUB_REPOSITORY}/releases/generate-notes
+            --method POST
+            --field tag_name="${{ steps.meta.outputs.tag }}"
+            --field target_commitish="${{ steps.meta.outputs.commit }}"
+          )
+
+          if [[ -n "${{ steps.previous.outputs.tag }}" ]]; then
+            args+=(--field previous_tag_name="${{ steps.previous.outputs.tag }}")
+          fi
+
+          if gh api "repos/${GITHUB_REPOSITORY}/contents/.github/release.yml?ref=${{ steps.meta.outputs.commit }}" >/dev/null 2>&1; then
+            args+=(--field configuration_file_path=".github/release.yml")
+          elif gh api "repos/${GITHUB_REPOSITORY}/contents/.github/release.yaml?ref=${{ steps.meta.outputs.commit }}" >/dev/null 2>&1; then
+            args+=(--field configuration_file_path=".github/release.yaml")
+          fi
+
+          gh api "${args[@]}" > generated-release-notes.json
+          jq -r '.body // ""' generated-release-notes.json > generated-body.md
+
+          cat > release-notes.md <<EOF
+          ## HeadDB ${{ steps.meta.outputs.version }}
+
+          Built from tag: ${{ steps.meta.outputs.tag }}
+          Commit: ${{ steps.meta.outputs.commit }}
+
+          EOF
+
+          cat generated-body.md >> release-notes.md
 
       - name: Create GitHub Release
         env:
@@ -137,16 +249,18 @@ jobs:
         run: |
           set -euo pipefail
 
-          prerelease_flag=""
+          args=(
+            "${{ steps.meta.outputs.tag }}"
+            "${{ steps.assets.outputs.jar }}"
+            "${{ steps.assets.outputs.sha }}"
+            --repo "${GITHUB_REPOSITORY}"
+            --target "${{ steps.meta.outputs.commit }}"
+            --title "HeadDB ${{ steps.meta.outputs.version }}"
+            --notes-file release-notes.md
+          )
 
-          if [[ "${{ steps.version.outputs.base_version }}" == *-* ]]; then
-            prerelease_flag="--prerelease"
+          if [[ "${{ steps.meta.outputs.github_prerelease }}" == "true" ]]; then
+            args+=(--prerelease)
           fi
 
-          gh release create "${{ steps.version.outputs.tag }}" \
-            "${{ steps.assets.outputs.jar }}" \
-            "${{ steps.assets.outputs.sha }}" \
-            --target "${GITHUB_SHA}" \
-            --title "HeadDB ${{ steps.version.outputs.build_version }}" \
-            --notes-file release-notes.md \
-            ${prerelease_flag}
+          gh release create "${args[@]}"
