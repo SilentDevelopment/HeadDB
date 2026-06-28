@@ -7,41 +7,38 @@ import io.github.silentdevelopment.relay.command.Command;
 import io.github.silentdevelopment.relay.paper.command.AbstractPaperCommand;
 import io.github.silentdevelopment.relay.paper.command.PaperCommands;
 import io.github.silentdevelopment.relay.paper.command.context.PaperCommandContext;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Objects;
 
-public final class ReloadCommand extends AbstractPaperCommand {
+public final class UpdateCommand extends AbstractPaperCommand {
 
     private final HeadDBPlugin plugin;
 
-    public ReloadCommand(@NotNull HeadDBPlugin plugin) {
+    public UpdateCommand(@NotNull HeadDBPlugin plugin) {
         this.plugin = Objects.requireNonNull(plugin, "plugin");
     }
 
     @Override
     protected void handle(@NotNull PaperCommandContext context) {
-        context.reply(plugin.messages().reloadStarted(context.sender()));
+        boolean accepted = plugin.updater().checkAndInstallAsync(context.sender());
 
-        try {
-            plugin.reload();
-            plugin.startUpdater();
-        } catch (Exception exception) {
-            plugin.getSLF4JLogger().error("Failed to reload HeadDB.", exception);
-            context.reply(plugin.messages().reloadFailed(context.sender()));
+        if (!accepted) {
             return;
         }
 
-        context.reply(plugin.messages().reloadSuccess(context.sender()));
+        context.reply(Component.text("Checking for updates...", NamedTextColor.GRAY));
     }
 
     @Override
     protected @NotNull Command buildCommand() {
-        return PaperCommands.literal("reload")
-                .aliases("rl", "rel")
-                .description("Reloads configuration and runtime.")
-                .requirement(CommandRequirements.permission(Permissions.RELOAD))
+        return PaperCommands.literal("update")
+                .description("Checks for updates and installs the latest available version.")
+                .requirement(CommandRequirements.permission(Permissions.UPDATE))
                 .noArgs()
                 .build();
     }
+
 }

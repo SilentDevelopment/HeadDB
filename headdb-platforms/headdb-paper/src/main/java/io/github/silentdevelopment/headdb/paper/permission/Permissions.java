@@ -12,11 +12,13 @@ public final class Permissions {
     public static final String ADMIN = "headdb.admin";
 
     public static final String HELP = "headdb.command.help";
+    public static final String VERSION = "headdb.command.version";
     public static final String STATUS = "headdb.command.status";
     public static final String DEBUG = "headdb.command.debug";
     public static final String VERIFY = "headdb.command.verify";
     public static final String REFRESH = "headdb.command.refresh";
     public static final String RELOAD = "headdb.command.reload";
+    public static final String UPDATE = "headdb.admin.update";
     public static final String SEARCH = "headdb.command.search";
     public static final String INFO = "headdb.command.info";
     public static final String GIVE = "headdb.command.give";

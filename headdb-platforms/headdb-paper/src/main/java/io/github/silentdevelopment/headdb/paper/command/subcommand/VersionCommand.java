@@ -2,45 +2,38 @@ package io.github.silentdevelopment.headdb.paper.command.subcommand;
 
 import io.github.silentdevelopment.headdb.paper.HeadDBPlugin;
 import io.github.silentdevelopment.headdb.paper.command.CommandRequirements;
+import io.github.silentdevelopment.headdb.paper.command.format.VersionFormatter;
 import io.github.silentdevelopment.headdb.paper.permission.Permissions;
 import io.github.silentdevelopment.relay.command.Command;
 import io.github.silentdevelopment.relay.paper.command.AbstractPaperCommand;
 import io.github.silentdevelopment.relay.paper.command.PaperCommands;
 import io.github.silentdevelopment.relay.paper.command.context.PaperCommandContext;
+import net.kyori.adventure.text.Component;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Objects;
 
-public final class ReloadCommand extends AbstractPaperCommand {
+public final class VersionCommand extends AbstractPaperCommand {
 
     private final HeadDBPlugin plugin;
 
-    public ReloadCommand(@NotNull HeadDBPlugin plugin) {
+    public VersionCommand(@NotNull HeadDBPlugin plugin) {
         this.plugin = Objects.requireNonNull(plugin, "plugin");
     }
 
     @Override
     protected void handle(@NotNull PaperCommandContext context) {
-        context.reply(plugin.messages().reloadStarted(context.sender()));
-
-        try {
-            plugin.reload();
-            plugin.startUpdater();
-        } catch (Exception exception) {
-            plugin.getSLF4JLogger().error("Failed to reload HeadDB.", exception);
-            context.reply(plugin.messages().reloadFailed(context.sender()));
-            return;
+        for (Component line : VersionFormatter.command(plugin)) {
+            context.reply(line);
         }
-
-        context.reply(plugin.messages().reloadSuccess(context.sender()));
     }
 
     @Override
     protected @NotNull Command buildCommand() {
-        return PaperCommands.literal("reload")
-                .aliases("rl", "rel")
-                .description("Reloads configuration and runtime.")
-                .requirement(CommandRequirements.permission(Permissions.RELOAD))
+        return PaperCommands.literal("version")
+                .alias("v")
+                .description("Shows plugin version and build information.")
+                .requirement(CommandRequirements.permission(Permissions.VERSION))
                 .noArgs()
                 .build();
     }

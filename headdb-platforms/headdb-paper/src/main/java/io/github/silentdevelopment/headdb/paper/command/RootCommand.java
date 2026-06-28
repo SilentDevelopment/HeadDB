@@ -18,7 +18,9 @@ import io.github.silentdevelopment.headdb.paper.command.subcommand.RefreshComman
 import io.github.silentdevelopment.headdb.paper.command.subcommand.ReloadCommand;
 import io.github.silentdevelopment.headdb.paper.command.subcommand.StatusCommand;
 import io.github.silentdevelopment.headdb.paper.command.subcommand.TagsCommand;
+import io.github.silentdevelopment.headdb.paper.command.subcommand.UpdateCommand;
 import io.github.silentdevelopment.headdb.paper.command.subcommand.VerifyCommand;
+import io.github.silentdevelopment.headdb.paper.command.subcommand.VersionCommand;
 import io.github.silentdevelopment.headdb.paper.command.subcommand.search.SearchCommand;
 import io.github.silentdevelopment.headdb.paper.permission.Permissions;
 import io.github.silentdevelopment.relay.command.CommandDefinition;
@@ -42,11 +44,13 @@ public final class RootCommand extends AbstractPaperCommandGroup {
         this.plugin = Objects.requireNonNull(plugin, "plugin");
         this.children = List.of(
                 new HelpCommand(plugin),
+                new VersionCommand(plugin),
                 new StatusCommand(plugin),
                 new DebugCommand(plugin),
                 new VerifyCommand(plugin),
                 new RefreshCommand(plugin),
                 new ReloadCommand(plugin),
+                new UpdateCommand(plugin),
                 new GiveCommand(plugin),
                 new PlayerCommand(plugin),
                 new CustomCommand(plugin),
