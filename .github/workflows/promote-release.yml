@@ -1,5 +1,3 @@
-# .github/workflows/promote-release.yml
-
 name: Promote Release
 
 on:
@@ -156,15 +154,83 @@ jobs:
           promoted_jar="dist/promoted/HeadDB-${{ steps.meta.outputs.target_version }}.jar"
           cp "${jars[0]}" "$promoted_jar"
 
-          echo "jar=${promoted_jar}" >> "$GITHUB_OUTPUT"
+          promoted_sha="${promoted_jar}.sha256"
 
-      - name: Create release notes
+          (
+            cd "$(dirname "$promoted_jar")"
+            sha256sum "$(basename "$promoted_jar")" > "$(basename "$promoted_sha")"
+          )
+
+          echo "jar=${promoted_jar}" >> "$GITHUB_OUTPUT"
+          echo "sha=${promoted_sha}" >> "$GITHUB_OUTPUT"
+
+      - name: Resolve previous public release tag
+        id: previous
         shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
 
-          cat > release-notes.md <<'EOF'
-          HeadDB ${{ steps.meta.outputs.target_version }}
+          current_tag="${{ steps.meta.outputs.target_tag }}"
+
+          previous_tag="$(
+            gh release list \
+              --repo "${GITHUB_REPOSITORY}" \
+              --limit 100 \
+              --json tagName,isDraft,publishedAt \
+              --jq '
+                [
+                  .[]
+                  | select(.isDraft == false)
+                  | select(.tagName != "'"${current_tag}"'")
+                  | select(.tagName | contains("+build.") | not)
+                ]
+                | sort_by(.publishedAt)
+                | reverse
+                | .[0].tagName // ""
+              '
+          )"
+
+          echo "tag=${previous_tag}" >> "$GITHUB_OUTPUT"
+
+          if [[ -n "$previous_tag" ]]; then
+            echo "Previous public release: ${previous_tag}"
+          else
+            echo "No previous public release found."
+          fi
+
+      - name: Generate release notes
+        id: notes
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          args=(
+            repos/${GITHUB_REPOSITORY}/releases/generate-notes
+            --method POST
+            --field tag_name="${{ steps.meta.outputs.target_tag }}"
+            --field target_commitish="${{ steps.meta.outputs.source_commit }}"
+          )
+
+          if [[ -n "${{ steps.previous.outputs.tag }}" ]]; then
+            args+=(--field previous_tag_name="${{ steps.previous.outputs.tag }}")
+          fi
+
+          if gh api "repos/${GITHUB_REPOSITORY}/contents/.github/release.yml?ref=${{ steps.meta.outputs.source_commit }}" >/dev/null 2>&1; then
+            args+=(--field configuration_file_path=".github/release.yml")
+          elif gh api "repos/${GITHUB_REPOSITORY}/contents/.github/release.yaml?ref=${{ steps.meta.outputs.source_commit }}" >/dev/null 2>&1; then
+            args+=(--field configuration_file_path=".github/release.yaml")
+          fi
+
+          gh api "${args[@]}" > generated-release-notes.json
+
+          jq -r '.body // ""' generated-release-notes.json > generated-body.md
+
+          cat > release-notes.md <<EOF
+          ## HeadDB ${{ steps.meta.outputs.target_version }}
 
           This release promotes an already-built GitHub release artifact.
 
@@ -172,8 +238,19 @@ jobs:
           Source release: ${{ steps.meta.outputs.source_url }}
           Source commit: ${{ steps.meta.outputs.source_commit }}
 
-          The attached jar is the promoted jar from the source build release.
+          The attached jar and .sha256 checksum are promoted from the source build release.
+
           EOF
+
+          cat generated-body.md >> release-notes.md
+
+          delimiter="RELEASE_NOTES_$(date +%s)_${RANDOM}"
+
+          {
+            echo "body<<${delimiter}"
+            cat release-notes.md
+            echo "${delimiter}"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Create promoted GitHub release
         shell: bash
@@ -185,6 +262,7 @@ jobs:
           args=(
             "${{ steps.meta.outputs.target_tag }}"
             "${{ steps.asset.outputs.jar }}"
+            "${{ steps.asset.outputs.sha }}"
             --repo "${GITHUB_REPOSITORY}"
             --target "${{ steps.meta.outputs.source_commit }}"
             --title "HeadDB ${{ steps.meta.outputs.target_version }}"
@@ -206,12 +284,7 @@ jobs:
           version: ${{ steps.meta.outputs.target_version }}
           name: HeadDB ${{ steps.meta.outputs.target_version }}
           channel: ${{ steps.meta.outputs.modrinth_channel }}
-          changelog: |
-            HeadDB ${{ steps.meta.outputs.target_version }}
-
-            Promoted from ${{ steps.meta.outputs.source_tag }}.
-
-            Source release: ${{ steps.meta.outputs.source_url }}
+          changelog: ${{ steps.notes.outputs.body }}
           loaders: |-
             paper
             folia
@@ -229,12 +302,7 @@ jobs:
           slug: ${{ vars.HANGAR_PROJECT_SLUG }}
           version: ${{ steps.meta.outputs.target_version }}
           channel: ${{ steps.meta.outputs.hangar_channel }}
-          description: |
-            HeadDB ${{ steps.meta.outputs.target_version }}
-
-            Promoted from ${{ steps.meta.outputs.source_tag }}.
-
-            Source release: ${{ steps.meta.outputs.source_url }}
+          description: ${{ steps.notes.outputs.body }}
           files: |-
             [
               {

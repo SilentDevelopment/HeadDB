@@ -1,2 +1,5 @@
 jdk:
   - openjdk25
+
+install:
+  - source "$HOME/.sdkman/bin/sdkman-init.sh" && sdk install maven 3.9.9 && sdk use maven 3.9.9 && mvn -B -v && mvn -B clean install -DskipTests

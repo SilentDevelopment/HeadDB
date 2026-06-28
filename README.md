@@ -42,7 +42,7 @@ headdb-platforms/headdb-paper
 
 ## Plugin usage
 
-Wiki: Coming Soon
+Documentation: https://silentdevelopment.github.io/HeadDB/
 
 Build or download the Paper plugin jar and place it in your server `plugins` folder.
 
@@ -170,6 +170,14 @@ The plugin jar is produced at:
 
 ```text
 headdb-platforms/headdb-paper/target/HeadDB.jar
+```
+
+Build the documentation site locally:
+
+```powershell
+cd docs
+npm install
+npm run docs:build
 ```
 
 ## License

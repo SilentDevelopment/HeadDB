@@ -114,6 +114,22 @@ jobs:
           echo "jar=${jar_name}" >> "$GITHUB_OUTPUT"
           echo "sha=${jar_name}.sha256" >> "$GITHUB_OUTPUT"
 
+      - name: Create build release notes
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          {
+            echo "## HeadDB ${{ steps.version.outputs.build_version }}"
+            echo
+            echo "Build from commit: ${GITHUB_SHA}"
+            echo
+            echo "### Commit message"
+            echo
+            git log -1 --pretty=format:%s%n%n%b
+            echo
+          } > release-notes.md
+
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -132,5 +148,5 @@ jobs:
             "${{ steps.assets.outputs.sha }}" \
             --target "${GITHUB_SHA}" \
             --title "HeadDB ${{ steps.version.outputs.build_version }}" \
-            --notes "Build ${{ steps.version.outputs.build_version }} from commit ${GITHUB_SHA}." \
+            --notes-file release-notes.md \
             ${prerelease_flag}
