@@ -12,7 +12,7 @@ on:
         required: false
         type: string
       target_tag:
-        description: Clean public release tag, for example v7.0.0-rc.1
+        description: Clean public release tag, for example 7.0.0-rc.1
         required: true
         type: string
       publish_modrinth:
@@ -58,8 +58,19 @@ jobs:
             exit 1
           fi
 
-          if [[ "$target_tag" != v* ]]; then
-            target_tag="v${target_tag}"
+          if [[ -z "$target_tag" ]]; then
+            echo "target_tag is required." >&2
+            exit 1
+          fi
+
+          if [[ "$target_tag" == v* ]]; then
+            echo "Release tags must not start with v: ${target_tag}" >&2
+            exit 1
+          fi
+
+          if [[ "$target_tag" != [0-9]* ]]; then
+            echo "Release tags must start with a version number, for example 7.0.0-rc.1: ${target_tag}" >&2
+            exit 1
           fi
 
           if [[ "$target_tag" == *+build.* ]]; then
@@ -100,7 +111,7 @@ jobs:
             exit 1
           fi
 
-          target_version="${target_tag#v}"
+          target_version="${target_tag}"
 
           github_prerelease="false"
           modrinth_channel="release"
@@ -247,19 +258,19 @@ jobs:
           gh api "${args[@]}" > generated-release-notes.json
           jq -r '.body // ""' generated-release-notes.json > generated-body.md
 
-          cat > release-notes.md <<EOF
-          ## HeadDB ${{ steps.meta.outputs.target_version }}
-
-          This release promotes a verified GitHub Actions CI artifact.
-
-          Source run: ${{ steps.meta.outputs.source_run_id }}
-          Source workflow: ${{ steps.meta.outputs.source_url }}
-          Source commit: ${{ steps.meta.outputs.source_commit }}
-          Source created at: ${{ steps.meta.outputs.source_created_at }}
-
-          The attached jar and .sha256 checksum are promoted from the source CI artifact.
-
-          EOF
+          {
+            echo "## ${{ steps.meta.outputs.target_version }}"
+            echo
+            echo "This release promotes a verified GitHub Actions CI artifact."
+            echo
+            echo "Source run: ${{ steps.meta.outputs.source_run_id }}"
+            echo "Source workflow: ${{ steps.meta.outputs.source_url }}"
+            echo "Source commit: ${{ steps.meta.outputs.source_commit }}"
+            echo "Source created at: ${{ steps.meta.outputs.source_created_at }}"
+            echo
+            echo "The attached jar and .sha256 checksum are promoted from the source CI artifact."
+            echo
+          } > release-notes.md
 
           if [[ -n "${{ steps.asset.outputs.build_json }}" ]]; then
             {
@@ -295,7 +306,7 @@ jobs:
             "${{ steps.asset.outputs.sha }}"
             --repo "${GITHUB_REPOSITORY}"
             --target "${{ steps.meta.outputs.source_commit }}"
-            --title "HeadDB ${{ steps.meta.outputs.target_version }}"
+            --title "${{ steps.meta.outputs.target_version }}"
             --notes-file release-notes.md
           )
 
@@ -312,7 +323,7 @@ jobs:
           token: ${{ secrets.MODRINTH_TOKEN }}
           project: ${{ vars.MODRINTH_PROJECT_ID }}
           version: ${{ steps.meta.outputs.target_version }}
-          name: HeadDB ${{ steps.meta.outputs.target_version }}
+          name: ${{ steps.meta.outputs.target_version }}
           channel: ${{ steps.meta.outputs.modrinth_channel }}
           changelog: ${{ steps.notes.outputs.body }}
           loaders: |-

@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: GitHub release tag to publish, for example v7.0.0-rc.1
+        description: GitHub release tag to publish, for example 7.0.0-rc.1
         required: true
         type: string
 
@@ -42,7 +42,22 @@ jobs:
             tag="${{ github.event.release.tag_name }}"
           fi
 
-          version="${tag#v}"
+          if [[ -z "$tag" ]]; then
+            echo "Release tag is required." >&2
+            exit 1
+          fi
+
+          if [[ "$tag" == v* ]]; then
+            echo "Release tags must not start with v: ${tag}" >&2
+            exit 1
+          fi
+
+          if [[ "$tag" != [0-9]* ]]; then
+            echo "Release tags must start with a version number, for example 7.0.0-rc.1: ${tag}" >&2
+            exit 1
+          fi
+
+          version="${tag}"
           base_version="${version%%+*}"
 
           if [[ "$base_version" == *alpha* ]]; then
@@ -93,9 +108,9 @@ jobs:
           token: ${{ secrets.MODRINTH_TOKEN }}
           project: ${{ vars.MODRINTH_PROJECT_ID }}
           version: ${{ steps.meta.outputs.version }}
-          name: HeadDB ${{ steps.meta.outputs.version }}
+          name: ${{ steps.meta.outputs.version }}
           channel: ${{ steps.meta.outputs.modrinth_channel }}
-          changelog: ${{ github.event.release.body || format('Published HeadDB {0}.', steps.meta.outputs.version) }}
+          changelog: ${{ github.event.release.body || format('Published {0}.', steps.meta.outputs.version) }}
           loaders: |-
             paper
             folia
@@ -111,7 +126,7 @@ jobs:
           slug: ${{ vars.HANGAR_PROJECT_SLUG }}
           version: ${{ steps.meta.outputs.version }}
           channel: ${{ steps.meta.outputs.hangar_channel }}
-          description: ${{ github.event.release.body || format('Published HeadDB {0}.', steps.meta.outputs.version) }}
+          description: ${{ github.event.release.body || format('Published {0}.', steps.meta.outputs.version) }}
           files: |-
             [
               {

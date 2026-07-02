@@ -3,11 +3,11 @@ name: Release
 on:
   push:
     tags:
-      - 'v*'
+      - '[0-9]*'
   workflow_dispatch:
     inputs:
       tag:
-        description: Existing clean release tag to publish, for example v7.0.0-rc.1
+        description: Existing clean release tag to publish, for example 7.0.0-rc.1
         required: true
         type: string
 
@@ -45,8 +45,19 @@ jobs:
             tag="${GITHUB_REF_NAME}"
           fi
 
-          if [[ "$tag" != v* ]]; then
-            tag="v${tag}"
+          if [[ -z "$tag" ]]; then
+            echo "Release tag is required." >&2
+            exit 1
+          fi
+
+          if [[ "$tag" == v* ]]; then
+            echo "Release tags must not start with v: ${tag}" >&2
+            exit 1
+          fi
+
+          if [[ "$tag" != [0-9]* ]]; then
+            echo "Release tags must start with a version number, for example 7.0.0-rc.1: ${tag}" >&2
+            exit 1
           fi
 
           if [[ "$tag" == *+build.* ]]; then
@@ -69,11 +80,16 @@ jobs:
           git checkout --detach "$tag"
 
           commit="$(git rev-parse HEAD)"
-          version="${tag#v}"
+          version="${tag}"
           base_version="$(mvn -B -ntp help:evaluate -Dexpression=project.version -q -DforceStdout)"
 
           if [[ "$base_version" == *-SNAPSHOT ]]; then
             echo "Snapshot versions are not released." >&2
+            exit 1
+          fi
+
+          if [[ "$base_version" != "$version" ]]; then
+            echo "Project version does not match release tag: project=${base_version}, tag=${version}" >&2
             exit 1
           fi
 
@@ -232,13 +248,13 @@ jobs:
           gh api "${args[@]}" > generated-release-notes.json
           jq -r '.body // ""' generated-release-notes.json > generated-body.md
 
-          cat > release-notes.md <<EOF
-          ## HeadDB ${{ steps.meta.outputs.version }}
-
-          Built from tag: ${{ steps.meta.outputs.tag }}
-          Commit: ${{ steps.meta.outputs.commit }}
-
-          EOF
+          {
+            echo "## ${{ steps.meta.outputs.version }}"
+            echo
+            echo "Built from tag: ${{ steps.meta.outputs.tag }}"
+            echo "Commit: ${{ steps.meta.outputs.commit }}"
+            echo
+          } > release-notes.md
 
           cat generated-body.md >> release-notes.md
 
@@ -255,7 +271,7 @@ jobs:
             "${{ steps.assets.outputs.sha }}"
             --repo "${GITHUB_REPOSITORY}"
             --target "${{ steps.meta.outputs.commit }}"
-            --title "HeadDB ${{ steps.meta.outputs.version }}"
+            --title "${{ steps.meta.outputs.version }}"
             --notes-file release-notes.md
           )
 
