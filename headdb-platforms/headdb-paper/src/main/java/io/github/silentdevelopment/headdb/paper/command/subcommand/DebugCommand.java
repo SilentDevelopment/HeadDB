@@ -6,7 +6,9 @@ import io.github.silentdevelopment.headdb.paper.HeadDBPlugin;
 import io.github.silentdevelopment.headdb.paper.command.CommandRequirements;
 import io.github.silentdevelopment.headdb.paper.permission.Permissions;
 import io.github.silentdevelopment.headdb.paper.runtime.BuildInfo;
+import io.github.silentdevelopment.headdb.paper.runtime.PlatformRequirements;
 import io.github.silentdevelopment.headdb.paper.runtime.RefreshState;
+import io.github.silentdevelopment.headdb.paper.updater.UpdateCheckResult;
 import io.github.silentdevelopment.relay.command.Command;
 import io.github.silentdevelopment.relay.paper.command.AbstractPaperCommand;
 import io.github.silentdevelopment.relay.paper.command.PaperCommands;
@@ -33,75 +35,116 @@ public final class DebugCommand extends AbstractPaperCommand {
 
     @Override
     protected void handle(@NotNull PaperCommandContext context) {
-        DatabaseStatus status = plugin.runtime().database().status();
-        DatabaseStats stats = plugin.runtime().database().stats();
-        RefreshState refresh = plugin.runtime().refreshState();
         BuildInfo buildInfo = BuildInfo.read(plugin);
+        DatabaseStatus status = plugin.runtime().database().status();
+        DatabaseStats remoteStats = plugin.runtime().database().stats();
+        RefreshState refresh = plugin.runtime().refreshState();
+        PlatformRequirements.Compatibility compatibility = PlatformRequirements.inspect(plugin);
+        UpdateCheckResult updateResult = plugin.updater().lastResult();
 
         context.reply(Component.empty());
         context.reply(Component.text("> ", NamedTextColor.DARK_GRAY).append(Component.text("Debug", NamedTextColor.RED)));
+        context.reply(line("Version", buildInfo.version() + " (" + value(buildInfo.commit()) + ")"));
+        context.reply(line("Runtime", plugin.getServer().getName() + " " + plugin.getServer().getMinecraftVersion() + " | Java " + compatibility.javaFeature()));
+        context.reply(line("Supported", yesNo(compatibility.supported())));
+        context.reply(databaseLine(status));
+        context.reply(line("Heads", remoteStats.heads()));
+        context.reply(line("Categories", remoteStats.categories()));
+        context.reply(line("Tags", remoteStats.tags()));
+        context.reply(line("Collections", remoteStats.collections()));
+        context.reply(line("Revocations", remoteStats.revocations()));
+        context.reply(line("Hidden Heads", plugin.headRegistry().hiddenHeads().size()));
+        context.reply(line("Overrides", plugin.headRegistry().overrides().list().size()));
+        context.reply(line("More Heads", plugin.headRegistry().customHeads().list().size()));
+        context.reply(line("Player Heads", plugin.headRegistry().playerHeads().knownPlayers().size()));
+        context.reply(line("More Categories", plugin.customCategories().list().size()));
+        context.reply(line("Refresh", refreshText(refresh)));
+        context.reply(line("Last Refresh", lastRefreshText(refresh)));
+        context.reply(line("Updater", updateText(updateResult)));
 
-        context.reply(line("Version", buildInfo.version()));
-        context.reply(line("Base version", buildInfo.baseVersion()));
-        context.reply(line("Build", value(buildInfo.buildNumber())));
-        context.reply(line("Attempt", value(buildInfo.buildAttempt())));
-        context.reply(line("Commit", value(buildInfo.commit())));
-        context.reply(line("Full commit", value(buildInfo.fullCommit())));
-        context.reply(line("Branch", value(buildInfo.branch())));
-        context.reply(line("Timestamp", value(buildInfo.buildTime())));
+        if (Permissions.has(context.sender(), Permissions.REPORT)) {
+            context.reply(Component.text("Report: ", NamedTextColor.GRAY).append(Component.text("/hdb report", NamedTextColor.GOLD)));
+        }
 
-        context.reply(Component.empty());
-        context.reply(line("State", status.state()));
-        context.reply(line("Source", status.source()));
-        context.reply(line("Manifest ID", value(status.manifestId())));
-        context.reply(line("Catalog ID", value(status.artifactId())));
-        context.reply(line("Loaded at", formatInstant(status.loadedAt())));
-        context.reply(line("Last database error", value(status.lastError())));
-
-        context.reply(Component.empty());
-        context.reply(line("Heads", stats.heads()));
-        context.reply(line("Categories", stats.categories()));
-        context.reply(line("Tags", stats.tags()));
-        context.reply(line("Collections", stats.collections()));
-        context.reply(line("Revocations", stats.revocations()));
-
-        context.reply(Component.empty());
-        context.reply(line("Manifest URL", plugin.config().remoteManifestUri()));
-        context.reply(line("Preferred mirror", plugin.config().preferredMirrorId()));
-        context.reply(line("Load cache on startup", yesNo(plugin.config().loadCacheOnStartup())));
-        context.reply(line("Refresh on startup", yesNo(plugin.config().refreshOnStartup())));
-        context.reply(line("Cache directory", plugin.config().cacheDirectory(plugin.getDataFolder().toPath()).toAbsolutePath().normalize()));
-        context.reply(line("Item cache enabled", yesNo(plugin.config().cacheItemEnabled())));
-        context.reply(line("Item cache size", plugin.itemCacheSize()));
-
-        context.reply(Component.empty());
-        context.reply(line("Refresh running", yesNo(refresh.running())));
-        context.reply(line("Last successful refresh", formatInstant(refresh.lastSuccessfulRefresh())));
-        context.reply(line("Last failed refresh", formatInstant(refresh.lastFailedRefresh())));
-        context.reply(line("Last refresh failure", value(refresh.lastFailureMessage())));
         context.reply(Component.empty());
     }
 
     @Override
     protected @NotNull Command buildCommand() {
-        return PaperCommands.literal("debug")
-                .alias("d")
-                .description("Shows detailed runtime diagnostics.")
-                .requirement(CommandRequirements.permission(Permissions.DEBUG))
-                .noArgs()
-                .build();
+        return PaperCommands.literal("debug").alias("d").description("Shows concise runtime diagnostics.").requirement(CommandRequirements.permission(Permissions.DEBUG)).noArgs().build();
+    }
+
+    private static @NotNull Component databaseLine(@NotNull DatabaseStatus status) {
+        Component line = Component.text("Database: ", NamedTextColor.GRAY).append(Component.text(String.valueOf(status.state()), statusColor(status)));
+        String source = value(status.source());
+
+        if (!source.equals("none")) {
+            line = line.append(Component.text(" from ", NamedTextColor.GRAY)).append(Component.text(source, NamedTextColor.GOLD));
+        }
+
+        return line;
+    }
+
+    private static @NotNull String refreshText(@NotNull RefreshState refresh) {
+        if (refresh.running()) {
+            return "running " + refresh.currentOperation();
+        }
+
+        return "idle";
+    }
+
+    private static @NotNull String lastRefreshText(@NotNull RefreshState refresh) {
+        if (refresh.lastOutcome() == RefreshState.RefreshOutcome.SUCCESS) {
+            return refresh.lastOperation() + " completed at " + formatInstant(refresh.lastSuccessfulRefresh());
+        }
+
+        if (refresh.lastOutcome() == RefreshState.RefreshOutcome.FAILURE) {
+            return refresh.lastOperation() + " failed at " + formatInstant(refresh.lastFailedRefresh());
+        }
+
+        return "never";
+    }
+
+    private static @NotNull String updateText(@Nullable UpdateCheckResult result) {
+        if (result == null) {
+            return "not checked";
+        }
+
+        if (result.failed()) {
+            return "failed: " + value(result.failureMessage());
+        }
+
+        if (result.updateAvailable() && result.release() != null) {
+            return "available " + result.release().version().raw();
+        }
+
+        if (result.updateAvailable()) {
+            return "available";
+        }
+
+        return "current";
     }
 
     private static @NotNull Component line(@NotNull String key, @Nullable Object value) {
         return Component.text(key + ": ", NamedTextColor.GRAY).append(Component.text(String.valueOf(value), NamedTextColor.GOLD));
     }
 
-    private static @NotNull String yesNo(boolean value) {
-        if (value) {
-            return "yes";
+    private static @NotNull NamedTextColor statusColor(@NotNull DatabaseStatus status) {
+        String state = String.valueOf(status.state());
+
+        if ("LOADED".equalsIgnoreCase(state)) {
+            return NamedTextColor.GOLD;
         }
 
-        return "no";
+        if ("LOADING".equalsIgnoreCase(state)) {
+            return NamedTextColor.YELLOW;
+        }
+
+        return NamedTextColor.RED;
+    }
+
+    private static @NotNull String yesNo(boolean value) {
+        return value ? "yes" : "no";
     }
 
     private static @NotNull String formatInstant(@Nullable Instant instant) {
@@ -124,4 +167,5 @@ public final class DebugCommand extends AbstractPaperCommand {
 
         return string;
     }
+
 }

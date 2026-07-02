@@ -100,8 +100,8 @@ jobs:
             paper
             folia
           game-versions: |-
-            1.21.x
             26.1.x
+            26.2.x
           files: ${{ steps.asset.outputs.jar }}
 
       - name: Publish to Hangar
@@ -121,5 +121,5 @@ jobs:
             ]
           platform_dependencies: |-
             {
-              "PAPER": ["1.21.x", "26.1.x"]
+              "PAPER": ["26.1.x", "26.2.x"]
             }

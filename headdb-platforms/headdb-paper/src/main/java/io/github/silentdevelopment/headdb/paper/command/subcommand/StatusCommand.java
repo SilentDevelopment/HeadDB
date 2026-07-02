@@ -23,7 +23,7 @@ public final class StatusCommand extends AbstractPaperCommand {
 
     @Override
     protected void handle(@NotNull PaperCommandContext context) {
-        for (Component line : StatusFormatter.format(plugin.runtime(), context.sender())) {
+        for (Component line : StatusFormatter.format(plugin, context.sender())) {
             context.reply(line);
         }
     }

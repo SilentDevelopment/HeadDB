@@ -15,6 +15,7 @@ public final class Permissions {
     public static final String VERSION = "headdb.command.version";
     public static final String STATUS = "headdb.command.status";
     public static final String DEBUG = "headdb.command.debug";
+    public static final String REPORT = "headdb.command.report";
     public static final String VERIFY = "headdb.command.verify";
     public static final String REFRESH = "headdb.command.refresh";
     public static final String RELOAD = "headdb.command.reload";

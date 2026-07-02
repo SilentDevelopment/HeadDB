@@ -38,7 +38,7 @@ public final class HelpCommand extends AbstractPaperCommand {
     protected @NotNull Command buildCommand() {
         return PaperCommands.literal("help")
                 .alias("h")
-                .description("Shows HeadDB command help.")
+                .description("Shows command help.")
                 .requirement(CommandRequirements.permission(Permissions.HELP))
                 .noArgs()
                 .build();

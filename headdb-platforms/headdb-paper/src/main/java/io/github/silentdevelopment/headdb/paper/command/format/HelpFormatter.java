@@ -36,14 +36,14 @@ public final class HelpFormatter {
         addSection(lines, sender, new HelpSection("General", List.of(
                 new HelpEntry(List.of("help"), "h", List.of(), "/hdb help", "Show this command reference.", Permissions.HELP),
                 new HelpEntry(List.of("version"), null, List.of(), "/hdb version", "Show version and build information.", Permissions.VERSION),
-                new HelpEntry(List.of("open"), "o", List.of(), "/hdb open", "Open the main HeadDB GUI.", Permissions.OPEN)
+                new HelpEntry(List.of("open"), "o", List.of(), "/hdb open", "Open the main GUI.", Permissions.OPEN)
         )));
 
         addSection(lines, sender, new HelpSection("Heads", List.of(
                 new HelpEntry(List.of("info"), "i", args(optional("id")), "/hdb info ", "Inspect a head by ID or held item.", Permissions.INFO),
-                new HelpEntry(List.of("give"), "g", args(required("id"), optional("player"), optional("amount")), "/hdb give ", "Give a HeadDB item.", Permissions.GIVE),
+                new HelpEntry(List.of("give"), "g", args(required("id"), optional("player"), optional("amount")), "/hdb give ", "Give a head.", Permissions.GIVE),
                 new HelpEntry(List.of("player"), "p", args(required("name|uuid"), optional("player"), optional("amount")), "/hdb player ", "Give a player head.", Permissions.PLAYER),
-                new HelpEntry(List.of("random"), "rnd", args(optional("amount"), optional("category"), optional("player")), "/hdb random ", "Give a random HeadDB item.", Permissions.GIVE)
+                new HelpEntry(List.of("random"), "rnd", args(optional("amount"), optional("category"), optional("player")), "/hdb random ", "Give a random head.", Permissions.GIVE)
         )));
 
         addSection(lines, sender, new HelpSection("Browse", List.of(
@@ -73,7 +73,8 @@ public final class HelpFormatter {
 
         addSection(lines, sender, new HelpSection("Database", List.of(
                 new HelpEntry(List.of("status"), "st", List.of(), "/hdb status", "Show database state and counts.", Permissions.STATUS),
-                new HelpEntry(List.of("debug"), "d", List.of(), "/hdb debug", "Show detailed runtime diagnostics.", Permissions.DEBUG),
+                new HelpEntry(List.of("debug"), "d", List.of(), "/hdb debug", "Show concise runtime diagnostics.", Permissions.DEBUG),
+                new HelpEntry(List.of("report"), "rpt", List.of(), "/hdb report", "Create a full support report.", Permissions.REPORT),
                 new HelpEntry(List.of("verify"), "v", List.of(), "/hdb verify", "Verify the public remote without replacing the active database.", Permissions.VERIFY),
                 new HelpEntry(List.of("refresh"), "ref", List.of(), "/hdb refresh", "Fetch the latest remote database.", Permissions.REFRESH),
                 new HelpEntry(List.of("reload"), "rl", List.of(), "/hdb reload", "Reload config, messages, and runtime.", Permissions.RELOAD)

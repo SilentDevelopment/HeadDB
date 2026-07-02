@@ -138,7 +138,7 @@ public record EconomyConfig(
 
             Files.writeString(file, defaultConfig());
         } catch (IOException exception) {
-            throw new IllegalStateException("Failed to create HeadDB economy.yml.", exception);
+            throw new IllegalStateException("Failed to create economy.yml.", exception);
         }
     }
 

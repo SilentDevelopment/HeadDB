@@ -40,7 +40,7 @@ public final class CollectionsCommand extends AbstractPaperCommand {
                 .map(collection -> new ListFormatter.Entry(collection.id(), collection.name()))
                 .toList();
 
-        for (var line : ListFormatter.format("HeadDB Collections", entries, request.page(), PAGE_SIZE)) {
+        for (var line : ListFormatter.format("Head Collections", entries, request.page(), PAGE_SIZE)) {
             context.reply(line);
         }
     }
@@ -49,7 +49,7 @@ public final class CollectionsCommand extends AbstractPaperCommand {
     protected @NotNull Command buildCommand() {
         return PaperCommands.literal("collections")
                 .alias("col")
-                .description("Lists HeadDB collections.")
+                .description("Lists head collections.")
                 .requirement(CommandRequirements.permission(Permissions.SEARCH))
                 .signature(QUERY, PAGE)
                 .suggest(QUERY, Suggestions.collections(plugin))

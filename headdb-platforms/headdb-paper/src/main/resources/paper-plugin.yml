@@ -198,6 +198,7 @@ permissions:
     children:
       headdb.command.status: true
       headdb.command.debug: true
+      headdb.command.report: true
       headdb.command.verify: true
       headdb.command.refresh: true
       headdb.command.reload: true
@@ -217,6 +218,9 @@ permissions:
 
   headdb.command.debug:
     description: Allows using /hdb debug.
+
+  headdb.command.report:
+    description: Allows using /hdb report.
 
   headdb.command.verify:
     description: Allows using /hdb verify.

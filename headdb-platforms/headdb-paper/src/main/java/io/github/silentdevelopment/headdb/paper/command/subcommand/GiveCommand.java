@@ -65,7 +65,7 @@ public final class GiveCommand extends AbstractPaperCommand {
     protected @NotNull Command buildCommand() {
         return PaperCommands.literal("give")
                 .alias("g")
-                .description("Gives a HeadDB head item.")
+                .description("Gives a head item.")
                 .requirement(CommandRequirements.permission(Permissions.GIVE))
                 .signature(FIRST, SECOND, AMOUNT)
                 .suggest(FIRST, Suggestions.playerOrHeadIds(plugin))

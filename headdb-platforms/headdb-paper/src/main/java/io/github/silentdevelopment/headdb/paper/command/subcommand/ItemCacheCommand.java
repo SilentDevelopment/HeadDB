@@ -46,7 +46,7 @@ public final class ItemCacheCommand extends AbstractPaperCommand {
     protected @NotNull Command buildCommand() {
         return PaperCommands.literal("itemcache")
                 .alias("ic")
-                .description("Manages the generated HeadDB item cache.")
+                .description("Manages the generated item cache.")
                 .requirement(CommandRequirements.permission(Permissions.ITEM_CACHE))
                 .signature(ACTION)
                 .noArgs()

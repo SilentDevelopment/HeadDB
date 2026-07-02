@@ -110,11 +110,15 @@ public final class PluginRuntime {
             return false;
         }
 
-        if (refreshState.running()) {
+        if (!refreshState.begin("remote refresh")) {
             return false;
         }
 
-        runAsync("refresh remote database", this::refreshRemote);
+        if (!runAsync("refresh remote database", this::refreshRemoteStarted)) {
+            refreshState.finish();
+            return false;
+        }
+
         return true;
     }
 
@@ -126,11 +130,15 @@ public final class PluginRuntime {
             return false;
         }
 
-        if (refreshState.running()) {
+        if (!refreshState.begin("remote verification")) {
             return false;
         }
 
-        runAsync("verify remote database", () -> verifyRemote(success, failure));
+        if (!runAsync("verify remote database", () -> verifyRemoteStarted(success, failure))) {
+            refreshState.finish();
+            return false;
+        }
+
         return true;
     }
 
@@ -161,11 +169,15 @@ public final class PluginRuntime {
     }
 
     private void loadCached() {
-        if (!refreshState.begin()) {
+        if (!refreshState.begin("cache load")) {
             plugin.getSLF4JLogger().warn("Skipped cache load because another refresh task is already running.");
             return;
         }
 
+        loadCachedStarted();
+    }
+
+    private void loadCachedStarted() {
         try {
             boolean loaded = refreshService.loadCached();
 
@@ -186,11 +198,15 @@ public final class PluginRuntime {
     }
 
     private void refreshRemote() {
-        if (!refreshState.begin()) {
+        if (!refreshState.begin("remote refresh")) {
             plugin.getSLF4JLogger().warn("Skipped remote refresh because another refresh task is already running.");
             return;
         }
 
+        refreshRemoteStarted();
+    }
+
+    private void refreshRemoteStarted() {
         try {
             refreshService.refresh();
             plugin.clearItemCache();
@@ -203,12 +219,7 @@ public final class PluginRuntime {
         }
     }
 
-    private void verifyRemote(@NotNull Consumer<DatabaseSnapshot> success, @NotNull Consumer<Throwable> failure) {
-        if (!refreshState.begin()) {
-            failure.accept(new IllegalStateException("Database refresh or verification is already running."));
-            return;
-        }
-
+    private void verifyRemoteStarted(@NotNull Consumer<DatabaseSnapshot> success, @NotNull Consumer<Throwable> failure) {
         try {
             DatabaseSnapshot snapshot = refreshService.verifyRemote();
             refreshState.finish();
@@ -240,13 +251,14 @@ public final class PluginRuntime {
         plugin.getSLF4JLogger().warn("{} {}", message, detail);
     }
 
-    private void runAsync(@NotNull String operation, @NotNull Runnable runnable) {
+    private boolean runAsync(@NotNull String operation, @NotNull Runnable runnable) {
         if (closed.get()) {
-            return;
+            return false;
         }
 
         ScheduledTask task = plugin.getServer().getAsyncScheduler().runNow(plugin, scheduledTask -> {
             if (closed.get()) {
+                refreshState.finish();
                 return;
             }
 
@@ -261,5 +273,7 @@ public final class PluginRuntime {
         synchronized (scheduledTasks) {
             scheduledTasks.add(task);
         }
+
+        return true;
     }
 }
