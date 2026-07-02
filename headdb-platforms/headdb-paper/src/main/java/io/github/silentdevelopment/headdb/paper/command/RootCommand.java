@@ -16,6 +16,7 @@ import io.github.silentdevelopment.headdb.paper.command.subcommand.OpenCommand;
 import io.github.silentdevelopment.headdb.paper.command.subcommand.RandomCommand;
 import io.github.silentdevelopment.headdb.paper.command.subcommand.RefreshCommand;
 import io.github.silentdevelopment.headdb.paper.command.subcommand.ReloadCommand;
+import io.github.silentdevelopment.headdb.paper.command.subcommand.ReportCommand;
 import io.github.silentdevelopment.headdb.paper.command.subcommand.StatusCommand;
 import io.github.silentdevelopment.headdb.paper.command.subcommand.TagsCommand;
 import io.github.silentdevelopment.headdb.paper.command.subcommand.UpdateCommand;
@@ -47,6 +48,7 @@ public final class RootCommand extends AbstractPaperCommandGroup {
                 new VersionCommand(plugin),
                 new StatusCommand(plugin),
                 new DebugCommand(plugin),
+                new ReportCommand(plugin),
                 new VerifyCommand(plugin),
                 new RefreshCommand(plugin),
                 new ReloadCommand(plugin),

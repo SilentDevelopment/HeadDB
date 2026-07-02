@@ -69,7 +69,7 @@ public final class InfoCommand extends AbstractPaperCommand {
     protected @NotNull Command buildCommand() {
         return PaperCommands.literal("info")
                 .alias("i")
-                .description("Shows information about a HeadDB head or the held HeadDB head.")
+                .description("Shows information about a head or the held head.")
                 .requirement(CommandRequirements.permission(Permissions.INFO))
                 .signature(ID)
                 .suggest(ID, Suggestions.headIds(plugin))

@@ -38,7 +38,7 @@ public final class CategoriesCommand extends AbstractPaperCommand {
                 .map(category -> new ListFormatter.Entry(category.id(), category.name()))
                 .toList();
 
-        for (var line : ListFormatter.format("HeadDB Categories", entries, page, PAGE_SIZE)) {
+        for (var line : ListFormatter.format("Head Categories", entries, page, PAGE_SIZE)) {
             context.reply(line);
         }
     }
@@ -47,7 +47,7 @@ public final class CategoriesCommand extends AbstractPaperCommand {
     protected @NotNull Command buildCommand() {
         return PaperCommands.literal("categories")
                 .alias("cat")
-                .description("Lists HeadDB categories.")
+                .description("Lists head categories.")
                 .requirement(CommandRequirements.permission(Permissions.SEARCH))
                 .signature(PAGE)
                 .suggest(PAGE, Suggestions.pages())

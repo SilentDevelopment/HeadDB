@@ -111,7 +111,7 @@ body:
     id: server-version
     attributes:
       label: Server version
-      placeholder: Paper 1.21.11 build ...
+      placeholder: Paper 26.1.2 build ...
     validations:
       required: true
 
@@ -128,7 +128,7 @@ body:
     id: client-version
     attributes:
       label: Minecraft client version
-      placeholder: 1.21.11
+      placeholder: 26.1.2
     validations:
       required: false
 

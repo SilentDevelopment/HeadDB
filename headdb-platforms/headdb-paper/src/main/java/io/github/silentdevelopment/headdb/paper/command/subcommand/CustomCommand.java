@@ -75,7 +75,7 @@ public final class CustomCommand extends AbstractPaperCommand {
     @Override
     protected @NotNull Command buildCommand() {
         return PaperCommands.literal("custom")
-                .description("Manages local custom HeadDB heads.")
+                .description("Manages local custom heads.")
                 .requirement(CommandRequirements.permission(Permissions.CUSTOM_LIST))
                 .signature(ACTION, FIRST, SECOND, THIRD, FOURTH)
                 .suggest(ACTION, context -> List.of("list", "info", "create", "createheld", "delete", "rename", "give"))

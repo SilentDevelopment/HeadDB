@@ -40,7 +40,7 @@ public final class TagsCommand extends AbstractPaperCommand {
                 .map(tag -> new ListFormatter.Entry(tag.id(), tag.name()))
                 .toList();
 
-        for (var line : ListFormatter.format("HeadDB Tags", entries, request.page(), PAGE_SIZE)) {
+        for (var line : ListFormatter.format("Head Tags", entries, request.page(), PAGE_SIZE)) {
             context.reply(line);
         }
     }

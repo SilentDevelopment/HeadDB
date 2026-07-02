@@ -30,6 +30,7 @@ import io.github.silentdevelopment.headdb.paper.local.storage.NoopLocalStores;
 import io.github.silentdevelopment.headdb.paper.message.Messages;
 import io.github.silentdevelopment.headdb.paper.metrics.HeadDBMetrics;
 import io.github.silentdevelopment.headdb.paper.prompt.PromptInputService;
+import io.github.silentdevelopment.headdb.paper.runtime.PlatformRequirements;
 import io.github.silentdevelopment.headdb.paper.runtime.PluginRuntime;
 import io.github.silentdevelopment.headdb.paper.runtime.RuntimeDiagnostics;
 import io.github.silentdevelopment.headdb.paper.runtime.StartupChecks;
@@ -65,6 +66,11 @@ public final class HeadDBPlugin extends JavaPlugin {
     @Override
     public void onEnable() {
         if (!isPaper()) {
+            getServer().getPluginManager().disablePlugin(this);
+            return;
+        }
+
+        if (!PlatformRequirements.supported(this)) {
             getServer().getPluginManager().disablePlugin(this);
             return;
         }
