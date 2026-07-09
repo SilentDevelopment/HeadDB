@@ -67,6 +67,7 @@ public final class SettingsPageFactory implements PaperPageFactory<MenuState> {
         }
 
         if (languageOnly) {
+            set(page, reservedSlots, slot("settings.language-only-back", 0), backButton());
             set(page, reservedSlots, slot("settings.language-only", 4), languagesButton());
             GuiItems.fillEmpty(plugin, page, rows, reservedSlots);
             return page.build();

@@ -795,6 +795,8 @@ slots:
   settings.reload: 42
   settings.refresh: 41
   settings.back: 45
+  settings.language-only-back: 0
+  settings.language-only: 4
   edit.preview: 13
   edit.name: 21
   edit.lore: 23
@@ -846,6 +848,5 @@ slots:
   tags.search: 53
   collections.filter: 52
   collections.search: 53
-  settings.language-only: 4
   edit.price: 35
   create-category.price: 44

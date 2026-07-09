@@ -10,6 +10,7 @@ import java.util.Objects;
 public final class Permissions {
 
     public static final String ADMIN = "headdb.admin";
+    public static final String BASIC = "headdb.basic";
 
     public static final String HELP = "headdb.command.help";
     public static final String VERSION = "headdb.command.version";
@@ -147,7 +148,7 @@ public final class Permissions {
 
     public static boolean canViewAllCategories(@NotNull CommandSender sender) {
         Objects.requireNonNull(sender, "sender");
-        return has(sender, CATEGORY_ALL);
+        return has(sender, CATEGORY_ALL) || has(sender, BASIC);
     }
 
     public static boolean canViewCategory(@NotNull CommandSender sender, @NotNull String categoryId) {

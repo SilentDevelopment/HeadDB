@@ -71,6 +71,7 @@ permissions:
       headdb.collections: true
       headdb.tags: true
       headdb.head.take: true
+      headdb.category.*: true
 
   headdb.open:
     description: Allows opening the main HeadDB menu.
