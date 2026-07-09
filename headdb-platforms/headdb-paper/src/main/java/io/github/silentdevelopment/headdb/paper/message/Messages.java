@@ -208,7 +208,11 @@ public final class Messages {
         Component message = messenger.getMessage((Audience) receiver, key.path());
 
         if (message == null) {
-            message = MINI_MESSAGE.deserialize(fallbackMessages.getOrDefault(key, "<red>Missing HeadDB message: " + key.path()));
+            String fallback = fallbackMessages.get(key);
+            if (fallback == null || fallback.isBlank()) {
+                return Component.empty();
+            }
+            message = MINI_MESSAGE.deserialize(fallback);
         }
 
         return applyPlaceholders(message, placeholders);
@@ -305,6 +309,26 @@ public final class Messages {
 
     public @NotNull Component languageReset(@NotNull CommandSender receiver) {
         return render(receiver, MessageKey.GUI_LANGUAGE_RESET);
+    }
+
+    public @NotNull Component priceInvalid(@NotNull CommandSender receiver) {
+        return render(receiver, MessageKey.GUI_PRICE_INVALID);
+    }
+
+    public @NotNull Component priceUpdated(@NotNull CommandSender receiver, @NotNull String target, @NotNull String price) {
+        return render(receiver, MessageKey.GUI_PRICE_UPDATED, Map.of("target", target, "price", price));
+    }
+
+    public @NotNull Component taxonomyCreated(@NotNull CommandSender receiver, @NotNull String type, @NotNull String name, @NotNull String id) {
+        return render(receiver, MessageKey.GUI_TAXONOMY_CREATED, Map.of("type", type, "name", name, "id", id));
+    }
+
+    public @NotNull Component taxonomyDeleted(@NotNull CommandSender receiver, @NotNull String type, @NotNull String id) {
+        return render(receiver, MessageKey.GUI_TAXONOMY_DELETED, Map.of("type", type, "id", id));
+    }
+
+    public @NotNull Component taxonomyUnknown(@NotNull CommandSender receiver, @NotNull String type, @NotNull String id) {
+        return render(receiver, MessageKey.GUI_TAXONOMY_UNKNOWN, Map.of("type", type, "id", id));
     }
 
     private static @NotNull String localeName(String value, @NotNull String fallback) {
@@ -420,6 +444,11 @@ public final class Messages {
 
         messages.put(MessageKey.GUI_LANGUAGE_CHANGED, "<gray>Language changed to <gold>{locale}</gold>.");
         messages.put(MessageKey.GUI_LANGUAGE_RESET, "<gray>Language reset to the default locale.");
+        messages.put(MessageKey.GUI_PRICE_INVALID, "<red>Price must be a valid number.");
+        messages.put(MessageKey.GUI_PRICE_UPDATED, "<gray>Updated price for <gold>{target}</gold><gray> to <gold>{price}</gold><gray>.");
+        messages.put(MessageKey.GUI_TAXONOMY_CREATED, "<gray>Created custom {type}: <gold>{name}</gold><gray> (<gold>{id}</gold><gray>).");
+        messages.put(MessageKey.GUI_TAXONOMY_DELETED, "<gray>Deleted custom {type}: <gold>{id}</gold><gray>.");
+        messages.put(MessageKey.GUI_TAXONOMY_UNKNOWN, "<red>Unknown custom {type}: <gold>{id}</gold>");
 
         return Map.copyOf(messages);
     }

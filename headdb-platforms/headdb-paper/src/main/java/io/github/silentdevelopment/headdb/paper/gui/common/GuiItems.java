@@ -144,7 +144,7 @@ public final class GuiItems {
     public static @NotNull Component metaDetail(@NotNull String key, @NotNull Object value) {
         Objects.requireNonNull(key, "key");
         Objects.requireNonNull(value, "value");
-        return detail(key, value, NamedTextColor.DARK_GRAY);
+        return detail(key, value, NamedTextColor.GOLD);
     }
 
     public static @NotNull Component mini(@NotNull String value) {
@@ -160,7 +160,7 @@ public final class GuiItems {
             return mini(value);
         }
 
-        return Component.text(value, NamedTextColor.WHITE).decoration(TextDecoration.ITALIC, false);
+        return Component.text(value, NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false);
     }
 
     public static @NotNull List<Component> miniLore(@NotNull List<String> lines) {

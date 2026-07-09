@@ -103,6 +103,10 @@ public final class Suggestions {
         return context -> enumValues(context.currentToken(), SortDirection.values());
     }
 
+    public static @NotNull SuggestionProvider<CommandSender> taxonomyActions() {
+        return context -> matching(context.currentToken(), List.of("create", "delete"));
+    }
+
     public static @NotNull SuggestionProvider<CommandSender> pages() {
         return context -> matching(context.currentToken(), List.of("1", "2", "3", "4", "5", "10"));
     }

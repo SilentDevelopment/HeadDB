@@ -10,7 +10,10 @@ import io.github.silentdevelopment.headdb.paper.HeadDBPlugin;
 import io.github.silentdevelopment.headdb.paper.gui.common.GuiHeadIcons;
 import io.github.silentdevelopment.headdb.paper.gui.common.GuiItems;
 import io.github.silentdevelopment.headdb.paper.gui.common.GuiTitles;
+import io.github.silentdevelopment.headdb.paper.gui.category.CustomCategory;
 import io.github.silentdevelopment.headdb.paper.item.HeadItemIds;
+import io.github.silentdevelopment.headdb.paper.local.custom.StoredCustomHead;
+import io.github.silentdevelopment.headdb.paper.permission.Permissions;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -28,7 +31,9 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -46,6 +51,8 @@ public final class HeadEditMenu {
     public static final String ACTION_VISIBILITY = "visibility";
     public static final String ACTION_RESET = "reset";
     public static final String ACTION_DELETE = "delete";
+    public static final String ACTION_PUBLISH = "publish";
+    public static final String ACTION_PRICE = "price";
     public static final String ACTION_BACK_MAIN = "back-main";
     public static final String ACTION_BACK_EDIT = "back-edit";
     public static final String ACTION_PREVIOUS = "previous";
@@ -114,11 +121,18 @@ public final class HeadEditMenu {
         inventory.setItem(plugin.guiConfig().slot("edit.category", 29), button(plugin, id, ACTION_CATEGORY_MENU, "edit-category"));
         inventory.setItem(plugin.guiConfig().slot("edit.tags", 31), button(plugin, id, ACTION_TAGS_MENU, "edit-tags"));
         inventory.setItem(plugin.guiConfig().slot("edit.collections", 33), button(plugin, id, ACTION_COLLECTIONS_MENU, "edit-collections"));
+        if (plugin.economy().enabled()) {
+            inventory.setItem(plugin.guiConfig().slot("edit.price", 35), button(plugin, id, ACTION_PRICE, "edit-price"));
+        }
 
         if (id.isRemote()) {
             inventory.setItem(plugin.guiConfig().slot("edit.visibility", 39), visibilityButton(plugin, id));
             inventory.setItem(plugin.guiConfig().slot("edit.reset", 41), button(plugin, id, ACTION_RESET, "edit-reset"));
         } else if (id.isCustom()) {
+            boolean draft = plugin.headRegistry().customHeads().findStored(id).map(StoredCustomHead::draft).orElse(false);
+            if (draft) {
+                inventory.setItem(plugin.guiConfig().slot("edit.publish", 39), button(plugin, id, ACTION_PUBLISH, "edit-publish"));
+            }
             inventory.setItem(plugin.guiConfig().slot("edit.delete", 41), button(plugin, id, ACTION_DELETE, "edit-delete"));
         }
 
@@ -126,9 +140,18 @@ public final class HeadEditMenu {
     }
 
     public static void openCategories(@NotNull HeadDBPlugin plugin, @NotNull Player player, @NotNull HeadId id, int page) {
-        List<Entry> entries = plugin.headRegistry().categories().stream().sorted(Comparator.comparing(HeadCategory::name, String.CASE_INSENSITIVE_ORDER)).map(category -> new Entry(category.id(), category.name())).toList();
+        Map<String, Entry> entries = new LinkedHashMap<>();
+        plugin.headRegistry().categories().stream()
+                .filter(category -> Permissions.canViewCategory(player, category.id()))
+                .sorted(Comparator.comparing(HeadCategory::name, String.CASE_INSENSITIVE_ORDER))
+                .forEach(category -> entries.put(category.id(), new Entry(category.id(), category.name())));
+        boolean adminMode = plugin.adminModes().enabled(player);
+        plugin.customCategories().listVisible(adminMode).stream()
+                .filter(category -> Permissions.canViewCategory(player, category.id()))
+                .sorted(Comparator.comparing(CustomCategory::name, String.CASE_INSENSITIVE_ORDER))
+                .forEach(category -> entries.put(category.id(), new Entry(category.id(), category.draft() ? "DRAFT - " + category.name() : category.name())));
         String current = previewHead(plugin, id).map(Head::category).orElse("unknown");
-        openSelection(plugin, player, id, EditMenuType.CATEGORY, page, entries, "Category: " + current, ACTION_CATEGORY_SELECT, selectedCategory(plugin, id));
+        openSelection(plugin, player, id, EditMenuType.CATEGORY, page, List.copyOf(entries.values()), "Category: " + current, ACTION_CATEGORY_SELECT, selectedCategory(plugin, id));
     }
 
     public static void openTags(@NotNull HeadDBPlugin plugin, @NotNull Player player, @NotNull HeadId id, int page) {
@@ -224,6 +247,10 @@ public final class HeadEditMenu {
     private static @NotNull Optional<Head> previewHead(@NotNull HeadDBPlugin plugin, @NotNull HeadId id) {
         if (id.isPlayer()) {
             return Optional.of(playerHead(id));
+        }
+
+        if (id.isCustom()) {
+            return plugin.headRegistry().customHeads().findStored(id).map(StoredCustomHead::toHead);
         }
 
         return plugin.headRegistry().find(id);

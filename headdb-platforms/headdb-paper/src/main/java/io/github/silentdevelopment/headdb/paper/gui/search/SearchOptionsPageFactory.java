@@ -8,6 +8,8 @@ import io.github.silentdevelopment.grafik.paper.page.PaperPage;
 import io.github.silentdevelopment.grafik.paper.page.PaperPageBuilder;
 import io.github.silentdevelopment.grafik.paper.page.PaperPageFactory;
 import io.github.silentdevelopment.headdb.paper.HeadDBPlugin;
+import io.github.silentdevelopment.headdb.model.HeadId;
+import io.github.silentdevelopment.headdb.paper.command.search.SearchParser;
 import io.github.silentdevelopment.headdb.paper.search.SearchRequest;
 import io.github.silentdevelopment.headdb.paper.gui.common.GuiHeadIcons;
 import io.github.silentdevelopment.headdb.paper.gui.common.GuiItems;
@@ -29,6 +31,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Consumer;
 
 @SuppressWarnings("UnstableApiUsage")
 public final class SearchOptionsPageFactory implements PaperPageFactory<SearchMenuState> {
@@ -37,14 +40,17 @@ public final class SearchOptionsPageFactory implements PaperPageFactory<SearchMe
 
     private static final int ROWS = 6;
 
-    private static final int SLOT_SORT = 20;
-    private static final int SLOT_DIRECTION = 22;
-    private static final int SLOT_CATEGORY = 24;
-    private static final int SLOT_TAGS = 29;
-    private static final int SLOT_COLLECTIONS = 31;
-    private static final int SLOT_CLEAR_FILTERS = 33;
+    private static final int SLOT_QUERY = 19;
+    private static final int SLOT_IDS = 21;
+    private static final int SLOT_SORT = 23;
+    private static final int SLOT_DIRECTION = 25;
+    private static final int SLOT_CATEGORY = 29;
+    private static final int SLOT_TAGS = 31;
+    private static final int SLOT_COLLECTIONS = 33;
+    private static final int SLOT_CLEAR_FILTERS = 40;
     private static final int SLOT_BACK = 45;
-    private static final int SLOT_INFO = 49;
+    private static final int SLOT_EXECUTE = 49;
+    private static final int SLOT_INFO = 53;
 
     private final HeadDBPlugin plugin;
 
@@ -70,7 +76,7 @@ public final class SearchOptionsPageFactory implements PaperPageFactory<SearchMe
 
         page.type(MenuType.GENERIC_9X6);
         Player player = player(context);
-        page.title(GuiTitles.title("Sort / Filter", player != null && plugin.adminModes().enabled(player)));
+        page.title(GuiTitles.title("Advanced Search", player != null && plugin.adminModes().enabled(player)));
 
         if (player == null || !Permissions.has(player, Permissions.GUI_FILTER)) {
             set(page, reservedSlots, SLOT_BACK, backButton());
@@ -79,21 +85,31 @@ public final class SearchOptionsPageFactory implements PaperPageFactory<SearchMe
             return page.build();
         }
 
+        set(page, reservedSlots, SLOT_QUERY, queryButton(request));
+        if (Permissions.has(player, Permissions.GUI_FILTER_IDS)) {
+            set(page, reservedSlots, SLOT_IDS, idsButton(request));
+        }
         set(page, reservedSlots, SLOT_SORT, sortCycleButton(request));
         set(page, reservedSlots, SLOT_DIRECTION, directionButton(request));
 
-        if (request.canChangeCategory()) {
+        if (request.canChangeCategory() && Permissions.has(player, Permissions.GUI_FILTER_CATEGORIES)) {
             set(page, reservedSlots, SLOT_CATEGORY, categoryButton(request));
         }
 
-        set(page, reservedSlots, SLOT_TAGS, tagsButton(request));
-        set(page, reservedSlots, SLOT_COLLECTIONS, collectionsButton(request));
+        if (Permissions.has(player, Permissions.GUI_FILTER_TAGS)) {
+            set(page, reservedSlots, SLOT_TAGS, tagsButton(request));
+        }
+
+        if (Permissions.has(player, Permissions.GUI_FILTER_COLLECTIONS)) {
+            set(page, reservedSlots, SLOT_COLLECTIONS, collectionsButton(request));
+        }
 
         if (request.hasFilters()) {
             set(page, reservedSlots, SLOT_CLEAR_FILTERS, clearFiltersButton(request));
         }
 
         set(page, reservedSlots, SLOT_BACK, backButton());
+        set(page, reservedSlots, SLOT_EXECUTE, executeButton());
         set(page, reservedSlots, SLOT_INFO, summaryButton(request));
 
         GuiItems.fillEmpty(plugin, page, ROWS, reservedSlots);
@@ -104,6 +120,79 @@ public final class SearchOptionsPageFactory implements PaperPageFactory<SearchMe
 
     private @NotNull ItemElement<SearchMenuState> deniedButton() {
         return GuiHeadIcons.<SearchMenuState>button(plugin, "empty", "empty", GuiItems.name("No Permission", NamedTextColor.RED), List.of(GuiItems.lore("You cannot change search filters.", NamedTextColor.GRAY)), ignored -> {});
+    }
+
+    private @NotNull ItemElement<SearchMenuState> queryButton(@NotNull SearchRequest request) {
+        Objects.requireNonNull(request, "request");
+
+        return GuiHeadIcons.<SearchMenuState>button(
+                plugin,
+                "search_query",
+                "search",
+                GuiItems.name("Text Query", NamedTextColor.GOLD),
+                List.of(
+                        GuiItems.metaDetail("Current", request.query().isBlank() ? "none" : request.query()),
+                        GuiItems.lore("Click to enter a text query.", NamedTextColor.GREEN)
+                ),
+                context -> {
+                    Player player = player(context);
+                    if (player == null) {
+                        return;
+                    }
+
+                    SearchRequest currentRequest = SearchState.request(context);
+                    SearchMenuState.BackTarget backTarget = context.source().optionsBackTarget();
+                    promptAfterClose(player, Component.text("Enter a search query.", NamedTextColor.GOLD), value -> {
+                        plugin.guis().openAdvancedSearch(player, currentRequest.withQuery(value), backTarget);
+                    }, () -> {
+                        player.sendMessage(Component.text("Search cancelled.", NamedTextColor.GRAY));
+                        plugin.guis().openAdvancedSearch(player, currentRequest, backTarget);
+                    });
+                }
+        );
+    }
+
+    private @NotNull ItemElement<SearchMenuState> idsButton(@NotNull SearchRequest request) {
+        Objects.requireNonNull(request, "request");
+
+        return GuiHeadIcons.<SearchMenuState>button(
+                plugin,
+                "filter_ids",
+                "filter-ids",
+                GuiItems.name("Head ID Filters", NamedTextColor.GOLD),
+                List.of(
+                        GuiItems.idDetail("Selected", request.ids().size()),
+                        GuiItems.lore("Click to enter comma-separated IDs.", NamedTextColor.GREEN),
+                        GuiItems.lore("Use remote:<id>, custom:<id>, player:<name|uuid>, or bare remote IDs.", NamedTextColor.DARK_GRAY)
+                ),
+                context -> {
+                    Player player = player(context);
+                    if (player == null) {
+                        return;
+                    }
+
+                    SearchRequest currentRequest = SearchState.request(context);
+                    SearchMenuState.BackTarget backTarget = context.source().optionsBackTarget();
+                    promptAfterClose(player, Component.text("Enter comma-separated head IDs.", NamedTextColor.GOLD), value -> {
+                        try {
+                            Set<HeadId> ids = value.isBlank() ? Set.of() : SearchParser.headIds(value);
+                            plugin.guis().openAdvancedSearch(player, currentRequest.withIds(ids), backTarget);
+                        } catch (IllegalArgumentException exception) {
+                            player.sendMessage(Component.text(exception.getMessage(), NamedTextColor.RED));
+                            plugin.guis().openAdvancedSearch(player, currentRequest, backTarget);
+                        }
+                    }, () -> {
+                        player.sendMessage(Component.text("Search cancelled.", NamedTextColor.GRAY));
+                        plugin.guis().openAdvancedSearch(player, currentRequest, backTarget);
+                    });
+                }
+        );
+    }
+
+
+    private void promptAfterClose(@NotNull Player player, @NotNull Component message, @NotNull Consumer<String> input, @NotNull Runnable cancel) {
+        player.closeInventory();
+        player.getScheduler().run(plugin, task -> plugin.prompts().request(player, message, input, cancel), () -> {});
     }
 
     private @NotNull ItemElement<SearchMenuState> sortCycleButton(@NotNull SearchRequest request) {
@@ -201,7 +290,8 @@ public final class SearchOptionsPageFactory implements PaperPageFactory<SearchMe
                 "clear-filters",
                 GuiItems.name("Clear Filters", NamedTextColor.RED),
                 List.of(
-                        GuiItems.idDetail("Categories", request.categoryLocked() ? "locked" : request.categories().size()),
+                        GuiItems.idDetail("IDs", request.ids().size()),
+                        GuiItems.idDetail("Categories", request.categoryLocked() ? "scoped" : request.categories().size()),
                         GuiItems.idDetail("Tags", request.tags().size()),
                         GuiItems.idDetail("Collections", request.collections().size()),
                         GuiItems.lore("Click to clear selected filters.", NamedTextColor.GREEN)
@@ -224,6 +314,7 @@ public final class SearchOptionsPageFactory implements PaperPageFactory<SearchMe
                 GuiItems.name("Current Search", NamedTextColor.GOLD),
                 List.of(
                         GuiItems.metaDetail("Query", request.query().isBlank() ? "none" : request.query()),
+                        GuiItems.idDetail("IDs", request.ids().size()),
                         GuiItems.idDetail("Categories", categorySummary(request)),
                         GuiItems.idDetail("Tags", request.tags().size()),
                         GuiItems.idDetail("Collections", request.collections().size()),
@@ -233,13 +324,34 @@ public final class SearchOptionsPageFactory implements PaperPageFactory<SearchMe
         );
     }
 
-    private @NotNull ItemElement<SearchMenuState> backButton() {
+    private @NotNull ItemElement<SearchMenuState> executeButton() {
         return GuiHeadIcons.<SearchMenuState>button(
                 plugin,
-                "back",
-                "back",
+                "execute_search",
+                "confirm-yes",
+                GuiItems.name("Run Search", NamedTextColor.GREEN),
+                List.of(GuiItems.lore("Open the matching heads.", NamedTextColor.GRAY)),
                 context -> context.openPage(SearchPageFactory.KEY)
         );
+    }
+
+    private @NotNull ItemElement<SearchMenuState> backButton() {
+        return GuiHeadIcons.<SearchMenuState>button(plugin, "back", "back", context -> openBack(context, context.source().optionsBackTarget()));
+    }
+
+    private void openBack(@NotNull GuiContext<SearchMenuState> context, @NotNull SearchMenuState.BackTarget target) {
+        Player player = player(context);
+        if (player == null) {
+            return;
+        }
+
+        switch (target) {
+            case BROWSE -> plugin.guis().openBrowse(player);
+            case COLLECTIONS -> plugin.guis().openCollections(player);
+            case TAGS -> plugin.guis().openTags(player);
+            case RESULTS -> context.openPage(SearchPageFactory.KEY);
+            case MAIN -> plugin.guis().openMain(player);
+        }
     }
 
     private static @NotNull List<Component> sortLore(@NotNull HeadSort selected) {
@@ -302,7 +414,7 @@ public final class SearchOptionsPageFactory implements PaperPageFactory<SearchMe
         Objects.requireNonNull(request, "request");
 
         if (request.categoryLocked()) {
-            return request.category() + " (locked)";
+            return request.category();
         }
 
         if (request.categories().isEmpty()) {

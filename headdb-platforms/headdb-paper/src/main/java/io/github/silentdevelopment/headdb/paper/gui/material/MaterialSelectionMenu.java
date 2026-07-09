@@ -33,7 +33,7 @@ public final class MaterialSelectionMenu {
     private static final int SLOT_BACK = 45;
     private static final int SLOT_PREVIOUS = 48;
     private static final int SLOT_TYPE = 49;
-    private static final int SLOT_NEXT = 53;
+    private static final int SLOT_NEXT = 50;
     private static final String ACTION_BACK = "back";
     private static final String ACTION_PREVIOUS = "previous";
     private static final String ACTION_NEXT = "next";

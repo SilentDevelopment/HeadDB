@@ -5,6 +5,7 @@ import io.github.silentdevelopment.headdb.model.HeadId;
 import io.github.silentdevelopment.headdb.paper.HeadDBPlugin;
 import io.github.silentdevelopment.headdb.paper.gui.common.GuiHeadIcons;
 import io.github.silentdevelopment.headdb.paper.gui.common.GuiItems;
+import io.github.silentdevelopment.headdb.paper.gui.common.GuiLabels;
 import io.github.silentdevelopment.headdb.paper.gui.common.GuiMaterials;
 import io.github.silentdevelopment.headdb.paper.gui.common.GuiTitles;
 import net.kyori.adventure.text.Component;
@@ -31,7 +32,7 @@ public final class CategoryMembersMenu {
     private static final int SLOT_BACK = 45;
     private static final int SLOT_PREVIOUS = 48;
     private static final int SLOT_ADD = 49;
-    private static final int SLOT_NEXT = 53;
+    private static final int SLOT_NEXT = 50;
     private static final String ACTION_BACK = "back";
     private static final String ACTION_PREVIOUS = "previous";
     private static final String ACTION_NEXT = "next";
@@ -116,7 +117,7 @@ public final class CategoryMembersMenu {
     }
 
     private static @NotNull ItemStack memberItem(@NotNull HeadDBPlugin plugin, @NotNull HeadId id) {
-        Optional<Head> head = plugin.headRegistry().find(id);
+        Optional<Head> head = id.isCustom() ? plugin.headRegistry().customHeads().findStored(id).map(stored -> stored.toHead()) : plugin.headRegistry().find(id);
         if (head.isPresent()) {
             ItemStack item = plugin.itemFactory().create(head.get());
             item.editMeta(meta -> {
@@ -146,7 +147,7 @@ public final class CategoryMembersMenu {
     private static void handleAction(@NotNull HeadDBPlugin plugin, @NotNull Player player, @NotNull Holder holder, @NotNull String action) {
         if (action.equals(ACTION_BACK)) {
             plugin.customCategories().find(holder.categoryId()).ifPresentOrElse(
-                    category -> MoreCategoriesMenu.openEdit(plugin, player, category.id(), category.name(), category.material()),
+                    category -> CreateCategoryMenu.openExisting(plugin, player, category.id()),
                     () -> MoreCategoriesMenu.open(plugin, player)
             );
             return;
@@ -180,7 +181,7 @@ public final class CategoryMembersMenu {
         }
 
         plugin.customCategories().removeHead(holder.categoryId(), id);
-        player.sendMessage(Component.text("Head removed: ", NamedTextColor.GRAY).append(Component.text(id.display(), NamedTextColor.GOLD)));
+        player.sendMessage(Component.text("Head removed: ", NamedTextColor.GRAY).append(Component.text(GuiLabels.head(plugin, player, id), NamedTextColor.GOLD)));
         open(plugin, player, holder.categoryId(), holder.page());
     }
 

@@ -31,11 +31,11 @@ public final class CustomCategoryService {
 
     public synchronized @NotNull List<CustomCategory> list() {
         List<CustomCategory> categories = new ArrayList<>();
-        try (Connection connection = dataSource.getConnection(); PreparedStatement statement = connection.prepareStatement("SELECT id, name, material FROM headdb_custom_categories ORDER BY lower(name) ASC")) {
+        try (Connection connection = dataSource.getConnection(); PreparedStatement statement = connection.prepareStatement("SELECT id, name, material, description, draft FROM headdb_custom_categories ORDER BY lower(name) ASC")) {
             try (ResultSet result = statement.executeQuery()) {
                 while (result.next()) {
                     String id = result.getString("id");
-                    categories.add(new CustomCategory(id, result.getString("name"), result.getString("material"), headIds(connection, id)));
+                    categories.add(categoryFromRow(result, headIds(connection, id)));
                 }
             }
         } catch (SQLException exception) {
@@ -44,6 +44,25 @@ public final class CustomCategoryService {
 
         categories.sort(Comparator.comparing(CustomCategory::name, String.CASE_INSENSITIVE_ORDER));
         return List.copyOf(categories);
+    }
+
+
+    public synchronized @NotNull List<CustomCategory> listPublished() {
+        return list().stream().filter(category -> !category.draft()).toList();
+    }
+
+    public synchronized @NotNull List<CustomCategory> listVisible(boolean includeDrafts) {
+        if (includeDrafts) {
+            return list();
+        }
+
+        return listPublished();
+    }
+
+    private static @NotNull CustomCategory categoryFromRow(@NotNull ResultSet result, @NotNull Set<HeadId> headIds) throws SQLException {
+        String description = result.getString("description");
+        boolean draft = result.getBoolean("draft");
+        return new CustomCategory(result.getString("id"), result.getString("name"), result.getString("material"), description == null ? "Local custom category." : description, draft, headIds);
     }
 
     public synchronized @NotNull String nextId() {
@@ -73,14 +92,14 @@ public final class CustomCategoryService {
         Objects.requireNonNull(id, "id");
         String normalized = normalize(id);
 
-        try (Connection connection = dataSource.getConnection(); PreparedStatement statement = connection.prepareStatement("SELECT id, name, material FROM headdb_custom_categories WHERE id = ?")) {
+        try (Connection connection = dataSource.getConnection(); PreparedStatement statement = connection.prepareStatement("SELECT id, name, material, description, draft FROM headdb_custom_categories WHERE id = ?")) {
             statement.setString(1, normalized);
             try (ResultSet result = statement.executeQuery()) {
                 if (!result.next()) {
                     return Optional.empty();
                 }
 
-                return Optional.of(new CustomCategory(result.getString("id"), result.getString("name"), result.getString("material"), headIds(connection, normalized)));
+                return Optional.of(categoryFromRow(result, headIds(connection, normalized)));
             }
         } catch (SQLException exception) {
             throw new IllegalStateException("Failed to read HeadDB custom category " + normalized + ".", exception);
@@ -92,10 +111,12 @@ public final class CustomCategoryService {
 
         try (Connection connection = dataSource.getConnection()) {
             connection.setAutoCommit(false);
-            try (PreparedStatement statement = connection.prepareStatement("INSERT INTO headdb_custom_categories(id, name, material) VALUES (?, ?, ?) ON CONFLICT(id) DO UPDATE SET name = excluded.name, material = excluded.material")) {
+            try (PreparedStatement statement = connection.prepareStatement("INSERT INTO headdb_custom_categories(id, name, material, description, draft) VALUES (?, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET name = excluded.name, material = excluded.material, description = excluded.description, draft = excluded.draft")) {
                 statement.setString(1, category.id());
                 statement.setString(2, category.name());
                 statement.setString(3, category.material());
+                statement.setString(4, category.description());
+                statement.setBoolean(5, category.draft());
                 statement.executeUpdate();
             }
 
@@ -124,7 +145,7 @@ public final class CustomCategoryService {
         CustomCategory category = find(categoryId).orElseThrow(() -> new IllegalArgumentException("Unknown custom category: " + categoryId));
         LinkedHashSet<HeadId> ids = new LinkedHashSet<>(category.headIds());
         ids.add(headId);
-        save(new CustomCategory(category.id(), category.name(), category.material(), ids));
+        save(category.withHeadIds(ids));
     }
 
     public synchronized void removeHead(@NotNull String categoryId, @NotNull HeadId headId) {
@@ -132,7 +153,7 @@ public final class CustomCategoryService {
         CustomCategory category = find(categoryId).orElseThrow(() -> new IllegalArgumentException("Unknown custom category: " + categoryId));
         LinkedHashSet<HeadId> ids = new LinkedHashSet<>(category.headIds());
         ids.remove(headId);
-        save(new CustomCategory(category.id(), category.name(), category.material(), ids));
+        save(category.withHeadIds(ids));
     }
 
     public synchronized boolean delete(@NotNull String id) {
@@ -177,14 +198,29 @@ public final class CustomCategoryService {
 
     private void createSchema() {
         try (Connection connection = dataSource.getConnection()) {
-            try (PreparedStatement categories = connection.prepareStatement("CREATE TABLE IF NOT EXISTS headdb_custom_categories (id TEXT PRIMARY KEY, name TEXT NOT NULL, material TEXT NOT NULL)")) {
+            try (PreparedStatement categories = connection.prepareStatement("CREATE TABLE IF NOT EXISTS headdb_custom_categories (id TEXT PRIMARY KEY, name TEXT NOT NULL, material TEXT NOT NULL, description TEXT NOT NULL DEFAULT 'Local custom category.', draft INTEGER NOT NULL DEFAULT 0)")) {
                 categories.executeUpdate();
             }
+            addColumnIfMissing(connection, "headdb_custom_categories", "description", "TEXT NOT NULL DEFAULT 'Local custom category.'");
+            addColumnIfMissing(connection, "headdb_custom_categories", "draft", "INTEGER NOT NULL DEFAULT 0");
             try (PreparedStatement heads = connection.prepareStatement("CREATE TABLE IF NOT EXISTS headdb_custom_category_heads (category_id TEXT NOT NULL, head_id TEXT NOT NULL, PRIMARY KEY (category_id, head_id))")) {
                 heads.executeUpdate();
             }
         } catch (SQLException exception) {
             throw new IllegalStateException("Failed to create HeadDB custom category tables.", exception);
+        }
+    }
+
+
+    private static void addColumnIfMissing(@NotNull Connection connection, @NotNull String table, @NotNull String column, @NotNull String definition) throws SQLException {
+        try (ResultSet result = connection.getMetaData().getColumns(null, null, table, column)) {
+            if (result.next()) {
+                return;
+            }
+        }
+
+        try (PreparedStatement statement = connection.prepareStatement("ALTER TABLE " + table + " ADD COLUMN " + column + " " + definition)) {
+            statement.executeUpdate();
         }
     }
 

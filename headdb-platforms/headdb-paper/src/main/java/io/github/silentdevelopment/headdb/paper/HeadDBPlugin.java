@@ -26,6 +26,7 @@ import io.github.silentdevelopment.headdb.paper.local.player.PlayerHeadCache;
 import io.github.silentdevelopment.headdb.paper.local.player.PlayerHeadService;
 import io.github.silentdevelopment.headdb.paper.local.storage.SqliteStorageMigrator;
 import io.github.silentdevelopment.headdb.paper.local.storage.StrataLocalStores;
+import io.github.silentdevelopment.headdb.paper.local.taxonomy.CustomTaxonomyService;
 import io.github.silentdevelopment.headdb.paper.local.storage.NoopLocalStores;
 import io.github.silentdevelopment.headdb.paper.message.Messages;
 import io.github.silentdevelopment.headdb.paper.metrics.HeadDBMetrics;
@@ -60,6 +61,8 @@ public final class HeadDBPlugin extends JavaPlugin {
     private final AdminModeService adminModes = new AdminModeService();
     private FavoriteHeadService favoriteHeadService;
     private CustomCategoryService customCategoryService;
+    private CustomTaxonomyService customTagService;
+    private CustomTaxonomyService customCollectionService;
     private EconomyService economyService;
     private UpdateService updateService;
 
@@ -117,6 +120,8 @@ public final class HeadDBPlugin extends JavaPlugin {
         adminModes.clear();
         favoriteHeadService = null;
         customCategoryService = null;
+        customTagService = null;
+        customCollectionService = null;
         economyService = null;
         updateService = null;
         runtime = null;
@@ -146,6 +151,8 @@ public final class HeadDBPlugin extends JavaPlugin {
         HeadItemFactory createdItemFactory = createItemFactory(loadedConfig);
         FavoriteHeadService createdFavoriteHeadService = new FavoriteHeadService(localStoreDatabase);
         CustomCategoryService createdCustomCategoryService = new CustomCategoryService(localStoreDatabase);
+        CustomTaxonomyService createdCustomTagService = new CustomTaxonomyService(localStoreDatabase, "tag", "Local custom tag.");
+        CustomTaxonomyService createdCustomCollectionService = new CustomTaxonomyService(localStoreDatabase, "collection", "Local custom collection.");
         EconomyService createdEconomyService = EconomyService.create(this, loadedEconomyConfig);
         GuiService createdGuiService = new GuiService(this, createdItemFactory);
         UpdateService createdUpdateService = new UpdateService(this, loadedConfig);
@@ -170,6 +177,8 @@ public final class HeadDBPlugin extends JavaPlugin {
         this.guiService = createdGuiService;
         this.favoriteHeadService = createdFavoriteHeadService;
         this.customCategoryService = createdCustomCategoryService;
+        this.customTagService = createdCustomTagService;
+        this.customCollectionService = createdCustomCollectionService;
         this.economyService = createdEconomyService;
         this.updateService = createdUpdateService;
 
@@ -308,6 +317,23 @@ public final class HeadDBPlugin extends JavaPlugin {
     }
 
 
+
+    public @NotNull CustomTaxonomyService customTags() {
+        CustomTaxonomyService currentCustomTagService = customTagService;
+        if (currentCustomTagService == null) {
+            throw new IllegalStateException("HeadDB custom tag service is not initialized");
+        }
+        return currentCustomTagService;
+    }
+
+    public @NotNull CustomTaxonomyService customCollections() {
+        CustomTaxonomyService currentCustomCollectionService = customCollectionService;
+        if (currentCustomCollectionService == null) {
+            throw new IllegalStateException("HeadDB custom collection service is not initialized");
+        }
+        return currentCustomCollectionService;
+    }
+
     public @NotNull EconomyService economy() {
         EconomyService currentEconomyService = economyService;
         if (currentEconomyService == null) {
@@ -388,7 +414,9 @@ public final class HeadDBPlugin extends JavaPlugin {
                 ? new BukkitPlayerHeadService(this, playerHeadCache, config.playerHeadCacheTtl(), config.playerHeadFailedCacheTtl(), config.playerHeadsAllowExternalLookup())
                 : new DisabledPlayerHeadService();
 
-        return new HeadRegistry(runtime.database(), overrideStore, customHeadStore, playerHeadService);
+        CustomTaxonomyService customTags = new CustomTaxonomyService(localStoreDatabase, "tag", "Local custom tag.");
+        CustomTaxonomyService customCollections = new CustomTaxonomyService(localStoreDatabase, "collection", "Local custom collection.");
+        return new HeadRegistry(runtime.database(), overrideStore, customHeadStore, playerHeadService, customTags, customCollections);
     }
 
     private @NotNull HeadItemFactory createItemFactory(@NotNull PluginConfig config) {

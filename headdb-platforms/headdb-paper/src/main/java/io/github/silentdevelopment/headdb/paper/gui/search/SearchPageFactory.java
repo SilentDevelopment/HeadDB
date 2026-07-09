@@ -9,6 +9,8 @@ import io.github.silentdevelopment.grafik.paper.page.PaperPageBuilder;
 import io.github.silentdevelopment.grafik.paper.page.PaperPageFactory;
 import io.github.silentdevelopment.headdb.model.Head;
 import io.github.silentdevelopment.headdb.model.HeadCategory;
+import io.github.silentdevelopment.headdb.model.HeadCollection;
+import io.github.silentdevelopment.headdb.model.HeadTag;
 import io.github.silentdevelopment.headdb.model.HeadId;
 import io.github.silentdevelopment.headdb.paper.HeadDBPlugin;
 import io.github.silentdevelopment.headdb.paper.gui.common.GuiHeadIcons;
@@ -49,6 +51,7 @@ public final class SearchPageFactory implements PaperPageFactory<SearchMenuState
     private static final int SLOT_NEXT = 50;
     private static final int SLOT_SORT_FILTER = 52;
     private static final int SLOT_EMPTY = 22;
+    private static final String NO_VISIBLE_CATEGORY = "__headdb_no_visible_category__";
     private static final int[] RESULT_SLOTS = {
             10, 11, 12, 13, 14, 15, 16,
             19, 20, 21, 22, 23, 24, 25,
@@ -142,6 +145,7 @@ public final class SearchPageFactory implements PaperPageFactory<SearchMenuState
 
         return GuiHeadIcons.<SearchMenuState>button(plugin, "sort_filter", "sort-filter", GuiItems.name("Sort / Filter", NamedTextColor.GOLD), List.of(
                 GuiItems.metaDetail("Sort", request.sort() + " " + request.direction()),
+                GuiItems.idDetail("IDs", request.ids().size()),
                 GuiItems.idDetail("Categories", categoryLabel(request)),
                 GuiItems.idDetail("Tags", request.tags().size()),
                 GuiItems.idDetail("Collections", request.collections().size()),
@@ -173,9 +177,6 @@ public final class SearchPageFactory implements PaperPageFactory<SearchMenuState
             List<Component> lore = meta.lore() == null ? new java.util.ArrayList<>() : new java.util.ArrayList<>(meta.lore());
             lore.add(Component.empty());
             lore.add(GuiItems.idDetail("ID", headIdLabel(head.id())));
-            lore.add(GuiItems.metaDetail("Category", head.category()));
-            lore.add(GuiItems.metaDetail("Tags", head.tags().size()));
-            lore.add(GuiItems.metaDetail("Collections", head.collections().size()));
             lore.add(GuiItems.lore("Press Q to edit.", NamedTextColor.GRAY));
             meta.lore(lore);
         });
@@ -183,15 +184,22 @@ public final class SearchPageFactory implements PaperPageFactory<SearchMenuState
     }
 
     private @NotNull ItemElement<SearchMenuState> backButton() {
-        return GuiHeadIcons.<SearchMenuState>button(plugin, "back", "back", context -> {
-            Player player = player(context);
+        return GuiHeadIcons.<SearchMenuState>button(plugin, "back", "back", context -> openBack(context, context.source().resultBackTarget()));
+    }
 
-            if (player == null) {
-                return;
-            }
+    private void openBack(@NotNull GuiContext<SearchMenuState> context, @NotNull SearchMenuState.BackTarget target) {
+        Player player = player(context);
+        if (player == null) {
+            return;
+        }
 
-            plugin.guis().openMain(player);
-        });
+        switch (target) {
+            case BROWSE -> plugin.guis().openBrowse(player);
+            case COLLECTIONS -> plugin.guis().openCollections(player);
+            case TAGS -> plugin.guis().openTags(player);
+            case RESULTS -> context.openPage(SearchPageFactory.KEY);
+            case MAIN -> plugin.guis().openMain(player);
+        }
     }
 
     private @NotNull ItemElement<SearchMenuState> previousButton(int currentPage) {
@@ -209,7 +217,21 @@ public final class SearchPageFactory implements PaperPageFactory<SearchMenuState
     }
 
     private @NotNull ItemElement<SearchMenuState> summaryButton(@NotNull SearchRequest request, @NotNull HeadQueryResult result, int currentPage) {
-        return GuiHeadIcons.<SearchMenuState>button(plugin, "summary", "info", GuiItems.name("Search Summary", NamedTextColor.GOLD), summaryLore(request, result, currentPage), ignored -> {});
+        return GuiHeadIcons.<SearchMenuState>button(plugin, "summary", "info", GuiItems.name(summaryTitle(request), NamedTextColor.GOLD), summaryLore(request, result, currentPage), ignored -> {});
+    }
+
+    private static @NotNull String summaryTitle(@NotNull SearchRequest request) {
+        Objects.requireNonNull(request, "request");
+
+        if (request.categoryLocked()) {
+            return "Category Summary";
+        }
+
+        if (request.isEmpty()) {
+            return "Browse Summary";
+        }
+
+        return "Search Summary";
     }
 
     private @NotNull ItemElement<SearchMenuState> emptyButton() {
@@ -273,7 +295,29 @@ public final class SearchPageFactory implements PaperPageFactory<SearchMenuState
     private @NotNull HeadQueryResult search(Player player, @NotNull SearchRequest request, int page) {
         Objects.requireNonNull(request, "request");
         boolean includeHidden = player != null && plugin.adminModes().enabled(player);
-        return searchResultCache.search(plugin.headRegistry(), request, page, PAGE_SIZE, includeHidden);
+        SearchRequest scopedRequest = scopedRequest(player, request);
+        return searchResultCache.search(plugin.headRegistry(), scopedRequest, page, PAGE_SIZE, includeHidden);
+    }
+
+    private @NotNull SearchRequest scopedRequest(Player player, @NotNull SearchRequest request) {
+        Objects.requireNonNull(request, "request");
+
+        if (player == null || request.categoryLocked() || Permissions.canViewAllCategories(player)) {
+            return request;
+        }
+
+        Set<String> visibleCategories = visibleCategories(player);
+        if (request.categories().isEmpty()) {
+            return request.withCategoryFilters(visibleCategories.isEmpty() ? Set.of(NO_VISIBLE_CATEGORY) : visibleCategories);
+        }
+
+        Set<String> scopedCategories = request.categories().stream().filter(category -> visibleCategories.contains(category)).collect(java.util.stream.Collectors.toCollection(java.util.LinkedHashSet::new));
+        return request.withCategoryFilters(scopedCategories.isEmpty() ? Set.of(NO_VISIBLE_CATEGORY) : scopedCategories);
+    }
+
+    private @NotNull Set<String> visibleCategories(@NotNull Player player) {
+        Objects.requireNonNull(player, "player");
+        return plugin.headRegistry().categories().stream().map(HeadCategory::id).filter(category -> Permissions.canViewCategory(player, category)).collect(java.util.stream.Collectors.toUnmodifiableSet());
     }
 
     private @NotNull Component title(Player viewer, @NotNull SearchRequest request, @NotNull HeadQueryResult result, int currentPage) {
@@ -295,6 +339,14 @@ public final class SearchPageFactory implements PaperPageFactory<SearchMenuState
             return request.query();
         }
 
+        if (request.tags().size() == 1 && request.ids().isEmpty() && request.categories().isEmpty() && request.collections().isEmpty()) {
+            return tagName(request.tags().iterator().next());
+        }
+
+        if (request.collections().size() == 1 && request.ids().isEmpty() && request.categories().isEmpty() && request.tags().isEmpty()) {
+            return collectionName(request.collections().iterator().next());
+        }
+
         if (request.hasFilters()) {
             return "Filtered Heads";
         }
@@ -306,6 +358,18 @@ public final class SearchPageFactory implements PaperPageFactory<SearchMenuState
         Objects.requireNonNull(categoryId, "categoryId");
 
         return plugin.headRegistry().categories().stream().filter(category -> category.id().equalsIgnoreCase(categoryId)).map(HeadCategory::name).findFirst().orElse(categoryId);
+    }
+
+    private @NotNull String collectionName(@NotNull String collectionId) {
+        Objects.requireNonNull(collectionId, "collectionId");
+
+        return plugin.headRegistry().collections().stream().filter(collection -> collection.id().equalsIgnoreCase(collectionId)).map(HeadCollection::name).findFirst().orElse(collectionId);
+    }
+
+    private @NotNull String tagName(@NotNull String tagId) {
+        Objects.requireNonNull(tagId, "tagId");
+
+        return plugin.headRegistry().tags().stream().filter(tag -> tag.id().equalsIgnoreCase(tagId)).map(HeadTag::name).findFirst().orElse(tagId);
     }
 
     private @NotNull List<Component> summaryLore(@NotNull SearchRequest request, @NotNull HeadQueryResult result, int currentPage) {
@@ -320,6 +384,7 @@ public final class SearchPageFactory implements PaperPageFactory<SearchMenuState
 
         lore.add(GuiItems.idDetail("Results", result.total()));
         lore.add(GuiItems.idDetail("Page", currentPage + " / " + Math.max(1, result.totalPages())));
+        lore.add(GuiItems.idDetail("IDs", request.ids().size()));
         lore.add(GuiItems.idDetail("Categories", categoryLabel(request)));
         lore.add(GuiItems.idDetail("Tags", request.tags().size()));
         lore.add(GuiItems.idDetail("Collections", request.collections().size()));
@@ -332,7 +397,7 @@ public final class SearchPageFactory implements PaperPageFactory<SearchMenuState
         Objects.requireNonNull(request, "request");
 
         if (request.categoryLocked()) {
-            return request.category() + " (locked)";
+            return request.category();
         }
 
         if (request.categories().isEmpty()) {

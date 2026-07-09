@@ -10,6 +10,7 @@ import io.github.silentdevelopment.headdb.paper.gui.common.GuiItems;
 import io.github.silentdevelopment.headdb.paper.gui.common.GuiTitles;
 import io.github.silentdevelopment.headdb.paper.item.HeadItemIds;
 import io.github.silentdevelopment.headdb.paper.local.player.PlayerHeadEntry;
+import io.github.silentdevelopment.headdb.paper.local.custom.StoredCustomHead;
 import io.github.silentdevelopment.headdb.paper.permission.Permissions;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -43,7 +44,7 @@ public final class LocalHeadListMenu {
     private static final int SLOT_BACK = 45;
     private static final int SLOT_PREVIOUS = 48;
     private static final int SLOT_INFO = 49;
-    private static final int SLOT_NEXT = 53;
+    private static final int SLOT_NEXT = 50;
     private static final int[] HEAD_SLOTS = {
             10, 11, 12, 13, 14, 15, 16,
             19, 20, 21, 22, 23, 24, 25,
@@ -67,7 +68,7 @@ public final class LocalHeadListMenu {
         Objects.requireNonNull(plugin, "plugin");
         Objects.requireNonNull(player, "player");
 
-        List<Head> heads = plugin.headRegistry().customHeads().list().stream().sorted(Comparator.comparing(Head::name, String.CASE_INSENSITIVE_ORDER)).toList();
+        List<Head> heads = (plugin.adminModes().enabled(player) ? plugin.headRegistry().customHeads().listStored().stream().map(StoredCustomHead::toHead).toList() : plugin.headRegistry().customHeads().list()).stream().sorted(Comparator.comparing(Head::name, String.CASE_INSENSITIVE_ORDER)).toList();
         open(plugin, player, LocalHeadListType.CUSTOM, heads, page);
     }
 
@@ -146,7 +147,7 @@ public final class LocalHeadListMenu {
         int page = clampPage(requestedPage, pages);
         LocalHeadListHolder holder = new LocalHeadListHolder(type, page);
         boolean adminMode = plugin.adminModes().enabled(player);
-        Inventory inventory = Bukkit.createInventory(holder, SIZE, GuiTitles.title(title(type, page, pages), adminMode));
+        Inventory inventory = Bukkit.createInventory(holder, SIZE, GuiTitles.title(title(plugin, type, page, pages), adminMode));
         holder.inventory(inventory);
 
         fillBorder(inventory);
@@ -195,6 +196,11 @@ public final class LocalHeadListMenu {
 
     private static void handleAction(@NotNull HeadDBPlugin plugin, @NotNull Player player, @NotNull LocalHeadListHolder holder, @NotNull String action) {
         if (action.equals(ACTION_BACK)) {
+            if (holder.type() == LocalHeadListType.CUSTOM) {
+                plugin.guis().openBrowse(player);
+                return;
+            }
+
             plugin.guis().openMain(player);
             return;
         }
@@ -283,8 +289,10 @@ public final class LocalHeadListMenu {
         return new org.bukkit.NamespacedKey(plugin, "local_menu_action");
     }
 
-    private static @NotNull String title(@NotNull LocalHeadListType type, int page, int pages) {
-        return type.displayName() + " " + (page + 1) + "/" + pages;
+    private static @NotNull String title(@NotNull HeadDBPlugin plugin, @NotNull LocalHeadListType type, int page, int pages) {
+        String key = type == LocalHeadListType.CUSTOM ? "title.custom-heads-page" : "title.player-heads-page";
+        String fallback = type.displayName() + " %page%/%pages%";
+        return plugin.guiConfig().text(key, fallback).replace("%page%", String.valueOf(page + 1)).replace("%pages%", String.valueOf(Math.max(1, pages)));
     }
 
 

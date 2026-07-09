@@ -88,7 +88,7 @@ public final class CustomCommand extends AbstractPaperCommand {
 
     private void list(@NotNull PaperCommandContext context) {
         require(context, Permissions.CUSTOM_LIST);
-        List<StoredCustomHead> heads = plugin.headRegistry().customHeads().listStored().stream().sorted(Comparator.comparing(StoredCustomHead::id)).toList();
+        List<StoredCustomHead> heads = plugin.headRegistry().customHeads().listStored().stream().filter(head -> !head.draft()).sorted(Comparator.comparing(StoredCustomHead::id)).toList();
         int page = context.has(FIRST) ? page(context.get(FIRST)) : 1;
         int from = Math.min((page - 1) * 10, heads.size());
         int to = Math.min(from + 10, heads.size());

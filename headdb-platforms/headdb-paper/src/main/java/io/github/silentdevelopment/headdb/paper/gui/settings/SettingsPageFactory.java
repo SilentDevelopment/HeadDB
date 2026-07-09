@@ -32,8 +32,9 @@ public final class SettingsPageFactory implements PaperPageFactory<MenuState> {
 
     public static final GKey<PageKey> KEY = GKey.of("settings");
 
-    private static final int ROWS = 6;
-    private static final int SLOT_DENIED = 22;
+    private static final int ROWS_FULL = 6;
+    private static final int ROWS_LANGUAGE_ONLY = 1;
+    private static final int SLOT_DENIED = 4;
 
     private final HeadDBPlugin plugin;
 
@@ -51,47 +52,66 @@ public final class SettingsPageFactory implements PaperPageFactory<MenuState> {
         Objects.requireNonNull(context, "context");
         Objects.requireNonNull(page, "page");
 
-        page.type(MenuType.GENERIC_9X6);
         Player player = player(context);
-        boolean adminMode = player != null && plugin.adminModes().enabled(player);
-        page.title(GuiTitles.title("HeadDB Settings", adminMode));
+        boolean languageOnly = player != null && isLanguageOnly(player);
+        int rows = languageOnly ? ROWS_LANGUAGE_ONLY : ROWS_FULL;
+        page.type(languageOnly ? MenuType.GENERIC_9X1 : MenuType.GENERIC_9X6);
+        page.title(GuiTitles.title(plugin.guiConfig().text("title.settings", "Settings"), false));
 
         Set<Integer> reservedSlots = new HashSet<>();
-        set(page, reservedSlots, slot("settings.back", 45), backButton());
 
         if (player == null || !Permissions.has(player, Permissions.GUI_SETTINGS)) {
             set(page, reservedSlots, SLOT_DENIED, deniedButton());
-            GuiItems.fillEmpty(plugin, page, ROWS, reservedSlots);
+            GuiItems.fillEmpty(plugin, page, rows, reservedSlots);
             return page.build();
         }
 
+        if (languageOnly) {
+            set(page, reservedSlots, slot("settings.language-only", 4), languagesButton());
+            GuiItems.fillEmpty(plugin, page, rows, reservedSlots);
+            return page.build();
+        }
+
+        set(page, reservedSlots, slot("settings.back", 45), backButton());
+
         if (Permissions.has(player, Permissions.GUI_SETTINGS_LANGUAGE)) {
-            set(page, reservedSlots, slot("settings.language", 20), languagesButton());
+            set(page, reservedSlots, slot("settings.language", 13), languagesButton());
         }
 
         if (Permissions.has(player, Permissions.GUI_ADMIN_MODE)) {
-            set(page, reservedSlots, slot("settings.admin-mode", 13), adminModeButton(player));
+            set(page, reservedSlots, slot("settings.admin-mode", 31), adminModeButton(player));
         }
 
-
         if (Permissions.has(player, Permissions.DEBUG)) {
-            set(page, reservedSlots, slot("settings.debug", 24), commandButton("debug", "debug", Permissions.DEBUG, "hdb debug"));
+            set(page, reservedSlots, slot("settings.debug", 38), commandButton("debug", "debug", Permissions.DEBUG, "hdb debug"));
         }
 
         if (Permissions.has(player, Permissions.VERIFY)) {
-            set(page, reservedSlots, slot("settings.verify", 33), commandButton("verify", "verify", Permissions.VERIFY, "hdb verify"));
+            set(page, reservedSlots, slot("settings.verify", 39), commandButton("verify", "verify", Permissions.VERIFY, "hdb verify"));
         }
 
         if (Permissions.has(player, Permissions.REFRESH)) {
-            set(page, reservedSlots, slot("settings.refresh", 42), commandButton("refresh", "refresh", Permissions.REFRESH, "hdb refresh"));
+            set(page, reservedSlots, slot("settings.refresh", 41), confirmCommandButton("refresh", "refresh", Permissions.REFRESH, "hdb refresh", plugin.guiConfig().text("title.confirm-refresh", "Confirm Refresh")));
         }
 
         if (Permissions.has(player, Permissions.RELOAD)) {
-            set(page, reservedSlots, slot("settings.reload", 40), commandButton("reload", "reload", Permissions.RELOAD, "hdb reload"));
+            set(page, reservedSlots, slot("settings.reload", 42), confirmCommandButton("reload", "reload", Permissions.RELOAD, "hdb reload", plugin.guiConfig().text("title.confirm-reload", "Confirm Reload")));
         }
 
-        GuiItems.fillEmpty(plugin, page, ROWS, reservedSlots);
+        GuiItems.fillEmpty(plugin, page, rows, reservedSlots);
         return page.build();
+    }
+
+    private boolean isLanguageOnly(@NotNull Player player) {
+        if (!Permissions.has(player, Permissions.GUI_SETTINGS_LANGUAGE)) {
+            return false;
+        }
+
+        return !Permissions.has(player, Permissions.GUI_ADMIN_MODE)
+                && !Permissions.has(player, Permissions.DEBUG)
+                && !Permissions.has(player, Permissions.VERIFY)
+                && !Permissions.has(player, Permissions.REFRESH)
+                && !Permissions.has(player, Permissions.RELOAD);
     }
 
     private @NotNull ItemElement<MenuState> backButton() {
@@ -153,6 +173,28 @@ public final class SettingsPageFactory implements PaperPageFactory<MenuState> {
 
             player.closeInventory();
             player.performCommand(command);
+        });
+    }
+
+    private @NotNull ItemElement<MenuState> confirmCommandButton(@NotNull String elementKey, @NotNull String iconKey, @NotNull String permission, @NotNull String command, @NotNull String title) {
+        Objects.requireNonNull(elementKey, "elementKey");
+        Objects.requireNonNull(iconKey, "iconKey");
+        Objects.requireNonNull(permission, "permission");
+        Objects.requireNonNull(command, "command");
+        Objects.requireNonNull(title, "title");
+
+        return GuiHeadIcons.<MenuState>button(plugin, elementKey, iconKey, context -> {
+            Player player = player(context);
+            if (player == null) {
+                return;
+            }
+
+            if (!Permissions.has(player, permission)) {
+                player.sendMessage(plugin.messages().render(player, MessageKey.COMMAND_ERROR_NO_PERMISSION));
+                return;
+            }
+
+            CommandConfirmMenu.open(plugin, player, title, command, permission);
         });
     }
 

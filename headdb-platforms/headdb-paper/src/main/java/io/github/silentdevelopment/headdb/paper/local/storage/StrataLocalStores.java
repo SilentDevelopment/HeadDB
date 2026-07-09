@@ -352,7 +352,8 @@ public final class StrataLocalStores {
             @NotNull String category,
             @NotNull String createdAt,
             @NotNull String updatedAt,
-            @Nullable String createdBy
+            @Nullable String createdBy,
+            boolean draft
     ) {
 
         private StoredCustomHeadRow {
@@ -397,7 +398,8 @@ public final class StrataLocalStores {
                     head.category(),
                     instant(head.createdAt()),
                     instant(head.updatedAt()),
-                    uuid(head.createdBy())
+                    uuid(head.createdBy()),
+                    head.draft()
             );
         }
 
@@ -416,7 +418,8 @@ public final class StrataLocalStores {
                     category,
                     created,
                     updated,
-                    uuid(createdBy)
+                    uuid(createdBy),
+                    draft
             );
         }
     }

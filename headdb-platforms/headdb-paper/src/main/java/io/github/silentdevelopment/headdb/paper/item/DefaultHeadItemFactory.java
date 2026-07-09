@@ -214,6 +214,16 @@ public final class DefaultHeadItemFactory implements HeadItemFactory {
             // Registry is unavailable only during very early bootstrap.
         }
 
+        if (!lore.isEmpty()) {
+            lore.add(Component.empty());
+        }
+
+        if (!head.id().isPlayer()) {
+            lore.add(line("Category", head.category()));
+            lore.add(line("Tags", join(head.tags())));
+            lore.add(line("Collections", join(head.collections())));
+        }
+
         return cleanLore(lore);
     }
 
@@ -241,7 +251,7 @@ public final class DefaultHeadItemFactory implements HeadItemFactory {
 
     private static @NotNull Component line(@NotNull String key, @NotNull String value) {
         return Component.text(key + ": ", NamedTextColor.GRAY)
-                .append(Component.text(value, NamedTextColor.WHITE))
+                .append(Component.text(value, NamedTextColor.GOLD))
                 .decoration(TextDecoration.ITALIC, false);
     }
 

@@ -5,6 +5,9 @@ import io.github.silentdevelopment.grafik.paper.PaperGrafik;
 import io.github.silentdevelopment.grafik.paper.core.PaperGrafiks;
 import io.github.silentdevelopment.headdb.paper.HeadDBPlugin;
 import io.github.silentdevelopment.headdb.paper.gui.main.MainMenu;
+import io.github.silentdevelopment.headdb.paper.gui.category.BrowseMenu;
+import io.github.silentdevelopment.headdb.paper.gui.category.CollectionsMenu;
+import io.github.silentdevelopment.headdb.paper.gui.category.TagsMenu;
 import io.github.silentdevelopment.headdb.paper.gui.category.MoreCategoriesMenu;
 import io.github.silentdevelopment.headdb.paper.gui.favorites.FavoritesMenu;
 import io.github.silentdevelopment.headdb.paper.gui.local.LocalHeadListMenu;
@@ -26,6 +29,7 @@ public final class GuiService {
     private final PaperGrafik grafik;
     private final DynamicGui<MenuState> mainGui;
     private final DynamicGui<SearchMenuState> searchGui;
+    private final DynamicGui<SearchMenuState> advancedSearchGui;
     private final SearchResultCache searchResultCache;
 
     public GuiService(@NotNull HeadDBPlugin plugin, @NotNull HeadItemFactory itemFactory) {
@@ -36,6 +40,7 @@ public final class GuiService {
         this.grafik = PaperGrafiks.create(plugin);
         this.mainGui = grafik.prepare(new MainMenu(plugin));
         this.searchGui = grafik.prepare(new SearchMenu(plugin, itemFactory, searchResultCache));
+        this.advancedSearchGui = grafik.prepare(SearchMenu.advanced(plugin, itemFactory, searchResultCache));
     }
 
     public void openMain(@NotNull Player player) {
@@ -49,26 +54,94 @@ public final class GuiService {
         grafik.open(mainGui, new MenuState(player.getUniqueId()), player);
     }
 
+    public void openBrowse(@NotNull Player player) {
+        Objects.requireNonNull(player, "player");
+
+        if (!Permissions.has(player, Permissions.GUI_BROWSE_MENU)) {
+            player.sendMessage(plugin.messages().render(player, MessageKey.COMMAND_ERROR_NO_PERMISSION));
+            return;
+        }
+
+        BrowseMenu.open(plugin, player);
+    }
+
+    public void openAdvancedSearch(@NotNull Player player) {
+        openAdvancedSearch(player, new SearchRequest("", java.util.Set.of(), java.util.Set.of(), java.util.Set.of(), java.util.Set.of(), io.github.silentdevelopment.headdb.query.HeadSort.RELEVANCE, io.github.silentdevelopment.headdb.query.SortDirection.DESCENDING, 1, 28, false), SearchMenuState.BackTarget.MAIN);
+    }
+
+    public void openAdvancedSearch(@NotNull Player player, @NotNull SearchRequest request, @NotNull SearchMenuState.BackTarget backTarget) {
+        Objects.requireNonNull(player, "player");
+        Objects.requireNonNull(request, "request");
+        Objects.requireNonNull(backTarget, "backTarget");
+
+        if (!Permissions.has(player, Permissions.GUI_SEARCH_ADVANCED) || !Permissions.has(player, Permissions.GUI_FILTER)) {
+            player.sendMessage(plugin.messages().render(player, MessageKey.COMMAND_ERROR_NO_PERMISSION));
+            return;
+        }
+
+        grafik.open(advancedSearchGui, new SearchMenuState(player.getUniqueId(), request, backTarget, backTarget), player);
+    }
+
+    public void openCollections(@NotNull Player player) {
+        Objects.requireNonNull(player, "player");
+
+        if (!Permissions.has(player, Permissions.GUI_COLLECTIONS)) {
+            player.sendMessage(plugin.messages().render(player, MessageKey.COMMAND_ERROR_NO_PERMISSION));
+            return;
+        }
+
+        CollectionsMenu.open(plugin, player);
+    }
+
+    public void openTags(@NotNull Player player) {
+        Objects.requireNonNull(player, "player");
+
+        if (!Permissions.has(player, Permissions.GUI_TAGS)) {
+            player.sendMessage(plugin.messages().render(player, MessageKey.COMMAND_ERROR_NO_PERMISSION));
+            return;
+        }
+
+        TagsMenu.open(plugin, player);
+    }
+
     public void openSearch(@NotNull Player player, @NotNull SearchRequest request) {
+        openSearch(player, request, SearchMenuState.BackTarget.MAIN);
+    }
+
+    public void openSearch(@NotNull Player player, @NotNull SearchRequest request, @NotNull SearchMenuState.BackTarget backTarget) {
+        Objects.requireNonNull(player, "player");
+        Objects.requireNonNull(request, "request");
+        Objects.requireNonNull(backTarget, "backTarget");
+
+        if (!canOpenSearch(player, request)) {
+            player.sendMessage(plugin.messages().render(player, MessageKey.COMMAND_ERROR_NO_PERMISSION));
+            return;
+        }
+
+        grafik.open(searchGui, new SearchMenuState(player.getUniqueId(), request, backTarget, SearchMenuState.BackTarget.RESULTS), player);
+    }
+
+    private boolean canOpenSearch(@NotNull Player player, @NotNull SearchRequest request) {
         Objects.requireNonNull(player, "player");
         Objects.requireNonNull(request, "request");
 
-        if (request.category() != null) {
-            if (!Permissions.has(player, Permissions.GUI_CATEGORY_OPEN) || !Permissions.canViewCategory(player, request.category())) {
-                player.sendMessage(plugin.messages().render(player, MessageKey.COMMAND_ERROR_NO_PERMISSION));
-                return;
-            }
-        } else if (!Permissions.has(player, Permissions.GUI_BROWSE) || !Permissions.canViewAllCategories(player)) {
-            player.sendMessage(plugin.messages().render(player, MessageKey.COMMAND_ERROR_NO_PERMISSION));
-            return;
-        }
-
         if (!request.query().isBlank() && !Permissions.has(player, Permissions.SEARCH)) {
-            player.sendMessage(plugin.messages().render(player, MessageKey.COMMAND_ERROR_NO_PERMISSION));
-            return;
+            return false;
         }
 
-        grafik.open(searchGui, new SearchMenuState(player.getUniqueId(), request), player);
+        if (request.categoryLocked()) {
+            return request.category() != null && Permissions.has(player, Permissions.GUI_CATEGORY_OPEN) && Permissions.canViewCategory(player, request.category());
+        }
+
+        if (!request.categories().isEmpty()) {
+            return Permissions.has(player, Permissions.GUI_CATEGORY_OPEN) && request.categories().stream().allMatch(category -> Permissions.canViewCategory(player, category));
+        }
+
+        if (request.isEmpty()) {
+            return Permissions.has(player, Permissions.GUI_BROWSE) && Permissions.canViewAllCategories(player);
+        }
+
+        return Permissions.has(player, Permissions.GUI_BROWSE) || Permissions.has(player, Permissions.GUI_SEARCH);
     }
 
 

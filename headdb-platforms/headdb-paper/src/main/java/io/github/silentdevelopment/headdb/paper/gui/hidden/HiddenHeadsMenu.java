@@ -6,6 +6,7 @@ import io.github.silentdevelopment.headdb.model.HeadId;
 import io.github.silentdevelopment.headdb.paper.HeadDBPlugin;
 import io.github.silentdevelopment.headdb.paper.gui.common.GuiHeadIcons;
 import io.github.silentdevelopment.headdb.paper.gui.common.GuiItems;
+import io.github.silentdevelopment.headdb.paper.gui.common.GuiLabels;
 import io.github.silentdevelopment.headdb.paper.gui.common.GuiTitles;
 import io.github.silentdevelopment.headdb.paper.item.HeadItemIds;
 import io.github.silentdevelopment.headdb.paper.local.override.RemoteHeadOverride;
@@ -70,7 +71,7 @@ public final class HiddenHeadsMenu {
         int pages = pageCount(heads.size());
         int page = clampPage(requestedPage, pages);
         HiddenHeadsHolder holder = new HiddenHeadsHolder(page);
-        Inventory inventory = Bukkit.createInventory(holder, SIZE, GuiTitles.title("Hidden Heads " + (page + 1) + "/" + pages, true));
+        Inventory inventory = Bukkit.createInventory(holder, SIZE, GuiTitles.title(title(plugin, page, pages), true));
         holder.inventory(inventory);
 
         fillBorder(inventory);
@@ -130,7 +131,7 @@ public final class HiddenHeadsMenu {
         plugin.headRegistry().onLocalMutation();
         plugin.clearItemCache();
         plugin.clearSearchCache();
-        player.sendMessage(Component.text("Head shown: ", NamedTextColor.GRAY).append(Component.text(id.get().display(), NamedTextColor.GOLD)));
+        player.sendMessage(Component.text("Head shown: ", NamedTextColor.GRAY).append(Component.text(GuiLabels.head(plugin, player, id.get()), NamedTextColor.GOLD)));
         open(plugin, player, holder.page());
         return true;
     }
@@ -173,7 +174,7 @@ public final class HiddenHeadsMenu {
 
     private static void handleAction(@NotNull HeadDBPlugin plugin, @NotNull Player player, @NotNull HiddenHeadsHolder holder, @NotNull String action) {
         if (action.equals(ACTION_BACK)) {
-            plugin.guis().openMain(player);
+            plugin.guis().openBrowse(player);
             return;
         }
 
@@ -240,6 +241,10 @@ public final class HiddenHeadsMenu {
     private static @NotNull String headIdLabel(@NotNull HeadId id) {
         Objects.requireNonNull(id, "id");
         return id.display();
+    }
+
+    private static @NotNull String title(@NotNull HeadDBPlugin plugin, int page, int pages) {
+        return plugin.guiConfig().text("title.hidden-heads-page", "Hidden Heads %page%/%pages%").replace("%page%", String.valueOf(page + 1)).replace("%pages%", String.valueOf(Math.max(1, pages)));
     }
 
     private static int pageCount(int entries) {

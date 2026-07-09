@@ -187,7 +187,7 @@ public final class FavoritesMenu {
         }
     }
 
-    private static void give(@NotNull HeadDBPlugin plugin, @NotNull Player player, @NotNull HeadId id) {
+    public static void give(@NotNull HeadDBPlugin plugin, @NotNull Player player, @NotNull HeadId id) {
         if (!Permissions.has(player, Permissions.GUI_HEAD_TAKE)) {
             player.sendMessage(plugin.messages().render(player, io.github.silentdevelopment.headdb.paper.message.MessageKey.COMMAND_ERROR_NO_PERMISSION));
             return;

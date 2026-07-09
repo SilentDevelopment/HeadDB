@@ -63,3 +63,15 @@ gui:
   language:
     changed: "<gray>Language changed to <gold>{locale}</gold>."
     reset: "<gray>Language reset to the default locale."
+  price:
+    prompt: "<gold>Enter the new price. Use 0 to clear the custom price."
+    invalid: "<red>Price must be a valid number."
+    updated: "<gray>Updated price for <gold>{target}</gold><gray> to <gold>{price}</gold><gray>."
+  taxonomy:
+    created: "<gray>Created custom {type}: <gold>{name}</gold><gray> (<gold>{id}</gold><gray>)."
+    deleted: "<gray>Deleted custom {type}: <gold>{id}</gold><gray>."
+    unknown: "<red>Unknown custom {type}: <gold>{id}</gold>"
+  confirm:
+    refresh: "<gray>Confirm database refresh."
+    reload: "<gray>Confirm plugin reload."
+

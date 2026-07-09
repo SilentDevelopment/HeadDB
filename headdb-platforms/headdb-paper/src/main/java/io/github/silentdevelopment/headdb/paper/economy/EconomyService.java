@@ -3,17 +3,22 @@ package io.github.silentdevelopment.headdb.paper.economy;
 import io.github.silentdevelopment.headdb.model.Head;
 import io.github.silentdevelopment.headdb.paper.HeadDBPlugin;
 import net.milkbowl.vault.economy.Economy;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.RegisteredServiceProvider;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Locale;
 import java.util.Objects;
 
 public final class EconomyService {
 
     private final HeadDBPlugin plugin;
-    private final EconomyConfig config;
+    private EconomyConfig config;
     private final EconomyProvider provider;
 
     private EconomyService(@NotNull HeadDBPlugin plugin, @NotNull EconomyConfig config, @NotNull EconomyProvider provider) {
@@ -114,7 +119,42 @@ public final class EconomyService {
         return false;
     }
 
+    public void setHeadPrice(@NotNull io.github.silentdevelopment.headdb.model.HeadId id, double price) {
+        Objects.requireNonNull(id, "id");
+        setPrice("prices.heads." + id.display().trim().toLowerCase(Locale.ROOT), price);
+    }
+
+    public void setCustomCategoryPrice(@NotNull String categoryId, double price) {
+        Objects.requireNonNull(categoryId, "categoryId");
+        setPrice("prices.custom-categories." + categoryId.trim().toLowerCase(Locale.ROOT), price);
+    }
+
     public @NotNull String format(double amount) {
         return provider.format(amount);
+    }
+
+    private void setPrice(@NotNull String path, double price) {
+        if (price < 0.0D) {
+            throw new IllegalArgumentException("Price cannot be negative.");
+        }
+
+        Path file = plugin.getDataFolder().toPath().resolve("economy.yml");
+        try {
+            Path parent = file.toAbsolutePath().normalize().getParent();
+            if (parent != null) {
+                Files.createDirectories(parent);
+            }
+
+            YamlConfiguration yaml = YamlConfiguration.loadConfiguration(file.toFile());
+            if (price <= 0.0D) {
+                yaml.set(path, null);
+            } else {
+                yaml.set(path, price);
+            }
+            yaml.save(file.toFile());
+            config = EconomyConfig.load(plugin);
+        } catch (IOException exception) {
+            throw new IllegalStateException("Failed to update economy.yml.", exception);
+        }
     }
 }

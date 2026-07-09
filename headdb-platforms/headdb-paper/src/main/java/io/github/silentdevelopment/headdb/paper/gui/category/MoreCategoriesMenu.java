@@ -39,7 +39,7 @@ public final class MoreCategoriesMenu {
     private static final int SLOT_PREVIOUS = 48;
     private static final int SLOT_ADD = 49;
     private static final int SLOT_REMOVE = 50;
-    private static final int SLOT_NEXT = 53;
+    private static final int SLOT_NEXT = 50;
     private static final String ACTION_BACK = "back";
     private static final String ACTION_PREVIOUS = "previous";
     private static final String ACTION_NEXT = "next";
@@ -86,7 +86,7 @@ public final class MoreCategoriesMenu {
             return;
         }
 
-        List<CustomCategory> categories = plugin.customCategories().list();
+        List<CustomCategory> categories = plugin.customCategories().listVisible(plugin.adminModes().enabled(player)).stream().filter(category -> Permissions.canViewCategory(player, category.id())).toList();
         int pages = pageCount(categories.size());
         int page = clampPage(requestedPage, pages);
         MoreCategoriesHolder holder = new MoreCategoriesHolder(mode, page);
@@ -175,6 +175,9 @@ public final class MoreCategoriesMenu {
         item.editMeta(meta -> {
             List<Component> lore = new ArrayList<>();
             lore.add(GuiItems.idDetail("Heads", category.headIds().size()));
+            if (category.draft()) {
+                lore.add(GuiItems.idDetail("State", "DRAFT"));
+            }
             lore.add(GuiItems.metaDetail("Icon", iconLabel(category)));
             lore.add(Component.empty());
 
@@ -187,7 +190,7 @@ public final class MoreCategoriesMenu {
                 }
             }
 
-            meta.displayName(GuiItems.name(category.name(), mode == MoreCategoryMode.REMOVE ? NamedTextColor.RED : NamedTextColor.GOLD));
+            meta.displayName(GuiItems.name(category.draft() ? "DRAFT - " + category.name() : category.name(), category.draft() ? NamedTextColor.YELLOW : mode == MoreCategoryMode.REMOVE ? NamedTextColor.RED : NamedTextColor.GOLD));
             meta.lore(lore);
         });
         return item;
@@ -241,7 +244,7 @@ public final class MoreCategoriesMenu {
             return;
         }
         if (action.equals(ACTION_ADD)) {
-            openEdit(plugin, player, "", "", "CHEST");
+            CreateCategoryMenu.open(plugin, player);
             return;
         }
         if (action.equals(ACTION_REMOVE_MODE)) {
@@ -265,13 +268,12 @@ public final class MoreCategoriesMenu {
                     return;
                 }
                 CustomCategory category = existing.get();
-                openEdit(plugin, player, category.id(), category.name(), category.material());
+                CreateCategoryMenu.openExisting(plugin, player, category.id());
                 return;
             }
 
             CustomCategory category = existing.get();
-            Set<HeadId> ids = category.headIds().isEmpty() ? Set.of(new HeadId("remote:0")) : category.headIds();
-            plugin.guis().openSearch(player, new SearchRequest("", ids, Set.of(), Set.of(), Set.of(), HeadSort.ID, SortDirection.ASCENDING, 1, 28, false));
+            CustomCategoryViewMenu.open(plugin, player, category.id(), 0);
             return;
         }
         if (action.startsWith(ACTION_REMOVE)) {

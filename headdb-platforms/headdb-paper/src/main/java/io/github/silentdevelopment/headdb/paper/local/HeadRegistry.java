@@ -15,6 +15,7 @@ import io.github.silentdevelopment.headdb.paper.local.override.HeadOverrideMerge
 import io.github.silentdevelopment.headdb.paper.local.override.RemoteHeadOverride;
 import io.github.silentdevelopment.headdb.paper.local.override.RemoteHeadOverrideStore;
 import io.github.silentdevelopment.headdb.paper.local.player.PlayerHeadService;
+import io.github.silentdevelopment.headdb.paper.local.taxonomy.CustomTaxonomyService;
 import io.github.silentdevelopment.headdb.query.HeadQuery;
 import io.github.silentdevelopment.headdb.query.HeadQueryResult;
 import io.github.silentdevelopment.headdb.query.HeadSort;
@@ -41,13 +42,17 @@ public final class HeadRegistry implements io.github.silentdevelopment.headdb.re
     private final RemoteHeadOverrideStore overrideStore;
     private final CustomHeadStore customHeadStore;
     private final PlayerHeadService playerHeadService;
+    private final CustomTaxonomyService customTagService;
+    private final CustomTaxonomyService customCollectionService;
     private final HeadOverrideMerger merger;
 
-    public HeadRegistry(@NotNull DefaultHeadDatabase remoteDatabase, @NotNull RemoteHeadOverrideStore overrideStore, @NotNull CustomHeadStore customHeadStore, @NotNull PlayerHeadService playerHeadService) {
+    public HeadRegistry(@NotNull DefaultHeadDatabase remoteDatabase, @NotNull RemoteHeadOverrideStore overrideStore, @NotNull CustomHeadStore customHeadStore, @NotNull PlayerHeadService playerHeadService, @NotNull CustomTaxonomyService customTagService, @NotNull CustomTaxonomyService customCollectionService) {
         this.remoteDatabase = Objects.requireNonNull(remoteDatabase, "remoteDatabase");
         this.overrideStore = Objects.requireNonNull(overrideStore, "overrideStore");
         this.customHeadStore = Objects.requireNonNull(customHeadStore, "customHeadStore");
         this.playerHeadService = Objects.requireNonNull(playerHeadService, "playerHeadService");
+        this.customTagService = Objects.requireNonNull(customTagService, "customTagService");
+        this.customCollectionService = Objects.requireNonNull(customCollectionService, "customCollectionService");
         this.merger = new HeadOverrideMerger();
     }
 
@@ -162,19 +167,27 @@ public final class HeadRegistry implements io.github.silentdevelopment.headdb.re
     }
 
     public @NotNull List<HeadCategory> categories() {
-        Map<String, HeadCategory> categories = new LinkedHashMap<>();
+        Map<String, HeadCategory> remoteCategories = new LinkedHashMap<>();
         for (HeadCategory category : remoteDatabase.categories()) {
-            categories.put(category.id(), category);
+            remoteCategories.put(category.id(), category);
         }
+
+        Map<String, HeadCategory> localCategories = new LinkedHashMap<>();
         for (Head head : customHeadStore.list()) {
-            categories.putIfAbsent(head.category(), new HeadCategory(head.category(), displayName(head.category()), "Local custom category."));
+            localCategories.putIfAbsent(head.category(), new HeadCategory(head.category(), displayName(head.category()), "Local custom category."));
         }
         for (RemoteHeadOverride override : overrideStore.list()) {
-            if (override.category() != null) {
-                categories.putIfAbsent(override.category(), new HeadCategory(override.category(), displayName(override.category()), "Local override category."));
+            if (override.category() == null) {
+                continue;
             }
+
+            localCategories.putIfAbsent(override.category(), new HeadCategory(override.category(), displayName(override.category()), "Local override category."));
         }
-        return categories.values().stream().sorted(Comparator.comparing(HeadCategory::id)).toList();
+
+        List<HeadCategory> categories = new ArrayList<>();
+        categories.addAll(remoteCategories.values().stream().sorted(Comparator.comparing(HeadCategory::id)).toList());
+        categories.addAll(localCategories.values().stream().filter(category -> !remoteCategories.containsKey(category.id())).sorted(Comparator.comparing(HeadCategory::id)).toList());
+        return List.copyOf(categories);
     }
 
     public @NotNull List<HeadTag> tags() {
@@ -197,6 +210,9 @@ public final class HeadRegistry implements io.github.silentdevelopment.headdb.re
                 }
             }
         }
+        for (var tag : customTagService.list()) {
+            tags.put(tag.id(), new HeadTag(tag.id(), tag.name(), tag.description()));
+        }
         return tags.values().stream().sorted(Comparator.comparing(HeadTag::id)).toList();
     }
 
@@ -209,6 +225,9 @@ public final class HeadRegistry implements io.github.silentdevelopment.headdb.re
             for (String collection : head.collections()) {
                 collections.putIfAbsent(collection, new HeadCollection(collection, displayName(collection), "Local collection."));
             }
+        }
+        for (var collection : customCollectionService.list()) {
+            collections.put(collection.id(), new HeadCollection(collection.id(), collection.name(), collection.description()));
         }
         return collections.values().stream().sorted(Comparator.comparing(HeadCollection::id)).toList();
     }
