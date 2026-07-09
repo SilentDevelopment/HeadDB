@@ -18,6 +18,7 @@ import io.github.silentdevelopment.headdb.paper.message.MessageKey;
 import io.github.silentdevelopment.headdb.paper.permission.Permissions;
 import io.github.silentdevelopment.headdb.paper.search.SearchRequest;
 import io.github.silentdevelopment.headdb.paper.search.SearchResultCache;
+import io.github.silentdevelopment.headdb.paper.sound.SoundKey;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
@@ -48,10 +49,12 @@ public final class GuiService {
 
         if (!Permissions.has(player, Permissions.GUI_MAIN)) {
             player.sendMessage(plugin.messages().render(player, MessageKey.COMMAND_ERROR_NO_PERMISSION));
+            plugin.sounds().play(player, SoundKey.NO_PERMISSION);
             return;
         }
 
         grafik.open(mainGui, new MenuState(player.getUniqueId()), player);
+        plugin.sounds().play(player, SoundKey.MENU_OPEN);
     }
 
     public void openBrowse(@NotNull Player player) {
@@ -59,6 +62,7 @@ public final class GuiService {
 
         if (!Permissions.has(player, Permissions.GUI_BROWSE_MENU)) {
             player.sendMessage(plugin.messages().render(player, MessageKey.COMMAND_ERROR_NO_PERMISSION));
+            plugin.sounds().play(player, SoundKey.NO_PERMISSION);
             return;
         }
 
@@ -76,10 +80,12 @@ public final class GuiService {
 
         if (!Permissions.has(player, Permissions.GUI_SEARCH_ADVANCED) || !Permissions.has(player, Permissions.GUI_FILTER)) {
             player.sendMessage(plugin.messages().render(player, MessageKey.COMMAND_ERROR_NO_PERMISSION));
+            plugin.sounds().play(player, SoundKey.NO_PERMISSION);
             return;
         }
 
         grafik.open(advancedSearchGui, new SearchMenuState(player.getUniqueId(), request, backTarget, backTarget), player);
+        plugin.sounds().play(player, SoundKey.MENU_OPEN);
     }
 
     public void openCollections(@NotNull Player player) {
@@ -87,6 +93,7 @@ public final class GuiService {
 
         if (!Permissions.has(player, Permissions.GUI_COLLECTIONS)) {
             player.sendMessage(plugin.messages().render(player, MessageKey.COMMAND_ERROR_NO_PERMISSION));
+            plugin.sounds().play(player, SoundKey.NO_PERMISSION);
             return;
         }
 
@@ -98,6 +105,7 @@ public final class GuiService {
 
         if (!Permissions.has(player, Permissions.GUI_TAGS)) {
             player.sendMessage(plugin.messages().render(player, MessageKey.COMMAND_ERROR_NO_PERMISSION));
+            plugin.sounds().play(player, SoundKey.NO_PERMISSION);
             return;
         }
 
@@ -115,10 +123,12 @@ public final class GuiService {
 
         if (!canOpenSearch(player, request)) {
             player.sendMessage(plugin.messages().render(player, MessageKey.COMMAND_ERROR_NO_PERMISSION));
+            plugin.sounds().play(player, SoundKey.NO_PERMISSION);
             return;
         }
 
         grafik.open(searchGui, new SearchMenuState(player.getUniqueId(), request, backTarget, SearchMenuState.BackTarget.RESULTS), player);
+        plugin.sounds().play(player, SoundKey.MENU_OPEN);
     }
 
     private boolean canOpenSearch(@NotNull Player player, @NotNull SearchRequest request) {
@@ -150,6 +160,7 @@ public final class GuiService {
 
         if (!Permissions.has(player, Permissions.GUI_PLAYER_HEADS)) {
             player.sendMessage(plugin.messages().render(player, MessageKey.COMMAND_ERROR_NO_PERMISSION));
+            plugin.sounds().play(player, SoundKey.NO_PERMISSION);
             return;
         }
 
@@ -161,6 +172,7 @@ public final class GuiService {
 
         if (!Permissions.has(player, Permissions.GUI_FAVORITES)) {
             player.sendMessage(plugin.messages().render(player, MessageKey.COMMAND_ERROR_NO_PERMISSION));
+            plugin.sounds().play(player, SoundKey.NO_PERMISSION);
             return;
         }
 
@@ -172,6 +184,7 @@ public final class GuiService {
 
         if (!Permissions.has(player, Permissions.GUI_MORE_CATEGORIES)) {
             player.sendMessage(plugin.messages().render(player, MessageKey.COMMAND_ERROR_NO_PERMISSION));
+            plugin.sounds().play(player, SoundKey.NO_PERMISSION);
             return;
         }
 
@@ -183,6 +196,7 @@ public final class GuiService {
 
         if (!Permissions.has(player, Permissions.GUI_CUSTOM_HEADS)) {
             player.sendMessage(plugin.messages().render(player, MessageKey.COMMAND_ERROR_NO_PERMISSION));
+            plugin.sounds().play(player, SoundKey.NO_PERMISSION);
             return;
         }
 

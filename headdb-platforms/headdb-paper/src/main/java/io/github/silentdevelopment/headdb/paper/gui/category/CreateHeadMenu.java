@@ -16,6 +16,7 @@ import io.github.silentdevelopment.headdb.paper.local.custom.StoredCustomHead;
 import io.github.silentdevelopment.headdb.paper.local.texture.TextureInputParser;
 import io.github.silentdevelopment.headdb.paper.message.MessageKey;
 import io.github.silentdevelopment.headdb.paper.permission.Permissions;
+import io.github.silentdevelopment.headdb.paper.sound.SoundKey;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
@@ -112,6 +113,7 @@ public final class CreateHeadMenu {
         fillBorder(plugin, inventory);
         render(plugin, inventory, draft);
         player.openInventory(inventory);
+        plugin.sounds().play(player, SoundKey.MENU_OPEN);
     }
 
     public static boolean handleClick(@NotNull HeadDBPlugin plugin, @NotNull Player player, @NotNull InventoryClickEvent event) {
@@ -137,6 +139,10 @@ public final class CreateHeadMenu {
         Optional<String> action = readAction(plugin, item);
         if (action.isEmpty()) {
             return true;
+        }
+
+        if (!action.get().equals(ACTION_CREATE)) {
+            plugin.sounds().playGuiAction(player, action.get());
         }
 
         if (holder instanceof CreateHeadSelectorHolder selectorHolder) {
@@ -184,6 +190,7 @@ public final class CreateHeadMenu {
                     update(player, draft.withTexture(texture.hash()));
                 } catch (IllegalArgumentException exception) {
                     player.sendMessage(Component.text(exception.getMessage(), NamedTextColor.RED));
+                    plugin.sounds().play(player, SoundKey.VALIDATION_ERROR);
                 }
             });
             return;
@@ -232,6 +239,7 @@ public final class CreateHeadMenu {
         renderSelectorEntries(plugin, inventory, draft, mode, entries, page);
         renderSelectorControls(plugin, inventory, draft, mode, entries.size(), page, pages);
         player.openInventory(inventory);
+        plugin.sounds().play(player, SoundKey.MENU_OPEN);
     }
 
     private static void renderSelectorEntries(@NotNull HeadDBPlugin plugin, @NotNull Inventory inventory, @NotNull Draft draft, @NotNull SelectorMode mode, @NotNull List<SelectionEntry> entries, int page) {
@@ -482,6 +490,7 @@ public final class CreateHeadMenu {
             player.getScheduler().run(plugin, task -> open(plugin, player), () -> {});
         } catch (IllegalArgumentException exception) {
             player.sendMessage(Component.text(exception.getMessage(), NamedTextColor.RED));
+            plugin.sounds().play(player, SoundKey.INVALID);
         }
     }
 
@@ -519,6 +528,7 @@ public final class CreateHeadMenu {
 
             DRAFTS.remove(player.getUniqueId());
             player.sendMessage(Component.text("Saved draft head: ", NamedTextColor.GRAY).append(Component.text(head.name() + " (" + head.headId().display() + ")", NamedTextColor.GOLD)));
+            plugin.sounds().play(player, SoundKey.SAVE_DRAFT);
             HeadEditMenu.open(plugin, player, HeadId.custom(head.id()));
         } catch (IllegalArgumentException exception) {
             if (!reopenEdit) {
@@ -526,6 +536,7 @@ public final class CreateHeadMenu {
             }
 
             player.sendMessage(Component.text(exception.getMessage(), NamedTextColor.RED));
+            plugin.sounds().play(player, SoundKey.VALIDATION_ERROR);
             open(plugin, player);
         }
     }
@@ -592,6 +603,7 @@ public final class CreateHeadMenu {
 
     private static void noPermission(@NotNull HeadDBPlugin plugin, @NotNull Player player) {
         player.sendMessage(plugin.messages().render(player, MessageKey.COMMAND_ERROR_NO_PERMISSION));
+        plugin.sounds().play(player, SoundKey.NO_PERMISSION);
     }
 
     private record SelectionEntry(@NotNull String id, @NotNull String name) {}

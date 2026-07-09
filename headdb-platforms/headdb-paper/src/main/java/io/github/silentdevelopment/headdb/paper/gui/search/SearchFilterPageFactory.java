@@ -18,7 +18,6 @@ import io.github.silentdevelopment.headdb.paper.gui.common.GuiItems;
 import io.github.silentdevelopment.headdb.paper.gui.common.GuiTitles;
 import io.github.silentdevelopment.headdb.paper.message.MessageKey;
 import io.github.silentdevelopment.headdb.paper.permission.Permissions;
-import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -31,6 +30,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
+import java.util.UUID;
 
 @SuppressWarnings("UnstableApiUsage")
 public final class SearchFilterPageFactory implements PaperPageFactory<SearchMenuState> {
@@ -92,7 +92,7 @@ public final class SearchFilterPageFactory implements PaperPageFactory<SearchMen
             return page.build();
         }
 
-        List<FilterEntry> entries = entries(player);
+        List<FilterEntry> entries = cachedEntries(context, player);
         int pageIndex = pageIndex(context);
         int fromIndex = pageIndex * ENTRY_SLOTS.length;
 
@@ -286,7 +286,30 @@ public final class SearchFilterPageFactory implements PaperPageFactory<SearchMen
         });
     }
 
-    private @NotNull List<FilterEntry> entries(@NotNull Player player) {
+    private @NotNull List<FilterEntry> cachedEntries(@NotNull GuiContext<SearchMenuState> context, @NotNull Player player) {
+        Objects.requireNonNull(context, "context");
+        Objects.requireNonNull(player, "player");
+
+        String stateKey = cacheStateKey();
+        FilterEntryCache cache = context.state().get(stateKey, FilterEntryCache.class);
+        UUID viewerId = player.getUniqueId();
+        long registryRevision = plugin.headRegistry().revision();
+        boolean adminMode = plugin.adminModes().enabled(player);
+
+        if (cache != null && cache.matches(viewerId, registryRevision, adminMode)) {
+            return cache.entries();
+        }
+
+        List<FilterEntry> entries = entries(player, adminMode);
+        context.state().put(stateKey, new FilterEntryCache(viewerId, registryRevision, adminMode, entries));
+        return entries;
+    }
+
+    private @NotNull String cacheStateKey() {
+        return "headdb.search.filter.entries." + mode.name().toLowerCase(Locale.ROOT);
+    }
+
+    private @NotNull List<FilterEntry> entries(@NotNull Player player, boolean adminMode) {
         if (mode == Mode.CATEGORY) {
             return plugin.headRegistry().categories().stream()
                     .filter(category -> Permissions.canViewCategory(player, category.id()))
@@ -296,42 +319,40 @@ public final class SearchFilterPageFactory implements PaperPageFactory<SearchMen
         }
 
         if (mode == Mode.TAGS) {
-            Set<String> visibleTags = visibleTagIds(player);
+            Set<String> visibleTags = visibleTagIds(player, adminMode);
             return plugin.headRegistry().tags().stream()
-                    .filter(tag -> plugin.adminModes().enabled(player) || visibleTags.contains(tag.id()))
+                    .filter(tag -> adminMode || visibleTags.contains(tag.id()))
                     .sorted(Comparator.comparing(HeadTag::name, String.CASE_INSENSITIVE_ORDER))
                     .map(tag -> new FilterEntry(tag.id(), tag.name()))
                     .toList();
         }
 
-        Set<String> visibleCollections = visibleCollectionIds(player);
+        Set<String> visibleCollections = visibleCollectionIds(player, adminMode);
         return plugin.headRegistry().collections().stream()
-                .filter(collection -> plugin.adminModes().enabled(player) || visibleCollections.contains(collection.id()))
+                .filter(collection -> adminMode || visibleCollections.contains(collection.id()))
                 .sorted(Comparator.comparing(HeadCollection::name, String.CASE_INSENSITIVE_ORDER))
                 .map(collection -> new FilterEntry(collection.id(), collection.name()))
                 .toList();
     }
 
-
-    private @NotNull Set<String> visibleTagIds(@NotNull Player player) {
+    private @NotNull Set<String> visibleTagIds(@NotNull Player player, boolean adminMode) {
         Set<String> tags = new HashSet<>();
-        for (Head head : visibleHeads(player)) {
+        for (Head head : visibleHeads(player, adminMode)) {
             tags.addAll(head.tags());
         }
         return Set.copyOf(tags);
     }
 
-    private @NotNull Set<String> visibleCollectionIds(@NotNull Player player) {
+    private @NotNull Set<String> visibleCollectionIds(@NotNull Player player, boolean adminMode) {
         Set<String> collections = new HashSet<>();
-        for (Head head : visibleHeads(player)) {
+        for (Head head : visibleHeads(player, adminMode)) {
             collections.addAll(head.collections());
         }
         return Set.copyOf(collections);
     }
 
-    private @NotNull List<Head> visibleHeads(@NotNull Player player) {
-        boolean includeHidden = plugin.adminModes().enabled(player);
-        return plugin.headRegistry().heads(includeHidden).stream().filter(head -> Permissions.canViewCategory(player, head.category())).toList();
+    private @NotNull List<Head> visibleHeads(@NotNull Player player, boolean adminMode) {
+        return plugin.headRegistry().heads(adminMode).stream().filter(head -> Permissions.canViewCategory(player, head.category())).toList();
     }
 
     private int pageIndex(@NotNull GuiContext<SearchMenuState> context) {
@@ -371,6 +392,18 @@ public final class SearchFilterPageFactory implements PaperPageFactory<SearchMen
     }
 
     private record FilterEntry(@NotNull String id, @NotNull String name) {}
+
+    private record FilterEntryCache(@NotNull UUID viewerId, long registryRevision, boolean adminMode, @NotNull List<FilterEntry> entries) {
+
+        private FilterEntryCache {
+            Objects.requireNonNull(viewerId, "viewerId");
+            entries = List.copyOf(Objects.requireNonNull(entries, "entries"));
+        }
+
+        private boolean matches(@NotNull UUID viewerId, long registryRevision, boolean adminMode) {
+            return this.viewerId.equals(viewerId) && this.registryRevision == registryRevision && this.adminMode == adminMode;
+        }
+    }
 
     public enum Mode {
 

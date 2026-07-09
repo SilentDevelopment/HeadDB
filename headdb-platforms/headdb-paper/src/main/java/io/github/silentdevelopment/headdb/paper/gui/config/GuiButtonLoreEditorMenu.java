@@ -66,6 +66,7 @@ public final class GuiButtonLoreEditorMenu {
         renderControls(plugin, inventory, buttonKey, page, pages);
 
         player.openInventory(inventory);
+        plugin.sounds().play(player, io.github.silentdevelopment.headdb.paper.sound.SoundKey.MENU_OPEN);
     }
 
     public static boolean handleClick(@NotNull HeadDBPlugin plugin, @NotNull Player player, @NotNull InventoryClickEvent event) {
@@ -87,6 +88,8 @@ public final class GuiButtonLoreEditorMenu {
         if (action.isEmpty()) {
             return true;
         }
+
+        plugin.sounds().playGuiAction(player, action.get());
 
         handleAction(plugin, player, holder, event.getClick(), action.get());
         return true;

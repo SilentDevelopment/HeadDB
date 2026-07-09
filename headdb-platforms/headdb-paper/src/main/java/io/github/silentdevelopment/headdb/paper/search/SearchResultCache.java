@@ -1,21 +1,24 @@
 package io.github.silentdevelopment.headdb.paper.search;
 
-import io.github.silentdevelopment.headdb.paper.local.HeadRegistry;
 import io.github.silentdevelopment.headdb.database.DatabaseStatus;
+import io.github.silentdevelopment.headdb.model.Head;
 import io.github.silentdevelopment.headdb.model.HeadId;
+import io.github.silentdevelopment.headdb.paper.local.HeadRegistry;
+import io.github.silentdevelopment.headdb.query.HeadQuery;
 import io.github.silentdevelopment.headdb.query.HeadQueryResult;
 import io.github.silentdevelopment.headdb.query.HeadSort;
 import io.github.silentdevelopment.headdb.query.SortDirection;
 import org.jetbrains.annotations.NotNull;
 
 import java.time.Duration;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 public final class SearchResultCache {
 
-    private static final int DEFAULT_MAX_ENTRIES = 128;
+    private static final int DEFAULT_MAX_ENTRIES = 32;
     private static final Duration DEFAULT_TTL = Duration.ofSeconds(10);
 
     private final ConcurrentHashMap<Key, Entry> cache;
@@ -52,18 +55,19 @@ public final class SearchResultCache {
 
         long now = System.nanoTime();
         DatabaseStatus status = registry.status();
-        Key key = Key.create(status, request, page, limit, includeHidden);
+        Key key = Key.create(status, registry.revision(), request, includeHidden);
 
         Entry cached = cache.get(key);
         if (cached != null && !cached.expired(now, ttlNanos)) {
-            return cached.result();
+            return cached.result(page, limit);
         }
 
-        HeadQueryResult result = includeHidden ? registry.searchIncludingHidden(SearchQueries.query(request, page, limit)) : registry.search(SearchQueries.query(request, page, limit));
-        cache.put(key, new Entry(result, now));
+        HeadQuery query = SearchQueries.query(request, 1, Math.min(limit, HeadQuery.MAX_LIMIT));
+        Entry created = new Entry(registry.searchAll(query, includeHidden), now);
+        cache.put(key, created);
         clean(now);
 
-        return result;
+        return created.result(page, limit);
     }
 
     public void clear() {
@@ -88,10 +92,17 @@ public final class SearchResultCache {
         cache.clear();
     }
 
-    private record Entry(@NotNull HeadQueryResult result, long createdAtNanos) {
+    private record Entry(@NotNull List<Head> heads, long createdAtNanos) {
 
         private Entry {
-            Objects.requireNonNull(result, "result");
+            heads = List.copyOf(Objects.requireNonNull(heads, "heads"));
+        }
+
+        private @NotNull HeadQueryResult result(int page, int limit) {
+            int offset = Math.max(0, (Math.max(1, page) - 1) * Math.max(1, limit));
+            int from = Math.min(offset, heads.size());
+            int to = Math.min(from + Math.max(1, limit), heads.size());
+            return new HeadQueryResult(heads.subList(from, to), heads.size(), offset, Math.max(1, limit));
         }
 
         private boolean expired(long now, long ttlNanos) {
@@ -105,6 +116,7 @@ public final class SearchResultCache {
             @NotNull String manifestId,
             @NotNull String artifactId,
             @NotNull String loadedAt,
+            long registryRevision,
             @NotNull String query,
             @NotNull Set<HeadId> ids,
             @NotNull Set<String> categories,
@@ -112,8 +124,6 @@ public final class SearchResultCache {
             @NotNull Set<String> collections,
             @NotNull HeadSort sort,
             @NotNull SortDirection direction,
-            int page,
-            int limit,
             boolean categoryLocked,
             boolean includeHidden
     ) {
@@ -133,7 +143,7 @@ public final class SearchResultCache {
             Objects.requireNonNull(direction, "direction");
         }
 
-        private static @NotNull Key create(@NotNull DatabaseStatus status, @NotNull SearchRequest request, int page, int limit, boolean includeHidden) {
+        private static @NotNull Key create(@NotNull DatabaseStatus status, long registryRevision, @NotNull SearchRequest request, boolean includeHidden) {
             Objects.requireNonNull(status, "status");
             Objects.requireNonNull(request, "request");
 
@@ -143,6 +153,7 @@ public final class SearchResultCache {
                     text(status.manifestId()),
                     text(status.artifactId()),
                     status.loadedAt() == null ? "" : status.loadedAt().toString(),
+                    registryRevision,
                     request.query(),
                     request.ids(),
                     request.categories(),
@@ -150,8 +161,6 @@ public final class SearchResultCache {
                     request.collections(),
                     request.sort(),
                     request.direction(),
-                    page,
-                    limit,
                     request.categoryLocked(),
                     includeHidden
             );

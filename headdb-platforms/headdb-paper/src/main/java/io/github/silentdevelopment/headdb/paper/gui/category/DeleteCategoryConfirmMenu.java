@@ -6,6 +6,7 @@ import io.github.silentdevelopment.headdb.paper.gui.common.GuiItems;
 import io.github.silentdevelopment.headdb.paper.gui.common.GuiMaterials;
 import io.github.silentdevelopment.headdb.paper.message.MessageKey;
 import io.github.silentdevelopment.headdb.paper.permission.Permissions;
+import io.github.silentdevelopment.headdb.paper.sound.SoundKey;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
@@ -56,6 +57,7 @@ public final class DeleteCategoryConfirmMenu {
         inventory.setItem(11, action(plugin, "confirm-yes", ACTION_CONFIRM, category.get()));
         inventory.setItem(15, action(plugin, "confirm-no", ACTION_CANCEL, category.get()));
         player.openInventory(inventory);
+        plugin.sounds().play(player, SoundKey.MENU_OPEN);
     }
 
     public static boolean handleClick(@NotNull HeadDBPlugin plugin, @NotNull Player player, @NotNull InventoryClickEvent event) {
@@ -79,6 +81,7 @@ public final class DeleteCategoryConfirmMenu {
         }
 
         if (action.get().equals(ACTION_CANCEL)) {
+            plugin.sounds().play(player, SoundKey.CANCEL);
             CreateCategoryMenu.openExisting(plugin, player, holder.categoryId());
             return true;
         }
@@ -97,6 +100,7 @@ public final class DeleteCategoryConfirmMenu {
         boolean deleted = plugin.customCategories().delete(holder.categoryId());
         plugin.clearSearchCache();
         player.sendMessage(Component.text(deleted ? "Category deleted: " : "Category already deleted: ", deleted ? NamedTextColor.GRAY : NamedTextColor.RED).append(Component.text(label, NamedTextColor.GOLD)));
+        plugin.sounds().play(player, deleted ? SoundKey.CATEGORY_DELETE : SoundKey.INVALID);
         plugin.guis().openBrowse(player);
         return true;
     }
@@ -145,6 +149,7 @@ public final class DeleteCategoryConfirmMenu {
 
     private static void noPermission(@NotNull HeadDBPlugin plugin, @NotNull Player player) {
         player.sendMessage(plugin.messages().render(player, MessageKey.COMMAND_ERROR_NO_PERMISSION));
+        plugin.sounds().play(player, SoundKey.NO_PERMISSION);
     }
 
     private static final class Holder implements InventoryHolder {

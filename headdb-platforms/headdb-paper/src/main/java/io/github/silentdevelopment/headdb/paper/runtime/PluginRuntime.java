@@ -187,6 +187,8 @@ public final class PluginRuntime {
                 return;
             }
 
+            plugin.invalidateHeadRegistry();
+            plugin.warmHeadRegistry();
             plugin.clearItemCache();
             plugin.clearSearchCache();
             refreshState.markSuccess();
@@ -209,6 +211,8 @@ public final class PluginRuntime {
     private void refreshRemoteStarted() {
         try {
             refreshService.refresh();
+            plugin.invalidateHeadRegistry();
+            plugin.warmHeadRegistry();
             plugin.clearItemCache();
             plugin.clearSearchCache();
             refreshState.markSuccess();

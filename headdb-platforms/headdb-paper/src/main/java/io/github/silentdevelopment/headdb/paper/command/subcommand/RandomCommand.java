@@ -7,6 +7,7 @@ import io.github.silentdevelopment.headdb.paper.command.Suggestions;
 import io.github.silentdevelopment.headdb.paper.item.HeadItemFactory;
 import io.github.silentdevelopment.headdb.paper.message.MessageKey;
 import io.github.silentdevelopment.headdb.paper.permission.Permissions;
+import io.github.silentdevelopment.headdb.paper.sound.SoundKey;
 import io.github.silentdevelopment.headdb.query.HeadQuery;
 import io.github.silentdevelopment.headdb.query.HeadQueryResult;
 import io.github.silentdevelopment.headdb.query.HeadSort;
@@ -50,6 +51,7 @@ public final class RandomCommand extends AbstractPaperCommand {
             request = request(context);
         } catch (IllegalArgumentException exception) {
             context.reply(plugin.messages().invalidArgument(context.sender(), exception.getMessage()));
+            play(context, SoundKey.INVALID);
             return;
         }
 
@@ -60,6 +62,7 @@ public final class RandomCommand extends AbstractPaperCommand {
 
         if (!Permissions.canGiveTo(context.sender(), target)) {
             context.reply(plugin.messages().render(context.sender(), MessageKey.COMMAND_ERROR_NO_PERMISSION));
+            play(context, SoundKey.NO_PERMISSION);
             return;
         }
 
@@ -67,6 +70,7 @@ public final class RandomCommand extends AbstractPaperCommand {
             Optional<Head> optionalHead = randomHead(request.category());
             if (optionalHead.isEmpty()) {
                 context.reply(plugin.messages().randomEmpty(context.sender()));
+                play(context, SoundKey.INVALID);
                 return;
             }
 
@@ -76,10 +80,15 @@ public final class RandomCommand extends AbstractPaperCommand {
 
             if (!give(target, optionalHead.get())) {
                 context.reply(plugin.messages().giveInventoryFull(context.sender(), target));
+                play(context, SoundKey.INVALID);
                 return;
             }
 
             context.reply(plugin.messages().giveSuccess(context.sender(), optionalHead.get(), target));
+            plugin.sounds().play(target, SoundKey.GIVE_HEAD);
+            if (context.isPlayer() && !context.player().equals(target)) {
+                plugin.sounds().play(context.player(), SoundKey.GIVE_HEAD);
+            }
         }
     }
 
@@ -138,6 +147,7 @@ public final class RandomCommand extends AbstractPaperCommand {
             }
 
             context.reply(plugin.messages().randomConsoleUsage(context.sender()));
+            play(context, SoundKey.INVALID);
             return null;
         }
 
@@ -147,6 +157,7 @@ public final class RandomCommand extends AbstractPaperCommand {
         }
 
         context.reply(plugin.messages().playerNotOnline(context.sender(), playerName));
+        play(context, SoundKey.INVALID);
         return null;
     }
 
@@ -184,6 +195,14 @@ public final class RandomCommand extends AbstractPaperCommand {
         }
 
         throw new IllegalArgumentException("Could not parse random command argument: " + value);
+    }
+
+    private void play(@NotNull PaperCommandContext context, @NotNull SoundKey key) {
+        if (!context.isPlayer()) {
+            return;
+        }
+
+        plugin.sounds().play(context.player(), key);
     }
 
     private static boolean isAmount(@NotNull String value) {

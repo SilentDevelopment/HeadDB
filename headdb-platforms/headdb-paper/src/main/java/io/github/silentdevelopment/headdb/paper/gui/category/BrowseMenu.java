@@ -99,6 +99,7 @@ public final class BrowseMenu {
         renderCategories(plugin, player, inventory, categories, page);
         renderControls(plugin, player, inventory, categories.size(), page, pages);
         player.openInventory(inventory);
+        plugin.sounds().play(player, io.github.silentdevelopment.headdb.paper.sound.SoundKey.MENU_OPEN);
     }
 
     public static boolean handleClick(@NotNull HeadDBPlugin plugin, @NotNull Player player, @NotNull InventoryClickEvent event) {
@@ -124,6 +125,8 @@ public final class BrowseMenu {
         if (action.isEmpty()) {
             return true;
         }
+
+        plugin.sounds().playGuiAction(player, action.get());
 
         handleAction(plugin, player, holder, action.get(), event.getClick());
         return true;
@@ -561,6 +564,7 @@ public final class BrowseMenu {
 
     private static void noPermission(@NotNull HeadDBPlugin plugin, @NotNull Player player) {
         player.sendMessage(plugin.messages().render(player, MessageKey.COMMAND_ERROR_NO_PERMISSION));
+        plugin.sounds().play(player, io.github.silentdevelopment.headdb.paper.sound.SoundKey.NO_PERMISSION);
     }
 
     private static @NotNull SearchRequest browseRequest() {

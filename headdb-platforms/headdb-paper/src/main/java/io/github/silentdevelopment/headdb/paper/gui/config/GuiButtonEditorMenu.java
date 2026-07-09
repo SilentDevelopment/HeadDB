@@ -94,6 +94,7 @@ public final class GuiButtonEditorMenu {
         inventory.setItem(plugin.guiConfig().slot("gui-button.back", 18), action(plugin, ACTION_BACK, "back"));
 
         player.openInventory(inventory);
+        plugin.sounds().play(player, io.github.silentdevelopment.headdb.paper.sound.SoundKey.MENU_OPEN);
     }
 
     public static boolean handleClick(@NotNull HeadDBPlugin plugin, @NotNull Player player, @NotNull InventoryClickEvent event) {
@@ -119,6 +120,8 @@ public final class GuiButtonEditorMenu {
         if (action.isEmpty()) {
             return true;
         }
+
+        plugin.sounds().playGuiAction(player, action.get());
 
         handleAction(plugin, player, holder.key(), action.get());
         return true;

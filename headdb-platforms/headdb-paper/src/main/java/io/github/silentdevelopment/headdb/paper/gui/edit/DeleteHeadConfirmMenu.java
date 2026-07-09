@@ -10,6 +10,7 @@ import io.github.silentdevelopment.headdb.paper.gui.common.GuiMaterials;
 import io.github.silentdevelopment.headdb.paper.gui.common.GuiTitles;
 import io.github.silentdevelopment.headdb.paper.message.MessageKey;
 import io.github.silentdevelopment.headdb.paper.permission.Permissions;
+import io.github.silentdevelopment.headdb.paper.sound.SoundKey;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
@@ -79,6 +80,7 @@ public final class DeleteHeadConfirmMenu {
         inventory.setItem(SLOT_CANCEL, cancel);
 
         player.openInventory(inventory);
+        plugin.sounds().play(player, SoundKey.MENU_OPEN);
     }
 
     public static boolean handleClick(@NotNull HeadDBPlugin plugin, @NotNull Player player, @NotNull InventoryClickEvent event) {
@@ -106,6 +108,7 @@ public final class DeleteHeadConfirmMenu {
         }
 
         if (action.get().equals(ACTION_CANCEL)) {
+            plugin.sounds().play(player, SoundKey.CANCEL);
             HeadEditMenu.open(plugin, player, holder.id());
             return true;
         }
@@ -123,6 +126,7 @@ public final class DeleteHeadConfirmMenu {
         if (!plugin.headRegistry().customHeads().delete(holder.id())) {
             player.closeInventory();
             player.sendMessage(Component.text("Custom head no longer exists: ", NamedTextColor.RED).append(Component.text(holder.id().display(), NamedTextColor.GOLD)));
+            plugin.sounds().play(player, SoundKey.INVALID);
             return true;
         }
 
@@ -131,6 +135,7 @@ public final class DeleteHeadConfirmMenu {
         plugin.clearSearchCache();
         player.closeInventory();
         player.sendMessage(Component.text("Custom head deleted: ", NamedTextColor.GRAY).append(Component.text(label, NamedTextColor.GOLD)));
+        plugin.sounds().play(player, SoundKey.DELETE_CONFIRM);
         return true;
     }
 
@@ -172,6 +177,7 @@ public final class DeleteHeadConfirmMenu {
 
     private static void noPermission(@NotNull HeadDBPlugin plugin, @NotNull Player player) {
         player.sendMessage(plugin.messages().render(player, MessageKey.COMMAND_ERROR_NO_PERMISSION));
+        plugin.sounds().play(player, SoundKey.NO_PERMISSION);
     }
 
     private static final class ConfirmHolder implements InventoryHolder {

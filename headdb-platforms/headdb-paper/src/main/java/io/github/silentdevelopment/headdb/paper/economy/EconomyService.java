@@ -6,6 +6,7 @@ import net.milkbowl.vault.economy.Economy;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.RegisteredServiceProvider;
+import io.github.silentdevelopment.headdb.paper.sound.SoundKey;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -112,10 +113,12 @@ public final class EconomyService {
 
         if (withdrawal.success()) {
             player.sendMessage(plugin.messages().economyPurchased(player, head, formattedPrice));
+            plugin.sounds().play(player, SoundKey.ECONOMY_PURCHASE);
             return true;
         }
 
         player.sendMessage(plugin.messages().economyInvalidFunds(player, head, formattedPrice));
+        plugin.sounds().play(player, SoundKey.ECONOMY_INSUFFICIENT_FUNDS);
         return false;
     }
 

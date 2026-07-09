@@ -78,6 +78,7 @@ public final class HiddenHeadsMenu {
         renderHeads(plugin, player, inventory, heads, page);
         renderControls(plugin, inventory, heads.size(), page, pages);
         player.openInventory(inventory);
+        plugin.sounds().play(player, io.github.silentdevelopment.headdb.paper.sound.SoundKey.MENU_OPEN);
     }
 
     public static boolean handleClick(@NotNull HeadDBPlugin plugin, @NotNull Player player, @NotNull InventoryClickEvent event) {
@@ -92,6 +93,7 @@ public final class HiddenHeadsMenu {
         event.setCancelled(true);
         if (!Permissions.has(player, Permissions.GUI_HIDDEN_HEADS) || !plugin.adminModes().enabled(player)) {
             player.sendMessage(plugin.messages().render(player, io.github.silentdevelopment.headdb.paper.message.MessageKey.COMMAND_ERROR_NO_PERMISSION));
+            plugin.sounds().play(player, io.github.silentdevelopment.headdb.paper.sound.SoundKey.NO_PERMISSION);
             player.closeInventory();
             return true;
         }
@@ -106,6 +108,7 @@ public final class HiddenHeadsMenu {
 
         Optional<String> action = readAction(plugin, item);
         if (action.isPresent()) {
+            plugin.sounds().playGuiAction(player, action.get());
             handleAction(plugin, player, holder, action.get());
             return true;
         }
@@ -118,10 +121,12 @@ public final class HiddenHeadsMenu {
         if (event.getClick() == ClickType.RIGHT || event.getClick() == ClickType.SHIFT_RIGHT) {
             if (!Permissions.has(player, Permissions.FAVORITES_TOGGLE)) {
                 player.sendMessage(plugin.messages().render(player, io.github.silentdevelopment.headdb.paper.message.MessageKey.COMMAND_ERROR_NO_PERMISSION));
+                plugin.sounds().play(player, io.github.silentdevelopment.headdb.paper.sound.SoundKey.NO_PERMISSION);
                 return true;
             }
 
-            plugin.favorites().toggle(player.getUniqueId(), id.get());
+            boolean added = plugin.favorites().toggle(player.getUniqueId(), id.get());
+            plugin.sounds().play(player, added ? io.github.silentdevelopment.headdb.paper.sound.SoundKey.FAVORITE_ADD : io.github.silentdevelopment.headdb.paper.sound.SoundKey.FAVORITE_REMOVE);
             open(plugin, player, holder.page());
             return true;
         }
@@ -132,6 +137,7 @@ public final class HiddenHeadsMenu {
         plugin.clearItemCache();
         plugin.clearSearchCache();
         player.sendMessage(Component.text("Head shown: ", NamedTextColor.GRAY).append(Component.text(GuiLabels.head(plugin, player, id.get()), NamedTextColor.GOLD)));
+        plugin.sounds().play(player, io.github.silentdevelopment.headdb.paper.sound.SoundKey.SHOW_HEAD);
         open(plugin, player, holder.page());
         return true;
     }

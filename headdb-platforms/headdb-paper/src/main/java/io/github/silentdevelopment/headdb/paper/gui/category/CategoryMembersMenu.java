@@ -72,6 +72,7 @@ public final class CategoryMembersMenu {
         renderMembers(plugin, inventory, ids, page);
         renderControls(plugin, inventory, page, pages);
         player.openInventory(inventory);
+        plugin.sounds().play(player, io.github.silentdevelopment.headdb.paper.sound.SoundKey.MENU_OPEN);
     }
 
     public static boolean handleClick(@NotNull HeadDBPlugin plugin, @NotNull Player player, @NotNull InventoryClickEvent event) {
@@ -97,6 +98,8 @@ public final class CategoryMembersMenu {
         if (action.isEmpty()) {
             return true;
         }
+
+        plugin.sounds().playGuiAction(player, action.get());
 
         handleAction(plugin, player, holder, action.get());
         return true;

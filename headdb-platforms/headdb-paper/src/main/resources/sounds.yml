@@ -1,0 +1,250 @@
+sounds:
+  enabled: true
+
+  menu-open:
+    enabled: true
+    sound: UI_BUTTON_CLICK
+    volume: 0.55
+    pitch: 1.25
+  click:
+    enabled: true
+    sound: UI_BUTTON_CLICK
+    volume: 0.45
+    pitch: 1.0
+  back:
+    enabled: true
+    sound: UI_BUTTON_CLICK
+    volume: 0.5
+    pitch: 0.75
+  page-next:
+    enabled: true
+    sound: ITEM_BOOK_PAGE_TURN
+    volume: 0.65
+    pitch: 1.15
+  page-previous:
+    enabled: true
+    sound: ITEM_BOOK_PAGE_TURN
+    volume: 0.65
+    pitch: 0.9
+  search:
+    enabled: true
+    sound: BLOCK_NOTE_BLOCK_PLING
+    volume: 0.55
+    pitch: 1.35
+  open-input:
+    enabled: true
+    sound: BLOCK_NOTE_BLOCK_PLING
+    volume: 0.5
+    pitch: 1.15
+  selector-open:
+    enabled: true
+    sound: UI_BUTTON_CLICK
+    volume: 0.5
+    pitch: 1.1
+
+  take-head:
+    enabled: true
+    sound: ENTITY_ITEM_PICKUP
+    volume: 0.65
+    pitch: 1.25
+  give-head:
+    enabled: true
+    sound: ENTITY_ITEM_PICKUP
+    volume: 0.65
+    pitch: 1.35
+  player-head:
+    enabled: true
+    sound: ENTITY_ITEM_PICKUP
+    volume: 0.65
+    pitch: 1.45
+  favorite-add:
+    enabled: true
+    sound: ENTITY_EXPERIENCE_ORB_PICKUP
+    volume: 0.55
+    pitch: 1.35
+  favorite-remove:
+    enabled: true
+    sound: BLOCK_NOTE_BLOCK_BASS
+    volume: 0.45
+    pitch: 0.85
+  hide-head:
+    enabled: true
+    sound: UI_BUTTON_CLICK
+    volume: 0.5
+    pitch: 0.65
+  show-head:
+    enabled: true
+    sound: UI_BUTTON_CLICK
+    volume: 0.5
+    pitch: 1.25
+  toggle:
+    enabled: true
+    sound: UI_BUTTON_CLICK
+    volume: 0.5
+    pitch: 1.05
+  admin-mode-on:
+    enabled: true
+    sound: BLOCK_NOTE_BLOCK_PLING
+    volume: 0.6
+    pitch: 1.45
+  admin-mode-off:
+    enabled: true
+    sound: BLOCK_NOTE_BLOCK_BASS
+    volume: 0.5
+    pitch: 0.85
+  settings:
+    enabled: true
+    sound: UI_BUTTON_CLICK
+    volume: 0.5
+    pitch: 1.0
+  language:
+    enabled: true
+    sound: BLOCK_NOTE_BLOCK_PLING
+    volume: 0.55
+    pitch: 1.2
+
+  save:
+    enabled: true
+    sound: BLOCK_NOTE_BLOCK_CHIME
+    volume: 0.65
+    pitch: 1.2
+  save-draft:
+    enabled: true
+    sound: ENTITY_EXPERIENCE_ORB_PICKUP
+    volume: 0.55
+    pitch: 1.1
+  publish:
+    enabled: true
+    sound: ENTITY_PLAYER_LEVELUP
+    volume: 0.6
+    pitch: 1.4
+  delete:
+    enabled: true
+    sound: ENTITY_ITEM_BREAK
+    volume: 0.55
+    pitch: 0.75
+  delete-confirm:
+    enabled: true
+    sound: BLOCK_ANVIL_LAND
+    volume: 0.35
+    pitch: 0.8
+  confirm:
+    enabled: true
+    sound: BLOCK_NOTE_BLOCK_PLING
+    volume: 0.55
+    pitch: 1.2
+  cancel:
+    enabled: true
+    sound: UI_BUTTON_CLICK
+    volume: 0.45
+    pitch: 0.75
+
+  invalid:
+    enabled: true
+    sound: BLOCK_NOTE_BLOCK_BASS
+    volume: 0.65
+    pitch: 0.6
+  no-permission:
+    enabled: true
+    sound: BLOCK_NOTE_BLOCK_BASS
+    volume: 0.65
+    pitch: 0.5
+  validation-error:
+    enabled: true
+    sound: BLOCK_NOTE_BLOCK_BASS
+    volume: 0.65
+    pitch: 0.65
+
+  economy-purchase:
+    enabled: true
+    sound: ENTITY_EXPERIENCE_ORB_PICKUP
+    volume: 0.6
+    pitch: 1.45
+  economy-insufficient-funds:
+    enabled: true
+    sound: BLOCK_NOTE_BLOCK_BASS
+    volume: 0.65
+    pitch: 0.55
+
+  refresh:
+    enabled: true
+    sound: BLOCK_NOTE_BLOCK_PLING
+    volume: 0.6
+    pitch: 1.25
+  reload:
+    enabled: true
+    sound: BLOCK_NOTE_BLOCK_PLING
+    volume: 0.6
+    pitch: 1.05
+  verify:
+    enabled: true
+    sound: ENTITY_EXPERIENCE_ORB_PICKUP
+    volume: 0.55
+    pitch: 1.25
+  debug:
+    enabled: true
+    sound: BLOCK_NOTE_BLOCK_PLING
+    volume: 0.45
+    pitch: 0.95
+  custom-management:
+    enabled: true
+    sound: UI_BUTTON_CLICK
+    volume: 0.5
+    pitch: 1.1
+
+  category-create:
+    enabled: true
+    sound: BLOCK_NOTE_BLOCK_CHIME
+    volume: 0.6
+    pitch: 1.15
+  category-update:
+    enabled: true
+    sound: BLOCK_NOTE_BLOCK_CHIME
+    volume: 0.55
+    pitch: 1.05
+  category-delete:
+    enabled: true
+    sound: ENTITY_ITEM_BREAK
+    volume: 0.5
+    pitch: 0.75
+  tag-create:
+    enabled: true
+    sound: BLOCK_NOTE_BLOCK_CHIME
+    volume: 0.55
+    pitch: 1.2
+  tag-update:
+    enabled: true
+    sound: BLOCK_NOTE_BLOCK_CHIME
+    volume: 0.5
+    pitch: 1.05
+  tag-delete:
+    enabled: true
+    sound: ENTITY_ITEM_BREAK
+    volume: 0.45
+    pitch: 0.8
+  collection-create:
+    enabled: true
+    sound: BLOCK_NOTE_BLOCK_CHIME
+    volume: 0.55
+    pitch: 1.25
+  collection-update:
+    enabled: true
+    sound: BLOCK_NOTE_BLOCK_CHIME
+    volume: 0.5
+    pitch: 1.1
+  collection-delete:
+    enabled: true
+    sound: ENTITY_ITEM_BREAK
+    volume: 0.45
+    pitch: 0.85
+
+  price-success:
+    enabled: true
+    sound: ENTITY_EXPERIENCE_ORB_PICKUP
+    volume: 0.55
+    pitch: 1.25
+  price-failure:
+    enabled: true
+    sound: BLOCK_NOTE_BLOCK_BASS
+    volume: 0.65
+    pitch: 0.6

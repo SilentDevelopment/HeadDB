@@ -8,6 +8,7 @@ import io.github.silentdevelopment.headdb.paper.gui.common.GuiTitles;
 import io.github.silentdevelopment.headdb.paper.local.taxonomy.CustomTaxonomyEntry;
 import io.github.silentdevelopment.headdb.paper.message.MessageKey;
 import io.github.silentdevelopment.headdb.paper.permission.Permissions;
+import io.github.silentdevelopment.headdb.paper.sound.SoundKey;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
@@ -80,6 +81,7 @@ public final class CreateTaxonomyMenu {
         fillBorder(plugin, inventory);
         render(plugin, inventory, draft, mode);
         player.openInventory(inventory);
+        plugin.sounds().play(player, SoundKey.MENU_OPEN);
     }
 
     public static boolean handleClick(@NotNull HeadDBPlugin plugin, @NotNull Player player, @NotNull InventoryClickEvent event) {
@@ -102,7 +104,12 @@ public final class CreateTaxonomyMenu {
         }
 
         Optional<String> action = readAction(plugin, item);
-        action.ifPresent(value -> handleAction(plugin, player, holder.mode(), value));
+        action.ifPresent(value -> {
+            if (!value.equals(ACTION_SAVE)) {
+                plugin.sounds().playGuiAction(player, value);
+            }
+            handleAction(plugin, player, holder.mode(), value);
+        });
         return true;
     }
 
@@ -159,9 +166,11 @@ public final class CreateTaxonomyMenu {
             plugin.headRegistry().onLocalMutation();
             plugin.clearSearchCache();
             player.sendMessage(plugin.messages().taxonomyCreated(player, mode.displayName().toLowerCase(java.util.Locale.ROOT), entry.name(), entry.id()));
+            plugin.sounds().play(player, mode == Mode.TAG ? SoundKey.TAG_CREATE : SoundKey.COLLECTION_CREATE);
             back(plugin, player, mode);
         } catch (IllegalArgumentException exception) {
             player.sendMessage(Component.text(exception.getMessage(), NamedTextColor.RED));
+            plugin.sounds().play(player, SoundKey.VALIDATION_ERROR);
             open(plugin, player, mode);
         }
     }
@@ -245,6 +254,7 @@ public final class CreateTaxonomyMenu {
 
     private static void noPermission(@NotNull HeadDBPlugin plugin, @NotNull Player player) {
         player.sendMessage(plugin.messages().render(player, MessageKey.COMMAND_ERROR_NO_PERMISSION));
+        plugin.sounds().play(player, SoundKey.NO_PERMISSION);
     }
 
     private enum Mode {

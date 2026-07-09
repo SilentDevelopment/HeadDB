@@ -22,6 +22,7 @@ import java.util.Set;
 public final class CustomCategoryService {
 
     private final SQLiteDataSource dataSource;
+    private List<CustomCategory> cache;
 
     public CustomCategoryService(@NotNull Path databaseFile) {
         Objects.requireNonNull(databaseFile, "databaseFile");
@@ -30,20 +31,13 @@ public final class CustomCategoryService {
     }
 
     public synchronized @NotNull List<CustomCategory> list() {
-        List<CustomCategory> categories = new ArrayList<>();
-        try (Connection connection = dataSource.getConnection(); PreparedStatement statement = connection.prepareStatement("SELECT id, name, material, description, draft FROM headdb_custom_categories ORDER BY lower(name) ASC")) {
-            try (ResultSet result = statement.executeQuery()) {
-                while (result.next()) {
-                    String id = result.getString("id");
-                    categories.add(categoryFromRow(result, headIds(connection, id)));
-                }
-            }
-        } catch (SQLException exception) {
-            throw new IllegalStateException("Failed to list HeadDB custom categories.", exception);
+        List<CustomCategory> current = cache;
+        if (current != null) {
+            return current;
         }
-
-        categories.sort(Comparator.comparing(CustomCategory::name, String.CASE_INSENSITIVE_ORDER));
-        return List.copyOf(categories);
+        current = loadAll();
+        cache = current;
+        return current;
     }
 
 
@@ -67,18 +61,12 @@ public final class CustomCategoryService {
 
     public synchronized @NotNull String nextId() {
         int next = 1;
-        try (Connection connection = dataSource.getConnection(); PreparedStatement statement = connection.prepareStatement("SELECT id FROM headdb_custom_categories")) {
-            try (ResultSet result = statement.executeQuery()) {
-                while (result.next()) {
-                    try {
-                        next = Math.max(next, Integer.parseInt(result.getString("id")) + 1);
-                    } catch (NumberFormatException ignored) {
-                        // Non-numeric legacy IDs are ignored for automatic assignment.
-                    }
-                }
+        for (CustomCategory category : list()) {
+            try {
+                next = Math.max(next, Integer.parseInt(category.id()) + 1);
+            } catch (NumberFormatException ignored) {
+                // Non-numeric legacy IDs are ignored for automatic assignment.
             }
-        } catch (SQLException exception) {
-            throw new IllegalStateException("Failed to calculate next HeadDB custom category id.", exception);
         }
 
         while (find(String.valueOf(next)).isPresent()) {
@@ -91,19 +79,7 @@ public final class CustomCategoryService {
     public synchronized @NotNull Optional<CustomCategory> find(@NotNull String id) {
         Objects.requireNonNull(id, "id");
         String normalized = normalize(id);
-
-        try (Connection connection = dataSource.getConnection(); PreparedStatement statement = connection.prepareStatement("SELECT id, name, material, description, draft FROM headdb_custom_categories WHERE id = ?")) {
-            statement.setString(1, normalized);
-            try (ResultSet result = statement.executeQuery()) {
-                if (!result.next()) {
-                    return Optional.empty();
-                }
-
-                return Optional.of(categoryFromRow(result, headIds(connection, normalized)));
-            }
-        } catch (SQLException exception) {
-            throw new IllegalStateException("Failed to read HeadDB custom category " + normalized + ".", exception);
-        }
+        return list().stream().filter(category -> category.id().equals(normalized)).findFirst();
     }
 
     public synchronized void save(@NotNull CustomCategory category) {
@@ -135,6 +111,7 @@ public final class CustomCategoryService {
             }
 
             connection.commit();
+            cache = null;
         } catch (SQLException exception) {
             throw new IllegalStateException("Failed to save HeadDB custom category " + category.id() + ".", exception);
         }
@@ -172,10 +149,31 @@ public final class CustomCategoryService {
                 updated = category.executeUpdate();
             }
             connection.commit();
-            return updated > 0;
+            if (updated > 0) {
+                cache = null;
+                return true;
+            }
+            return false;
         } catch (SQLException exception) {
             throw new IllegalStateException("Failed to delete HeadDB custom category " + normalized + ".", exception);
         }
+    }
+
+    private @NotNull List<CustomCategory> loadAll() {
+        List<CustomCategory> categories = new ArrayList<>();
+        try (Connection connection = dataSource.getConnection(); PreparedStatement statement = connection.prepareStatement("SELECT id, name, material, description, draft FROM headdb_custom_categories ORDER BY lower(name) ASC")) {
+            try (ResultSet result = statement.executeQuery()) {
+                while (result.next()) {
+                    String id = result.getString("id");
+                    categories.add(categoryFromRow(result, headIds(connection, id)));
+                }
+            }
+        } catch (SQLException exception) {
+            throw new IllegalStateException("Failed to list HeadDB custom categories.", exception);
+        }
+
+        categories.sort(Comparator.comparing(CustomCategory::name, String.CASE_INSENSITIVE_ORDER));
+        return List.copyOf(categories);
     }
 
     private @NotNull Set<HeadId> headIds(@NotNull Connection connection, @NotNull String categoryId) throws SQLException {

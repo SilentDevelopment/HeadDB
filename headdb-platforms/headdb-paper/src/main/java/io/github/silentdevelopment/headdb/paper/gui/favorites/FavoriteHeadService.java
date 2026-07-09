@@ -14,7 +14,10 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
@@ -24,61 +27,48 @@ public final class FavoriteHeadService {
     private static final Component STAR = Component.text(" ★", NamedTextColor.YELLOW).decoration(TextDecoration.ITALIC, false);
 
     private final SQLiteDataSource dataSource;
+    private final Map<UUID, Set<HeadId>> cache;
 
     public FavoriteHeadService(@NotNull Path databaseFile) {
         Objects.requireNonNull(databaseFile, "databaseFile");
         this.dataSource = dataSource(databaseFile);
+        this.cache = new HashMap<>();
         createSchema();
     }
 
     public synchronized boolean isFavorite(@NotNull UUID playerId, @NotNull HeadId headId) {
         Objects.requireNonNull(playerId, "playerId");
         Objects.requireNonNull(headId, "headId");
-
-        try (Connection connection = dataSource.getConnection(); PreparedStatement statement = connection.prepareStatement("SELECT 1 FROM headdb_favorites WHERE player_id = ? AND head_id = ?")) {
-            statement.setString(1, playerId.toString());
-            statement.setString(2, headId.toString());
-            try (ResultSet result = statement.executeQuery()) {
-                return result.next();
-            }
-        } catch (SQLException exception) {
-            throw new IllegalStateException("Failed to read HeadDB favorite.", exception);
-        }
+        return favorites(playerId).contains(headId);
     }
 
     public synchronized boolean toggle(@NotNull UUID playerId, @NotNull HeadId headId) {
         Objects.requireNonNull(playerId, "playerId");
         Objects.requireNonNull(headId, "headId");
 
-        if (isFavorite(playerId, headId)) {
+        Set<HeadId> favorites = new LinkedHashSet<>(favorites(playerId));
+        if (favorites.contains(headId)) {
             remove(playerId, headId);
+            favorites.remove(headId);
+            cache.put(playerId, immutable(favorites));
             return false;
         }
 
         add(playerId, headId);
+        favorites.add(headId);
+        cache.put(playerId, immutable(favorites));
         return true;
     }
 
     public synchronized @NotNull Set<HeadId> favorites(@NotNull UUID playerId) {
         Objects.requireNonNull(playerId, "playerId");
-
-        LinkedHashSet<HeadId> ids = new LinkedHashSet<>();
-        try (Connection connection = dataSource.getConnection(); PreparedStatement statement = connection.prepareStatement("SELECT head_id FROM headdb_favorites WHERE player_id = ? ORDER BY created_at ASC")) {
-            statement.setString(1, playerId.toString());
-            try (ResultSet result = statement.executeQuery()) {
-                while (result.next()) {
-                    try {
-                        ids.add(new HeadId(result.getString("head_id")));
-                    } catch (IllegalArgumentException ignored) {
-                        // Ignore stale malformed rows.
-                    }
-                }
-            }
-        } catch (SQLException exception) {
-            throw new IllegalStateException("Failed to list HeadDB favorites.", exception);
+        Set<HeadId> cached = cache.get(playerId);
+        if (cached != null) {
+            return cached;
         }
-
-        return Set.copyOf(ids);
+        Set<HeadId> loaded = loadFavorites(playerId);
+        cache.put(playerId, loaded);
+        return loaded;
     }
 
     public @NotNull ItemStack decorate(@NotNull UUID playerId, @NotNull HeadId headId, @NotNull ItemStack item) {
@@ -100,6 +90,39 @@ public final class FavoriteHeadService {
         });
 
         return item;
+    }
+
+    public synchronized void invalidate(@NotNull UUID playerId) {
+        Objects.requireNonNull(playerId, "playerId");
+        cache.remove(playerId);
+    }
+
+    public synchronized void invalidateAll() {
+        cache.clear();
+    }
+
+    private @NotNull Set<HeadId> loadFavorites(@NotNull UUID playerId) {
+        LinkedHashSet<HeadId> ids = new LinkedHashSet<>();
+        try (Connection connection = dataSource.getConnection(); PreparedStatement statement = connection.prepareStatement("SELECT head_id FROM headdb_favorites WHERE player_id = ? ORDER BY created_at ASC")) {
+            statement.setString(1, playerId.toString());
+            try (ResultSet result = statement.executeQuery()) {
+                while (result.next()) {
+                    try {
+                        ids.add(new HeadId(result.getString("head_id")));
+                    } catch (IllegalArgumentException ignored) {
+                        // Ignore stale malformed rows.
+                    }
+                }
+            }
+        } catch (SQLException exception) {
+            throw new IllegalStateException("Failed to list HeadDB favorites.", exception);
+        }
+
+        return immutable(ids);
+    }
+
+    private static @NotNull Set<HeadId> immutable(@NotNull Set<HeadId> ids) {
+        return Collections.unmodifiableSet(new LinkedHashSet<>(ids));
     }
 
     private void add(@NotNull UUID playerId, @NotNull HeadId headId) {

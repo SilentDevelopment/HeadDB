@@ -73,6 +73,7 @@ public final class FavoritesMenu {
         renderHeads(plugin, player, inventory, heads, page);
         renderControls(plugin, inventory, page, pages);
         player.openInventory(inventory);
+        plugin.sounds().play(player, io.github.silentdevelopment.headdb.paper.sound.SoundKey.MENU_OPEN);
     }
 
     public static boolean handleClick(@NotNull HeadDBPlugin plugin, @NotNull Player player, @NotNull InventoryClickEvent event) {
@@ -96,6 +97,7 @@ public final class FavoritesMenu {
 
         Optional<String> action = readAction(plugin, item);
         if (action.isPresent()) {
+            plugin.sounds().playGuiAction(player, action.get());
             handleAction(plugin, player, holder, action.get());
             return true;
         }
@@ -108,10 +110,12 @@ public final class FavoritesMenu {
         if (event.getClick() == ClickType.RIGHT || event.getClick() == ClickType.SHIFT_RIGHT) {
             if (!Permissions.has(player, Permissions.FAVORITES_TOGGLE)) {
                 player.sendMessage(plugin.messages().render(player, io.github.silentdevelopment.headdb.paper.message.MessageKey.COMMAND_ERROR_NO_PERMISSION));
+                plugin.sounds().play(player, io.github.silentdevelopment.headdb.paper.sound.SoundKey.NO_PERMISSION);
                 return true;
             }
 
-            plugin.favorites().toggle(player.getUniqueId(), id.get());
+            boolean added = plugin.favorites().toggle(player.getUniqueId(), id.get());
+            plugin.sounds().play(player, added ? io.github.silentdevelopment.headdb.paper.sound.SoundKey.FAVORITE_ADD : io.github.silentdevelopment.headdb.paper.sound.SoundKey.FAVORITE_REMOVE);
             open(plugin, player, holder.page());
             return true;
         }

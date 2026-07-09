@@ -24,6 +24,7 @@ import io.github.silentdevelopment.headdb.paper.permission.Permissions;
 import net.kyori.adventure.text.format.TextDecoration;
 import io.github.silentdevelopment.headdb.paper.search.SearchRequest;
 import io.github.silentdevelopment.headdb.paper.search.SearchResultCache;
+import io.github.silentdevelopment.headdb.paper.sound.SoundKey;
 import io.github.silentdevelopment.headdb.query.HeadQueryResult;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -263,11 +264,13 @@ public final class SearchPageFactory implements PaperPageFactory<SearchMenuState
 
         if (!Permissions.canViewCategory(player, head.category())) {
             player.sendMessage(plugin.messages().render(player, MessageKey.COMMAND_ERROR_NO_PERMISSION));
+            plugin.sounds().play(player, SoundKey.NO_PERMISSION);
             return;
         }
 
         if (player.getInventory().firstEmpty() == -1) {
             player.sendMessage(plugin.messages().giveInventoryFull(player, player));
+            plugin.sounds().play(player, SoundKey.INVALID);
             return;
         }
 
@@ -281,15 +284,18 @@ public final class SearchPageFactory implements PaperPageFactory<SearchMenuState
             item = itemFactory.create(head);
         } catch (IllegalArgumentException exception) {
             player.sendMessage(plugin.messages().invalidArgument(player, exception.getMessage()));
+            plugin.sounds().play(player, SoundKey.INVALID);
             return;
         }
 
         if (!player.getInventory().addItem(item).isEmpty()) {
             player.sendMessage(plugin.messages().giveInventoryFull(player, player));
+            plugin.sounds().play(player, SoundKey.INVALID);
             return;
         }
 
         player.sendMessage(plugin.messages().giveSuccess(player, head, player));
+        plugin.sounds().play(player, SoundKey.TAKE_HEAD);
     }
 
     private @NotNull HeadQueryResult search(Player player, @NotNull SearchRequest request, int page) {

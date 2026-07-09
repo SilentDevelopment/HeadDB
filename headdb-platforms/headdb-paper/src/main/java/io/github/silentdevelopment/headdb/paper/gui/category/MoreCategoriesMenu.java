@@ -97,6 +97,7 @@ public final class MoreCategoriesMenu {
         renderEntries(plugin, inventory, categories, mode, page, plugin.adminModes().enabled(player));
         renderControls(plugin, player, inventory, mode, page, pages);
         player.openInventory(inventory);
+        plugin.sounds().play(player, io.github.silentdevelopment.headdb.paper.sound.SoundKey.MENU_OPEN);
     }
 
     private static void openEditor(@NotNull HeadDBPlugin plugin, @NotNull Player player, @NotNull CategoryEditorHolder holder) {
@@ -113,6 +114,7 @@ public final class MoreCategoriesMenu {
         inventory.setItem(plugin.guiConfig().slot("more.category-create.back", 45), actionItem(plugin, ACTION_BACK, "back"));
 
         player.openInventory(inventory);
+        plugin.sounds().play(player, io.github.silentdevelopment.headdb.paper.sound.SoundKey.MENU_OPEN);
     }
 
     public static boolean handleClick(@NotNull HeadDBPlugin plugin, @NotNull Player player, @NotNull InventoryClickEvent event) {
@@ -128,7 +130,10 @@ public final class MoreCategoriesMenu {
             }
 
             Optional<String> action = readAction(plugin, item);
-            action.ifPresent(value -> handleEditorAction(plugin, player, editor, value));
+            action.ifPresent(value -> {
+                plugin.sounds().playGuiAction(player, value);
+                handleEditorAction(plugin, player, editor, value);
+            });
             return true;
         }
 
@@ -150,6 +155,8 @@ public final class MoreCategoriesMenu {
         if (action.isEmpty()) {
             return true;
         }
+
+        plugin.sounds().playGuiAction(player, action.get());
 
         handleAction(plugin, player, holder, event.getClick(), action.get());
         return true;
@@ -381,6 +388,7 @@ public final class MoreCategoriesMenu {
         inventory.setItem(11, actionItem(plugin, ACTION_REMOVE + id, "confirm-yes"));
         inventory.setItem(15, actionItem(plugin, ACTION_BACK, "confirm-no"));
         player.openInventory(inventory);
+        plugin.sounds().play(player, io.github.silentdevelopment.headdb.paper.sound.SoundKey.MENU_OPEN);
     }
 
     private static boolean canAdminCategories(@NotNull HeadDBPlugin plugin, @NotNull Player player) {
@@ -389,6 +397,7 @@ public final class MoreCategoriesMenu {
 
     private static void noPermission(@NotNull HeadDBPlugin plugin, @NotNull Player player) {
         player.sendMessage(plugin.messages().render(player, io.github.silentdevelopment.headdb.paper.message.MessageKey.COMMAND_ERROR_NO_PERMISSION));
+        plugin.sounds().play(player, io.github.silentdevelopment.headdb.paper.sound.SoundKey.NO_PERMISSION);
     }
 
     private static @NotNull ItemStack editAction(@NotNull HeadDBPlugin plugin, @NotNull String action, @NotNull String iconKey, @NotNull String label, @NotNull String value) {

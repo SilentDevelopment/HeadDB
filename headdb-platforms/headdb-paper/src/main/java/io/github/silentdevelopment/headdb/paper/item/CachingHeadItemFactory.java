@@ -8,41 +8,51 @@ import org.jetbrains.annotations.NotNull;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.LongSupplier;
 
 public final class CachingHeadItemFactory implements HeadItemFactory {
 
     private static final int DEFAULT_MAX_SIZE = 4096;
 
     private final HeadItemFactory delegate;
-    private final Map<HeadId, ItemStack> cache;
+    private final LongSupplier revisionSupplier;
+    private final Map<CacheKey, ItemStack> cache;
 
     public CachingHeadItemFactory(@NotNull HeadItemFactory delegate) {
-        this(delegate, DEFAULT_MAX_SIZE);
+        this(delegate, DEFAULT_MAX_SIZE, () -> 0L);
     }
 
     public CachingHeadItemFactory(@NotNull HeadItemFactory delegate, int maxSize) {
+        this(delegate, maxSize, () -> 0L);
+    }
+
+    public CachingHeadItemFactory(@NotNull HeadItemFactory delegate, int maxSize, @NotNull LongSupplier revisionSupplier) {
         this.delegate = Objects.requireNonNull(delegate, "delegate");
+        this.revisionSupplier = Objects.requireNonNull(revisionSupplier, "revisionSupplier");
         this.cache = new LruItemCache(maxSize);
     }
 
     @Override
     public @NotNull ItemStack create(@NotNull Head head) {
         Objects.requireNonNull(head, "head");
+        CacheKey key = new CacheKey(head.id(), revisionSupplier.getAsLong());
 
         synchronized (cache) {
-            ItemStack cached = cache.get(head.id());
+            ItemStack cached = cache.get(key);
 
             if (cached != null) {
                 return cached.clone();
             }
-
-            ItemStack created = delegate.create(head);
-            ItemStack prototype = created.clone();
-
-            cache.put(head.id(), prototype);
-
-            return prototype.clone();
         }
+
+        ItemStack created = delegate.create(head);
+        ItemStack prototype = created.clone();
+
+        synchronized (cache) {
+            cache.put(key, prototype);
+        }
+
+        return prototype.clone();
     }
 
     public void clear() {
@@ -57,7 +67,13 @@ public final class CachingHeadItemFactory implements HeadItemFactory {
         }
     }
 
-    private static final class LruItemCache extends LinkedHashMap<HeadId, ItemStack> {
+    private record CacheKey(@NotNull HeadId id, long revision) {
+        private CacheKey {
+            Objects.requireNonNull(id, "id");
+        }
+    }
+
+    private static final class LruItemCache extends LinkedHashMap<CacheKey, ItemStack> {
 
         private final int maxSize;
 
@@ -72,7 +88,7 @@ public final class CachingHeadItemFactory implements HeadItemFactory {
         }
 
         @Override
-        protected boolean removeEldestEntry(Map.Entry<HeadId, ItemStack> eldest) {
+        protected boolean removeEldestEntry(Map.Entry<CacheKey, ItemStack> eldest) {
             if (maxSize == 0) {
                 return false;
             }

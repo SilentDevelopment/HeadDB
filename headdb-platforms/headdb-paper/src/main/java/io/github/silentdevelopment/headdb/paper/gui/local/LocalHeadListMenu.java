@@ -108,6 +108,7 @@ public final class LocalHeadListMenu {
 
         Optional<String> action = readAction(plugin, item);
         if (action.isPresent()) {
+            plugin.sounds().playGuiAction(player, action.get());
             handleAction(plugin, player, holder, action.get());
             return true;
         }
@@ -125,10 +126,12 @@ public final class LocalHeadListMenu {
         if (event.getClick() == ClickType.RIGHT || event.getClick() == ClickType.SHIFT_RIGHT) {
             if (!Permissions.has(player, Permissions.FAVORITES_TOGGLE)) {
                 player.sendMessage(plugin.messages().render(player, io.github.silentdevelopment.headdb.paper.message.MessageKey.COMMAND_ERROR_NO_PERMISSION));
+                plugin.sounds().play(player, io.github.silentdevelopment.headdb.paper.sound.SoundKey.NO_PERMISSION);
                 return true;
             }
 
-            plugin.favorites().toggle(player.getUniqueId(), id.get());
+            boolean added = plugin.favorites().toggle(player.getUniqueId(), id.get());
+            plugin.sounds().play(player, added ? io.github.silentdevelopment.headdb.paper.sound.SoundKey.FAVORITE_ADD : io.github.silentdevelopment.headdb.paper.sound.SoundKey.FAVORITE_REMOVE);
             open(plugin, player, holder.type(), holder.page());
             return true;
         }
@@ -155,6 +158,7 @@ public final class LocalHeadListMenu {
         renderControls(plugin, inventory, type, page, pages, heads.size(), adminMode);
 
         player.openInventory(inventory);
+        plugin.sounds().play(player, io.github.silentdevelopment.headdb.paper.sound.SoundKey.MENU_OPEN);
     }
 
     private static void renderHeads(@NotNull HeadDBPlugin plugin, @NotNull Player player, @NotNull Inventory inventory, @NotNull List<Head> heads, int page, boolean adminMode) {

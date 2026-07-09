@@ -27,6 +27,7 @@ import io.github.silentdevelopment.headdb.paper.gui.local.LocalHeadListMenu;
 import io.github.silentdevelopment.headdb.paper.local.custom.StoredCustomHead;
 import io.github.silentdevelopment.headdb.paper.local.override.RemoteHeadOverride;
 import io.github.silentdevelopment.headdb.paper.permission.Permissions;
+import io.github.silentdevelopment.headdb.paper.sound.SoundKey;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -254,6 +255,7 @@ public final class HeadEditListener implements Listener {
 
         boolean added = plugin.favorites().toggle(player.getUniqueId(), id);
         player.sendMessage(Component.text(added ? "Added favorite: " : "Removed favorite: ", added ? NamedTextColor.YELLOW : NamedTextColor.GRAY).append(Component.text(GuiLabels.head(plugin, player, id), NamedTextColor.GOLD)));
+        plugin.sounds().play(player, added ? SoundKey.FAVORITE_ADD : SoundKey.FAVORITE_REMOVE);
     }
 
     private void giveListedHead(@NotNull Player player, @NotNull ItemStack item) {
@@ -271,11 +273,13 @@ public final class HeadEditListener implements Listener {
         Optional<Head> head = plugin.headRegistry().find(id);
         if (head.isEmpty()) {
             player.sendMessage(Component.text("Head no longer exists.", NamedTextColor.RED));
+            plugin.sounds().play(player, SoundKey.INVALID);
             return;
         }
 
         if (player.getInventory().firstEmpty() == -1) {
             player.sendMessage(Component.text("Your inventory is full.", NamedTextColor.RED));
+            plugin.sounds().play(player, SoundKey.INVALID);
             return;
         }
 
@@ -286,7 +290,11 @@ public final class HeadEditListener implements Listener {
         java.util.Map<Integer, ItemStack> remaining = player.getInventory().addItem(item.clone());
         if (!remaining.isEmpty()) {
             player.sendMessage(Component.text("Your inventory is full.", NamedTextColor.RED));
+            plugin.sounds().play(player, SoundKey.INVALID);
+            return;
         }
+
+        plugin.sounds().play(player, SoundKey.TAKE_HEAD);
     }
 
     private @NotNull Optional<HeadId> dropTarget(@NotNull InventoryClickEvent event, @NotNull ItemStack item) {
@@ -300,6 +308,7 @@ public final class HeadEditListener implements Listener {
     private void openEdit(@NotNull Player player, @NotNull HeadId id) {
         if (!plugin.adminModes().enabled(player)) {
             player.sendMessage(Component.text("Enable Admin Mode to edit heads.", NamedTextColor.RED));
+            plugin.sounds().play(player, SoundKey.NO_PERMISSION);
             return;
         }
 
@@ -342,6 +351,7 @@ public final class HeadEditListener implements Listener {
 
         if (!plugin.adminModes().enabled(player)) {
             player.sendMessage(Component.text("Enable Admin Mode to edit heads.", NamedTextColor.RED));
+            plugin.sounds().play(player, SoundKey.NO_PERMISSION);
             return;
         }
 
@@ -466,6 +476,7 @@ public final class HeadEditListener implements Listener {
             }
 
             mutated(player, id);
+            plugin.sounds().play(player, SoundKey.SAVE);
             player.sendMessage(Component.text("Name Updated", NamedTextColor.GOLD, TextDecoration.BOLD));
             player.sendMessage(Component.text(oldName, NamedTextColor.GRAY).append(Component.text(" > ", NamedTextColor.DARK_GRAY)).append(Component.text(value, NamedTextColor.GREEN)));
             HeadEditMenu.open(plugin, player, id);
@@ -486,6 +497,7 @@ public final class HeadEditListener implements Listener {
         }
 
         mutated(player, id);
+        plugin.sounds().play(player, SoundKey.SAVE);
         player.sendMessage(Component.text("Category set to ", NamedTextColor.GRAY).append(Component.text(GuiLabels.category(plugin, player, category), NamedTextColor.GOLD)));
         HeadEditMenu.open(plugin, player, id);
     }
@@ -506,6 +518,7 @@ public final class HeadEditListener implements Listener {
         }
 
         mutated(player, id);
+        plugin.sounds().play(player, SoundKey.TOGGLE);
         HeadEditMenu.openTags(plugin, player, id, page);
     }
 
@@ -525,6 +538,7 @@ public final class HeadEditListener implements Listener {
         }
 
         mutated(player, id);
+        plugin.sounds().play(player, SoundKey.TOGGLE);
         HeadEditMenu.openCollections(plugin, player, id, page);
     }
 
@@ -538,6 +552,7 @@ public final class HeadEditListener implements Listener {
         RemoteHeadOverride override = plugin.headRegistry().overrides().find(id).orElse(RemoteHeadOverride.empty(id, player.getUniqueId()));
         plugin.headRegistry().overrides().save(override.withHidden(!hidden, player.getUniqueId()));
         mutated(player, id);
+        plugin.sounds().play(player, hidden ? SoundKey.SHOW_HEAD : SoundKey.HIDE_HEAD);
         player.sendMessage(Component.text(hidden ? "Head is now visible." : "Head is now hidden.", hidden ? NamedTextColor.GREEN : NamedTextColor.GRAY));
         HeadEditMenu.open(plugin, player, id);
     }
@@ -550,6 +565,7 @@ public final class HeadEditListener implements Listener {
 
         plugin.headRegistry().overrides().delete(id);
         mutated(player, id);
+        plugin.sounds().play(player, SoundKey.SAVE);
         player.sendMessage(Component.text("Local override reset.", NamedTextColor.GRAY));
         HeadEditMenu.open(plugin, player, id);
     }
@@ -573,6 +589,7 @@ public final class HeadEditListener implements Listener {
         StoredCustomHead stored = plugin.headRegistry().customHeads().findStored(id).orElseThrow(() -> new IllegalArgumentException("Unknown custom head: " + id));
         plugin.headRegistry().customHeads().save(stored.withDraft(false));
         mutated(player, id);
+        plugin.sounds().play(player, SoundKey.PUBLISH);
         player.sendMessage(Component.text("Draft published: ", NamedTextColor.GRAY).append(Component.text(GuiLabels.head(plugin, player, id), NamedTextColor.GOLD)));
         HeadEditMenu.open(plugin, player, id);
     }
@@ -593,10 +610,13 @@ public final class HeadEditListener implements Listener {
                 double price = Double.parseDouble(value.trim());
                 plugin.economy().setHeadPrice(id, price);
                 player.sendMessage(plugin.messages().priceUpdated(player, GuiLabels.head(plugin, player, id), plugin.economy().format(price)));
+                plugin.sounds().play(player, SoundKey.PRICE_SUCCESS);
             } catch (NumberFormatException exception) {
                 player.sendMessage(plugin.messages().priceInvalid(player));
+                plugin.sounds().play(player, SoundKey.PRICE_FAILURE);
             } catch (RuntimeException exception) {
                 player.sendMessage(Component.text("Failed to update head price: " + exception.getMessage(), NamedTextColor.RED));
+                plugin.sounds().play(player, SoundKey.PRICE_FAILURE);
             }
 
             HeadEditMenu.open(plugin, player, id);
@@ -664,6 +684,7 @@ public final class HeadEditListener implements Listener {
         }
 
         mutated(player, id);
+        plugin.sounds().play(player, SoundKey.SAVE);
         player.sendMessage(Component.text(message, NamedTextColor.GRAY));
         HeadEditMenu.openLore(plugin, player, id, 0);
     }
@@ -683,6 +704,7 @@ public final class HeadEditListener implements Listener {
         }
 
         mutated(player, id);
+        plugin.sounds().play(player, SoundKey.SAVE);
         player.sendMessage(Component.text("Lore reset to default.", NamedTextColor.GRAY));
         HeadEditMenu.openLore(plugin, player, id, 0);
     }
@@ -714,6 +736,7 @@ public final class HeadEditListener implements Listener {
 
     private void noPermission(@NotNull Player player) {
         player.sendMessage(plugin.messages().render(player, io.github.silentdevelopment.headdb.paper.message.MessageKey.COMMAND_ERROR_NO_PERMISSION));
+        plugin.sounds().play(player, io.github.silentdevelopment.headdb.paper.sound.SoundKey.NO_PERMISSION);
     }
 
     private static @NotNull Set<String> toggle(@NotNull Set<String> values, @NotNull String value) {

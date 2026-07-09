@@ -99,6 +99,7 @@ public final class CollectionsMenu {
         renderEntries(plugin, player, inventory, entries, counts, customIds, page);
         renderControls(plugin, player, inventory, entries.size(), page, pages, customOnly, query);
         player.openInventory(inventory);
+        plugin.sounds().play(player, io.github.silentdevelopment.headdb.paper.sound.SoundKey.MENU_OPEN);
     }
 
     public static boolean handleClick(@NotNull HeadDBPlugin plugin, @NotNull Player player, @NotNull InventoryClickEvent event) {
@@ -124,6 +125,8 @@ public final class CollectionsMenu {
         if (action.isEmpty()) {
             return true;
         }
+
+        plugin.sounds().playGuiAction(player, action.get());
 
         handleAction(plugin, player, holder, action.get());
         return true;
@@ -354,6 +357,7 @@ public final class CollectionsMenu {
 
     private static void noPermission(@NotNull HeadDBPlugin plugin, @NotNull Player player) {
         player.sendMessage(plugin.messages().render(player, MessageKey.COMMAND_ERROR_NO_PERMISSION));
+        plugin.sounds().play(player, io.github.silentdevelopment.headdb.paper.sound.SoundKey.NO_PERMISSION);
     }
 
     private static final class Holder implements InventoryHolder {

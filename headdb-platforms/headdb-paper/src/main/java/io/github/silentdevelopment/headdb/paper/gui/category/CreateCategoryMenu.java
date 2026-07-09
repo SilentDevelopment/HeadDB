@@ -8,6 +8,7 @@ import io.github.silentdevelopment.headdb.paper.gui.common.GuiMaterials;
 import io.github.silentdevelopment.headdb.paper.gui.common.GuiTitles;
 import io.github.silentdevelopment.headdb.paper.message.MessageKey;
 import io.github.silentdevelopment.headdb.paper.permission.Permissions;
+import io.github.silentdevelopment.headdb.paper.sound.SoundKey;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
@@ -99,6 +100,7 @@ public final class CreateCategoryMenu {
         fillBorder(plugin, inventory);
         render(plugin, inventory, existing.get());
         player.openInventory(inventory);
+        plugin.sounds().play(player, SoundKey.MENU_OPEN);
     }
 
     public static boolean handleClick(@NotNull HeadDBPlugin plugin, @NotNull Player player, @NotNull InventoryClickEvent event) {
@@ -117,7 +119,12 @@ public final class CreateCategoryMenu {
         }
 
         Optional<String> action = readAction(plugin, item);
-        action.ifPresent(value -> handleAction(plugin, player, holder, value));
+        action.ifPresent(value -> {
+            if (!value.equals(ACTION_SAVE_DRAFT) && !value.equals(ACTION_PUBLISH)) {
+                plugin.sounds().playGuiAction(player, value);
+            }
+            handleAction(plugin, player, holder, value);
+        });
         return true;
     }
 
@@ -179,6 +186,7 @@ public final class CreateCategoryMenu {
         if (action.equals(ACTION_SAVE_DRAFT)) {
             plugin.customCategories().save(category.withDraft(true));
             player.sendMessage(Component.text("Category draft saved: ", NamedTextColor.GRAY).append(Component.text(categoryLabel(plugin, player, category), NamedTextColor.GOLD)));
+            plugin.sounds().play(player, SoundKey.SAVE_DRAFT);
             openExisting(plugin, player, category.id());
             return;
         }
@@ -188,6 +196,7 @@ public final class CreateCategoryMenu {
             ACTIVE_DRAFTS.remove(player.getUniqueId());
             plugin.clearSearchCache();
             player.sendMessage(Component.text("Category published: ", NamedTextColor.GRAY).append(Component.text(categoryLabel(plugin, player, category), NamedTextColor.GOLD)));
+            plugin.sounds().play(player, SoundKey.PUBLISH);
             openExisting(plugin, player, category.id());
             return;
         }
@@ -226,6 +235,7 @@ public final class CreateCategoryMenu {
                 openExisting(plugin, player, updated.id());
             } catch (IllegalArgumentException exception) {
                 player.sendMessage(Component.text(exception.getMessage(), NamedTextColor.RED));
+                plugin.sounds().play(player, SoundKey.VALIDATION_ERROR);
                 openExisting(plugin, player, category.id());
             }
         }, () -> openExisting(plugin, player, category.id()));
@@ -298,10 +308,13 @@ public final class CreateCategoryMenu {
                 double price = Double.parseDouble(value.trim());
                 plugin.economy().setCustomCategoryPrice(category.id(), price);
                 player.sendMessage(plugin.messages().priceUpdated(player, categoryLabel(plugin, player, category), plugin.economy().format(price)));
+                plugin.sounds().play(player, SoundKey.PRICE_SUCCESS);
             } catch (NumberFormatException exception) {
                 player.sendMessage(plugin.messages().priceInvalid(player));
+                plugin.sounds().play(player, SoundKey.PRICE_FAILURE);
             } catch (RuntimeException exception) {
                 player.sendMessage(Component.text("Failed to update category price: " + exception.getMessage(), NamedTextColor.RED));
+                plugin.sounds().play(player, SoundKey.PRICE_FAILURE);
             }
 
             openExisting(plugin, player, category.id());
@@ -353,6 +366,7 @@ public final class CreateCategoryMenu {
 
     private static void noPermission(@NotNull HeadDBPlugin plugin, @NotNull Player player) {
         player.sendMessage(plugin.messages().render(player, MessageKey.COMMAND_ERROR_NO_PERMISSION));
+        plugin.sounds().play(player, SoundKey.NO_PERMISSION);
     }
 
     private static final class Holder implements InventoryHolder {

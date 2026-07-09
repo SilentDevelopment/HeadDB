@@ -18,7 +18,9 @@ import io.github.silentdevelopment.headdb.paper.item.CachingHeadItemFactory;
 import io.github.silentdevelopment.headdb.paper.item.DefaultHeadItemFactory;
 import io.github.silentdevelopment.headdb.paper.item.HeadItemFactory;
 import io.github.silentdevelopment.headdb.paper.local.HeadRegistry;
+import io.github.silentdevelopment.headdb.paper.local.custom.CachedCustomHeadStore;
 import io.github.silentdevelopment.headdb.paper.local.custom.CustomHeadStore;
+import io.github.silentdevelopment.headdb.paper.local.override.CachedRemoteHeadOverrideStore;
 import io.github.silentdevelopment.headdb.paper.local.override.RemoteHeadOverrideStore;
 import io.github.silentdevelopment.headdb.paper.local.player.BukkitPlayerHeadService;
 import io.github.silentdevelopment.headdb.paper.local.player.DisabledPlayerHeadService;
@@ -36,6 +38,9 @@ import io.github.silentdevelopment.headdb.paper.runtime.PluginRuntime;
 import io.github.silentdevelopment.headdb.paper.runtime.RuntimeDiagnostics;
 import io.github.silentdevelopment.headdb.paper.runtime.StartupChecks;
 import io.github.silentdevelopment.headdb.paper.service.PaperHeadDBService;
+import io.github.silentdevelopment.headdb.paper.sound.HeadSoundService;
+import io.github.silentdevelopment.headdb.paper.sound.SoundConfig;
+import io.github.silentdevelopment.headdb.paper.sound.SoundConfigLoader;
 import io.github.silentdevelopment.headdb.paper.updater.UpdateService;
 import io.github.silentdevelopment.hermes.id.LocaleId;
 import io.github.silentdevelopment.hermes.paper.core.Hermes;
@@ -64,6 +69,7 @@ public final class HeadDBPlugin extends JavaPlugin {
     private CustomTaxonomyService customTagService;
     private CustomTaxonomyService customCollectionService;
     private EconomyService economyService;
+    private HeadSoundService soundService;
     private UpdateService updateService;
 
     @Override
@@ -123,6 +129,7 @@ public final class HeadDBPlugin extends JavaPlugin {
         customTagService = null;
         customCollectionService = null;
         economyService = null;
+        soundService = null;
         updateService = null;
         runtime = null;
         config = null;
@@ -141,19 +148,21 @@ public final class HeadDBPlugin extends JavaPlugin {
         PluginConfig loadedConfig = new ConfigLoader(getDataFolder().toPath()).load();
         GuiConfig loadedGuiConfig = new GuiConfigLoader(this).load();
         EconomyConfig loadedEconomyConfig = EconomyConfig.load(this);
+        SoundConfig loadedSoundConfig = new SoundConfigLoader(this).load();
         Messages loadedMessages = createMessages(loadedConfig);
         PluginRuntime createdRuntime = PluginRuntime.create(this, loadedConfig);
         Path localStoreDatabase = loadedConfig.localStoreDatabase(getDataFolder().toPath());
 
         SqliteStorageMigrator.migrate(localStoreDatabase);
 
-        HeadRegistry createdHeadRegistry = createHeadRegistry(loadedConfig, createdRuntime);
-        HeadItemFactory createdItemFactory = createItemFactory(loadedConfig);
-        FavoriteHeadService createdFavoriteHeadService = new FavoriteHeadService(localStoreDatabase);
-        CustomCategoryService createdCustomCategoryService = new CustomCategoryService(localStoreDatabase);
         CustomTaxonomyService createdCustomTagService = new CustomTaxonomyService(localStoreDatabase, "tag", "Local custom tag.");
         CustomTaxonomyService createdCustomCollectionService = new CustomTaxonomyService(localStoreDatabase, "collection", "Local custom collection.");
+        HeadRegistry createdHeadRegistry = createHeadRegistry(loadedConfig, createdRuntime, createdCustomTagService, createdCustomCollectionService);
+        HeadItemFactory createdItemFactory = createItemFactory(loadedConfig, createdHeadRegistry);
+        FavoriteHeadService createdFavoriteHeadService = new FavoriteHeadService(localStoreDatabase);
+        CustomCategoryService createdCustomCategoryService = new CustomCategoryService(localStoreDatabase);
         EconomyService createdEconomyService = EconomyService.create(this, loadedEconomyConfig);
+        HeadSoundService createdSoundService = new HeadSoundService(this, loadedSoundConfig);
         GuiService createdGuiService = new GuiService(this, createdItemFactory);
         UpdateService createdUpdateService = new UpdateService(this, loadedConfig);
 
@@ -162,8 +171,6 @@ public final class HeadDBPlugin extends JavaPlugin {
         if (loadedConfig.isDebug()) {
             StartupChecks.run(this, loadedConfig, createdRuntime);
         }
-
-        createdRuntime.start();
 
         PluginRuntime previousRuntime = this.runtime;
         UpdateService previousUpdateService = this.updateService;
@@ -180,6 +187,7 @@ public final class HeadDBPlugin extends JavaPlugin {
         this.customTagService = createdCustomTagService;
         this.customCollectionService = createdCustomCollectionService;
         this.economyService = createdEconomyService;
+        this.soundService = createdSoundService;
         this.updateService = createdUpdateService;
 
         clearItemCache();
@@ -192,6 +200,8 @@ public final class HeadDBPlugin extends JavaPlugin {
         if (previousRuntime != null) {
             previousRuntime.close();
         }
+
+        createdRuntime.start();
 
         RuntimeDiagnostics.logRuntimeState(this, createdRuntime);
 
@@ -342,6 +352,14 @@ public final class HeadDBPlugin extends JavaPlugin {
         return currentEconomyService;
     }
 
+    public @NotNull HeadSoundService sounds() {
+        HeadSoundService currentSoundService = soundService;
+        if (currentSoundService == null) {
+            throw new IllegalStateException("HeadDB sound service is not initialized");
+        }
+        return currentSoundService;
+    }
+
     public @NotNull UpdateService updater() {
         UpdateService currentUpdateService = updateService;
         if (currentUpdateService == null) {
@@ -380,6 +398,27 @@ public final class HeadDBPlugin extends JavaPlugin {
         return cache.size();
     }
 
+
+    public void invalidateHeadRegistry() {
+        HeadRegistry currentHeadRegistry = headRegistry;
+
+        if (currentHeadRegistry == null) {
+            return;
+        }
+
+        currentHeadRegistry.invalidate();
+    }
+
+    public void warmHeadRegistry() {
+        HeadRegistry currentHeadRegistry = headRegistry;
+
+        if (currentHeadRegistry == null) {
+            return;
+        }
+
+        currentHeadRegistry.warm();
+    }
+
     public void clearSearchCache() {
         GuiService currentGuiService = guiService;
 
@@ -401,33 +440,34 @@ public final class HeadDBPlugin extends JavaPlugin {
         getServer().getServicesManager().unregisterAll(this);
     }
 
-    private @NotNull HeadRegistry createHeadRegistry(@NotNull PluginConfig config, @NotNull PluginRuntime runtime) {
+    private @NotNull HeadRegistry createHeadRegistry(@NotNull PluginConfig config, @NotNull PluginRuntime runtime, @NotNull CustomTaxonomyService customTags, @NotNull CustomTaxonomyService customCollections) {
         Objects.requireNonNull(config, "config");
         Objects.requireNonNull(runtime, "runtime");
+        Objects.requireNonNull(customTags, "customTags");
+        Objects.requireNonNull(customCollections, "customCollections");
 
         Path localStoreDatabase = config.localStoreDatabase(getDataFolder().toPath());
         StrataLocalStores localStores = StrataLocalStores.sqlite(localStoreDatabase, runnable -> getServer().getAsyncScheduler().runNow(this, task -> runnable.run()));
-        RemoteHeadOverrideStore overrideStore = config.remoteOverridesEnabled() ? localStores.remoteOverrides() : NoopLocalStores.remoteOverrides();
-        CustomHeadStore customHeadStore = config.customHeadsEnabled() ? localStores.customHeads() : NoopLocalStores.customHeads();
+        RemoteHeadOverrideStore overrideStore = config.remoteOverridesEnabled() ? new CachedRemoteHeadOverrideStore(localStores.remoteOverrides()) : NoopLocalStores.remoteOverrides();
+        CustomHeadStore customHeadStore = config.customHeadsEnabled() ? new CachedCustomHeadStore(localStores.customHeads()) : NoopLocalStores.customHeads();
         PlayerHeadCache playerHeadCache = config.playerHeadsEnabled() ? localStores.playerHeadCache(config.playerHeadCacheTtl()) : NoopLocalStores.playerHeadCache();
         PlayerHeadService playerHeadService = config.playerHeadsEnabled()
                 ? new BukkitPlayerHeadService(this, playerHeadCache, config.playerHeadCacheTtl(), config.playerHeadFailedCacheTtl(), config.playerHeadsAllowExternalLookup())
                 : new DisabledPlayerHeadService();
 
-        CustomTaxonomyService customTags = new CustomTaxonomyService(localStoreDatabase, "tag", "Local custom tag.");
-        CustomTaxonomyService customCollections = new CustomTaxonomyService(localStoreDatabase, "collection", "Local custom collection.");
         return new HeadRegistry(runtime.database(), overrideStore, customHeadStore, playerHeadService, customTags, customCollections);
     }
 
-    private @NotNull HeadItemFactory createItemFactory(@NotNull PluginConfig config) {
+    private @NotNull HeadItemFactory createItemFactory(@NotNull PluginConfig config, @NotNull HeadRegistry registry) {
         Objects.requireNonNull(config, "config");
+        Objects.requireNonNull(registry, "registry");
 
         HeadItemFactory baseFactory = new DefaultHeadItemFactory(this);
         if (!config.cacheItemEnabled()) {
             return baseFactory;
         }
 
-        return new CachingHeadItemFactory(baseFactory, config.cacheItemMaxSize());
+        return new CachingHeadItemFactory(baseFactory, config.cacheItemMaxSize(), registry::revision);
     }
 
     private @NotNull Messages createMessages(@NotNull PluginConfig config) {

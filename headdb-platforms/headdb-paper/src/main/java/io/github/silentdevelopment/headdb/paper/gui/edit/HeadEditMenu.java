@@ -113,6 +113,7 @@ public final class HeadEditMenu {
                     GuiItems.lore("There are no local override options for player heads.", NamedTextColor.DARK_GRAY)
             )), id, ACTION_PREVIEW));
             player.openInventory(inventory);
+        plugin.sounds().play(player, io.github.silentdevelopment.headdb.paper.sound.SoundKey.MENU_OPEN);
             return;
         }
 
@@ -137,6 +138,7 @@ public final class HeadEditMenu {
         }
 
         player.openInventory(inventory);
+        plugin.sounds().play(player, io.github.silentdevelopment.headdb.paper.sound.SoundKey.MENU_OPEN);
     }
 
     public static void openCategories(@NotNull HeadDBPlugin plugin, @NotNull Player player, @NotNull HeadId id, int page) {
@@ -192,6 +194,7 @@ public final class HeadEditMenu {
         inventory.setItem(plugin.guiConfig().slot("edit.lore.clear", 50), button(plugin, id, ACTION_LORE_CLEAR, "lore-clear"));
         inventory.setItem(plugin.guiConfig().slot("edit.lore.reset", 53), button(plugin, id, ACTION_LORE_RESET, "lore-reset"));
         player.openInventory(inventory);
+        plugin.sounds().play(player, io.github.silentdevelopment.headdb.paper.sound.SoundKey.MENU_OPEN);
     }
 
     public static @NotNull Optional<ActionTarget> actionTarget(@NotNull HeadDBPlugin plugin, @NotNull ItemStack item) {
@@ -242,6 +245,7 @@ public final class HeadEditMenu {
         inventory.setItem(SLOT_PREVIOUS, safePage > 0 ? button(plugin, id, ACTION_PREVIOUS, "previous") : inventory.getItem(SLOT_PREVIOUS));
         inventory.setItem(SLOT_NEXT, safePage + 1 < pages ? button(plugin, id, ACTION_NEXT, "next") : inventory.getItem(SLOT_NEXT));
         player.openInventory(inventory);
+        plugin.sounds().play(player, io.github.silentdevelopment.headdb.paper.sound.SoundKey.MENU_OPEN);
     }
 
     private static @NotNull Optional<Head> previewHead(@NotNull HeadDBPlugin plugin, @NotNull HeadId id) {

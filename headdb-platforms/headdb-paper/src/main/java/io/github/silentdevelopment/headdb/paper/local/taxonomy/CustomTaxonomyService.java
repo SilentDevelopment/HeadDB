@@ -24,6 +24,7 @@ public final class CustomTaxonomyService {
     private final SQLiteDataSource dataSource;
     private final String type;
     private final String defaultDescription;
+    private List<CustomTaxonomyEntry> cache;
 
     public CustomTaxonomyService(@NotNull Path databaseFile, @NotNull String type, @NotNull String defaultDescription) {
         Objects.requireNonNull(databaseFile, "databaseFile");
@@ -34,38 +35,19 @@ public final class CustomTaxonomyService {
     }
 
     public synchronized @NotNull List<CustomTaxonomyEntry> list() {
-        List<CustomTaxonomyEntry> entries = new ArrayList<>();
-        try (Connection connection = dataSource.getConnection(); PreparedStatement statement = connection.prepareStatement("SELECT id, name, description, created_at, updated_at, created_by FROM headdb_custom_taxonomy WHERE type = ? ORDER BY lower(name) ASC")) {
-            statement.setString(1, type);
-            try (ResultSet result = statement.executeQuery()) {
-                while (result.next()) {
-                    entries.add(entry(result));
-                }
-            }
-        } catch (SQLException exception) {
-            throw new IllegalStateException("Failed to list HeadDB custom " + type + " entries.", exception);
+        List<CustomTaxonomyEntry> current = cache;
+        if (current != null) {
+            return current;
         }
-
-        entries.sort(Comparator.comparing(CustomTaxonomyEntry::name, String.CASE_INSENSITIVE_ORDER));
-        return List.copyOf(entries);
+        current = loadAll();
+        cache = current;
+        return current;
     }
 
     public synchronized @NotNull Optional<CustomTaxonomyEntry> find(@NotNull String id) {
         Objects.requireNonNull(id, "id");
         String normalized = CustomTaxonomyEntry.normalizeId(id);
-        try (Connection connection = dataSource.getConnection(); PreparedStatement statement = connection.prepareStatement("SELECT id, name, description, created_at, updated_at, created_by FROM headdb_custom_taxonomy WHERE type = ? AND id = ?")) {
-            statement.setString(1, type);
-            statement.setString(2, normalized);
-            try (ResultSet result = statement.executeQuery()) {
-                if (!result.next()) {
-                    return Optional.empty();
-                }
-
-                return Optional.of(entry(result));
-            }
-        } catch (SQLException exception) {
-            throw new IllegalStateException("Failed to read HeadDB custom " + type + " entry " + normalized + ".", exception);
-        }
+        return list().stream().filter(entry -> entry.id().equals(normalized)).findFirst();
     }
 
     public synchronized void save(@NotNull CustomTaxonomyEntry entry) {
@@ -79,6 +61,7 @@ public final class CustomTaxonomyService {
             statement.setString(6, entry.updatedAt().toString());
             statement.setString(7, entry.createdBy() == null ? null : entry.createdBy().toString());
             statement.executeUpdate();
+            cache = null;
         } catch (SQLException exception) {
             throw new IllegalStateException("Failed to save HeadDB custom " + type + " entry " + entry.id() + ".", exception);
         }
@@ -96,10 +79,31 @@ public final class CustomTaxonomyService {
         try (Connection connection = dataSource.getConnection(); PreparedStatement statement = connection.prepareStatement("DELETE FROM headdb_custom_taxonomy WHERE type = ? AND id = ?")) {
             statement.setString(1, type);
             statement.setString(2, normalized);
-            return statement.executeUpdate() > 0;
+            boolean deleted = statement.executeUpdate() > 0;
+            if (deleted) {
+                cache = null;
+            }
+            return deleted;
         } catch (SQLException exception) {
             throw new IllegalStateException("Failed to delete HeadDB custom " + type + " entry " + normalized + ".", exception);
         }
+    }
+
+    private @NotNull List<CustomTaxonomyEntry> loadAll() {
+        List<CustomTaxonomyEntry> entries = new ArrayList<>();
+        try (Connection connection = dataSource.getConnection(); PreparedStatement statement = connection.prepareStatement("SELECT id, name, description, created_at, updated_at, created_by FROM headdb_custom_taxonomy WHERE type = ? ORDER BY lower(name) ASC")) {
+            statement.setString(1, type);
+            try (ResultSet result = statement.executeQuery()) {
+                while (result.next()) {
+                    entries.add(entry(result));
+                }
+            }
+        } catch (SQLException exception) {
+            throw new IllegalStateException("Failed to list HeadDB custom " + type + " entries.", exception);
+        }
+
+        entries.sort(Comparator.comparing(CustomTaxonomyEntry::name, String.CASE_INSENSITIVE_ORDER));
+        return List.copyOf(entries);
     }
 
     private @NotNull CustomTaxonomyEntry entry(@NotNull ResultSet result) throws SQLException {

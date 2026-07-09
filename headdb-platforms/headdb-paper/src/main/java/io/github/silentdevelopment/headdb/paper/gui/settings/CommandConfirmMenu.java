@@ -7,6 +7,7 @@ import io.github.silentdevelopment.headdb.paper.gui.common.GuiMaterials;
 import io.github.silentdevelopment.headdb.paper.gui.common.GuiTitles;
 import io.github.silentdevelopment.headdb.paper.message.MessageKey;
 import io.github.silentdevelopment.headdb.paper.permission.Permissions;
+import io.github.silentdevelopment.headdb.paper.sound.SoundKey;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
@@ -43,6 +44,7 @@ public final class CommandConfirmMenu {
 
         if (!Permissions.has(player, permission)) {
             player.sendMessage(plugin.messages().render(player, MessageKey.COMMAND_ERROR_NO_PERMISSION));
+            plugin.sounds().play(player, SoundKey.NO_PERMISSION);
             return;
         }
 
@@ -53,6 +55,7 @@ public final class CommandConfirmMenu {
         inventory.setItem(11, action(plugin, "confirm-yes", ACTION_CONFIRM, command));
         inventory.setItem(15, action(plugin, "confirm-no", ACTION_CANCEL, command));
         player.openInventory(inventory);
+        plugin.sounds().play(player, SoundKey.MENU_OPEN);
     }
 
     public static boolean handleClick(@NotNull HeadDBPlugin plugin, @NotNull Player player, @NotNull InventoryClickEvent event) {
@@ -80,6 +83,7 @@ public final class CommandConfirmMenu {
         }
 
         if (action.get().equals(ACTION_CANCEL)) {
+            plugin.sounds().play(player, SoundKey.CANCEL);
             plugin.guis().openMain(player);
             return true;
         }
@@ -90,12 +94,31 @@ public final class CommandConfirmMenu {
 
         if (!Permissions.has(player, holder.permission())) {
             player.sendMessage(plugin.messages().render(player, MessageKey.COMMAND_ERROR_NO_PERMISSION));
+            plugin.sounds().play(player, SoundKey.NO_PERMISSION);
             return true;
         }
 
+        plugin.sounds().play(player, soundFor(holder.command()));
         player.closeInventory();
         player.performCommand(holder.command());
         return true;
+    }
+
+    private static @NotNull SoundKey soundFor(@NotNull String command) {
+        String normalized = command.trim().toLowerCase(java.util.Locale.ROOT);
+        if (normalized.startsWith("hdb reload") || normalized.equals("hdb reload")) {
+            return SoundKey.RELOAD;
+        }
+        if (normalized.startsWith("hdb refresh") || normalized.equals("hdb refresh")) {
+            return SoundKey.REFRESH;
+        }
+        if (normalized.startsWith("hdb verify") || normalized.equals("hdb verify")) {
+            return SoundKey.VERIFY;
+        }
+        if (normalized.startsWith("hdb debug") || normalized.equals("hdb debug")) {
+            return SoundKey.DEBUG;
+        }
+        return SoundKey.CONFIRM;
     }
 
     private static @NotNull ItemStack action(@NotNull HeadDBPlugin plugin, @NotNull String iconKey, @NotNull String action, @NotNull String command) {
