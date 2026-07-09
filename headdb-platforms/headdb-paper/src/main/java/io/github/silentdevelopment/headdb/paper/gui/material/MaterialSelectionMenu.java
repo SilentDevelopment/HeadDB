@@ -33,7 +33,7 @@ public final class MaterialSelectionMenu {
     private static final int SLOT_BACK = 45;
     private static final int SLOT_PREVIOUS = 48;
     private static final int SLOT_TYPE = 49;
-    private static final int SLOT_NEXT = 53;
+    private static final int SLOT_NEXT = 50;
     private static final String ACTION_BACK = "back";
     private static final String ACTION_PREVIOUS = "previous";
     private static final String ACTION_NEXT = "next";
@@ -74,6 +74,7 @@ public final class MaterialSelectionMenu {
         renderControls(plugin, inventory, page, pages);
 
         player.openInventory(inventory);
+        plugin.sounds().play(player, io.github.silentdevelopment.headdb.paper.sound.SoundKey.MENU_OPEN);
     }
 
     public static boolean handleClick(@NotNull HeadDBPlugin plugin, @NotNull Player player, @NotNull InventoryClickEvent event) {
@@ -99,6 +100,8 @@ public final class MaterialSelectionMenu {
         if (action.isEmpty()) {
             return true;
         }
+
+        plugin.sounds().playGuiAction(player, action.get());
 
         handleAction(plugin, player, holder, action.get());
         return true;

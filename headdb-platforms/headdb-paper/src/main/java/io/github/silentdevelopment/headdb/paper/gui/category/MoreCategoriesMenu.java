@@ -39,7 +39,7 @@ public final class MoreCategoriesMenu {
     private static final int SLOT_PREVIOUS = 48;
     private static final int SLOT_ADD = 49;
     private static final int SLOT_REMOVE = 50;
-    private static final int SLOT_NEXT = 53;
+    private static final int SLOT_NEXT = 50;
     private static final String ACTION_BACK = "back";
     private static final String ACTION_PREVIOUS = "previous";
     private static final String ACTION_NEXT = "next";
@@ -86,7 +86,7 @@ public final class MoreCategoriesMenu {
             return;
         }
 
-        List<CustomCategory> categories = plugin.customCategories().list();
+        List<CustomCategory> categories = plugin.customCategories().listVisible(plugin.adminModes().enabled(player)).stream().filter(category -> Permissions.canViewCategory(player, category.id())).toList();
         int pages = pageCount(categories.size());
         int page = clampPage(requestedPage, pages);
         MoreCategoriesHolder holder = new MoreCategoriesHolder(mode, page);
@@ -97,6 +97,7 @@ public final class MoreCategoriesMenu {
         renderEntries(plugin, inventory, categories, mode, page, plugin.adminModes().enabled(player));
         renderControls(plugin, player, inventory, mode, page, pages);
         player.openInventory(inventory);
+        plugin.sounds().play(player, io.github.silentdevelopment.headdb.paper.sound.SoundKey.MENU_OPEN);
     }
 
     private static void openEditor(@NotNull HeadDBPlugin plugin, @NotNull Player player, @NotNull CategoryEditorHolder holder) {
@@ -113,6 +114,7 @@ public final class MoreCategoriesMenu {
         inventory.setItem(plugin.guiConfig().slot("more.category-create.back", 45), actionItem(plugin, ACTION_BACK, "back"));
 
         player.openInventory(inventory);
+        plugin.sounds().play(player, io.github.silentdevelopment.headdb.paper.sound.SoundKey.MENU_OPEN);
     }
 
     public static boolean handleClick(@NotNull HeadDBPlugin plugin, @NotNull Player player, @NotNull InventoryClickEvent event) {
@@ -128,7 +130,10 @@ public final class MoreCategoriesMenu {
             }
 
             Optional<String> action = readAction(plugin, item);
-            action.ifPresent(value -> handleEditorAction(plugin, player, editor, value));
+            action.ifPresent(value -> {
+                plugin.sounds().playGuiAction(player, value);
+                handleEditorAction(plugin, player, editor, value);
+            });
             return true;
         }
 
@@ -150,6 +155,8 @@ public final class MoreCategoriesMenu {
         if (action.isEmpty()) {
             return true;
         }
+
+        plugin.sounds().playGuiAction(player, action.get());
 
         handleAction(plugin, player, holder, event.getClick(), action.get());
         return true;
@@ -175,6 +182,9 @@ public final class MoreCategoriesMenu {
         item.editMeta(meta -> {
             List<Component> lore = new ArrayList<>();
             lore.add(GuiItems.idDetail("Heads", category.headIds().size()));
+            if (category.draft()) {
+                lore.add(GuiItems.idDetail("State", "DRAFT"));
+            }
             lore.add(GuiItems.metaDetail("Icon", iconLabel(category)));
             lore.add(Component.empty());
 
@@ -187,7 +197,7 @@ public final class MoreCategoriesMenu {
                 }
             }
 
-            meta.displayName(GuiItems.name(category.name(), mode == MoreCategoryMode.REMOVE ? NamedTextColor.RED : NamedTextColor.GOLD));
+            meta.displayName(GuiItems.name(category.draft() ? "DRAFT - " + category.name() : category.name(), category.draft() ? NamedTextColor.YELLOW : mode == MoreCategoryMode.REMOVE ? NamedTextColor.RED : NamedTextColor.GOLD));
             meta.lore(lore);
         });
         return item;
@@ -241,7 +251,7 @@ public final class MoreCategoriesMenu {
             return;
         }
         if (action.equals(ACTION_ADD)) {
-            openEdit(plugin, player, "", "", "CHEST");
+            CreateCategoryMenu.open(plugin, player);
             return;
         }
         if (action.equals(ACTION_REMOVE_MODE)) {
@@ -265,13 +275,12 @@ public final class MoreCategoriesMenu {
                     return;
                 }
                 CustomCategory category = existing.get();
-                openEdit(plugin, player, category.id(), category.name(), category.material());
+                CreateCategoryMenu.openExisting(plugin, player, category.id());
                 return;
             }
 
             CustomCategory category = existing.get();
-            Set<HeadId> ids = category.headIds().isEmpty() ? Set.of(new HeadId("remote:0")) : category.headIds();
-            plugin.guis().openSearch(player, new SearchRequest("", ids, Set.of(), Set.of(), Set.of(), HeadSort.ID, SortDirection.ASCENDING, 1, 28, false));
+            CustomCategoryViewMenu.open(plugin, player, category.id(), 0);
             return;
         }
         if (action.startsWith(ACTION_REMOVE)) {
@@ -379,6 +388,7 @@ public final class MoreCategoriesMenu {
         inventory.setItem(11, actionItem(plugin, ACTION_REMOVE + id, "confirm-yes"));
         inventory.setItem(15, actionItem(plugin, ACTION_BACK, "confirm-no"));
         player.openInventory(inventory);
+        plugin.sounds().play(player, io.github.silentdevelopment.headdb.paper.sound.SoundKey.MENU_OPEN);
     }
 
     private static boolean canAdminCategories(@NotNull HeadDBPlugin plugin, @NotNull Player player) {
@@ -387,6 +397,7 @@ public final class MoreCategoriesMenu {
 
     private static void noPermission(@NotNull HeadDBPlugin plugin, @NotNull Player player) {
         player.sendMessage(plugin.messages().render(player, io.github.silentdevelopment.headdb.paper.message.MessageKey.COMMAND_ERROR_NO_PERMISSION));
+        plugin.sounds().play(player, io.github.silentdevelopment.headdb.paper.sound.SoundKey.NO_PERMISSION);
     }
 
     private static @NotNull ItemStack editAction(@NotNull HeadDBPlugin plugin, @NotNull String action, @NotNull String iconKey, @NotNull String label, @NotNull String value) {

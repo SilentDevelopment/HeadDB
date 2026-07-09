@@ -3,6 +3,7 @@ package io.github.silentdevelopment.headdb.paper.command.subcommand;
 import io.github.silentdevelopment.headdb.paper.HeadDBPlugin;
 import io.github.silentdevelopment.headdb.paper.command.CommandRequirements;
 import io.github.silentdevelopment.headdb.paper.permission.Permissions;
+import io.github.silentdevelopment.headdb.paper.sound.SoundKey;
 import io.github.silentdevelopment.relay.command.Command;
 import io.github.silentdevelopment.relay.paper.command.AbstractPaperCommand;
 import io.github.silentdevelopment.relay.paper.command.PaperCommands;
@@ -33,6 +34,9 @@ public final class ReloadCommand extends AbstractPaperCommand {
         }
 
         context.reply(plugin.messages().reloadSuccess(context.sender()));
+        if (context.isPlayer()) {
+            plugin.sounds().play(context.player(), SoundKey.RELOAD);
+        }
     }
 
     @Override

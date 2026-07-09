@@ -96,6 +96,16 @@ public record SearchRequest(
         return new SearchRequest(query, ids, categories, tags, collections, sort, direction, page, limit, categoryLocked);
     }
 
+    public @NotNull SearchRequest withQuery(@NotNull String query) {
+        Objects.requireNonNull(query, "query");
+        return new SearchRequest(query, ids, categories, tags, collections, sort, direction, 1, limit, categoryLocked);
+    }
+
+    public @NotNull SearchRequest withIds(@NotNull Set<HeadId> ids) {
+        Objects.requireNonNull(ids, "ids");
+        return new SearchRequest(query, ids, categories, tags, collections, sort, direction, 1, limit, categoryLocked);
+    }
+
     public @NotNull SearchRequest withSort(@NotNull HeadSort sort) {
         Objects.requireNonNull(sort, "sort");
         return new SearchRequest(query, ids, categories, tags, collections, sort, direction, 1, limit, categoryLocked);

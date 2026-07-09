@@ -57,7 +57,12 @@ public enum MessageKey {
     // GUI
 
     GUI_LANGUAGE_CHANGED("gui.language.changed"),
-    GUI_LANGUAGE_RESET("gui.language.reset");
+    GUI_LANGUAGE_RESET("gui.language.reset"),
+    GUI_PRICE_INVALID("gui.price.invalid"),
+    GUI_PRICE_UPDATED("gui.price.updated"),
+    GUI_TAXONOMY_CREATED("gui.taxonomy.created"),
+    GUI_TAXONOMY_DELETED("gui.taxonomy.deleted"),
+    GUI_TAXONOMY_UNKNOWN("gui.taxonomy.unknown");
 
     private final String path;
 

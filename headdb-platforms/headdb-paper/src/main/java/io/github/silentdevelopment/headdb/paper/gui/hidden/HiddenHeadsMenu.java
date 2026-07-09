@@ -6,6 +6,7 @@ import io.github.silentdevelopment.headdb.model.HeadId;
 import io.github.silentdevelopment.headdb.paper.HeadDBPlugin;
 import io.github.silentdevelopment.headdb.paper.gui.common.GuiHeadIcons;
 import io.github.silentdevelopment.headdb.paper.gui.common.GuiItems;
+import io.github.silentdevelopment.headdb.paper.gui.common.GuiLabels;
 import io.github.silentdevelopment.headdb.paper.gui.common.GuiTitles;
 import io.github.silentdevelopment.headdb.paper.item.HeadItemIds;
 import io.github.silentdevelopment.headdb.paper.local.override.RemoteHeadOverride;
@@ -70,13 +71,14 @@ public final class HiddenHeadsMenu {
         int pages = pageCount(heads.size());
         int page = clampPage(requestedPage, pages);
         HiddenHeadsHolder holder = new HiddenHeadsHolder(page);
-        Inventory inventory = Bukkit.createInventory(holder, SIZE, GuiTitles.title("Hidden Heads " + (page + 1) + "/" + pages, true));
+        Inventory inventory = Bukkit.createInventory(holder, SIZE, GuiTitles.title(title(plugin, page, pages), true));
         holder.inventory(inventory);
 
         fillBorder(inventory);
         renderHeads(plugin, player, inventory, heads, page);
         renderControls(plugin, inventory, heads.size(), page, pages);
         player.openInventory(inventory);
+        plugin.sounds().play(player, io.github.silentdevelopment.headdb.paper.sound.SoundKey.MENU_OPEN);
     }
 
     public static boolean handleClick(@NotNull HeadDBPlugin plugin, @NotNull Player player, @NotNull InventoryClickEvent event) {
@@ -91,6 +93,7 @@ public final class HiddenHeadsMenu {
         event.setCancelled(true);
         if (!Permissions.has(player, Permissions.GUI_HIDDEN_HEADS) || !plugin.adminModes().enabled(player)) {
             player.sendMessage(plugin.messages().render(player, io.github.silentdevelopment.headdb.paper.message.MessageKey.COMMAND_ERROR_NO_PERMISSION));
+            plugin.sounds().play(player, io.github.silentdevelopment.headdb.paper.sound.SoundKey.NO_PERMISSION);
             player.closeInventory();
             return true;
         }
@@ -105,6 +108,7 @@ public final class HiddenHeadsMenu {
 
         Optional<String> action = readAction(plugin, item);
         if (action.isPresent()) {
+            plugin.sounds().playGuiAction(player, action.get());
             handleAction(plugin, player, holder, action.get());
             return true;
         }
@@ -117,10 +121,12 @@ public final class HiddenHeadsMenu {
         if (event.getClick() == ClickType.RIGHT || event.getClick() == ClickType.SHIFT_RIGHT) {
             if (!Permissions.has(player, Permissions.FAVORITES_TOGGLE)) {
                 player.sendMessage(plugin.messages().render(player, io.github.silentdevelopment.headdb.paper.message.MessageKey.COMMAND_ERROR_NO_PERMISSION));
+                plugin.sounds().play(player, io.github.silentdevelopment.headdb.paper.sound.SoundKey.NO_PERMISSION);
                 return true;
             }
 
-            plugin.favorites().toggle(player.getUniqueId(), id.get());
+            boolean added = plugin.favorites().toggle(player.getUniqueId(), id.get());
+            plugin.sounds().play(player, added ? io.github.silentdevelopment.headdb.paper.sound.SoundKey.FAVORITE_ADD : io.github.silentdevelopment.headdb.paper.sound.SoundKey.FAVORITE_REMOVE);
             open(plugin, player, holder.page());
             return true;
         }
@@ -130,7 +136,8 @@ public final class HiddenHeadsMenu {
         plugin.headRegistry().onLocalMutation();
         plugin.clearItemCache();
         plugin.clearSearchCache();
-        player.sendMessage(Component.text("Head shown: ", NamedTextColor.GRAY).append(Component.text(id.get().display(), NamedTextColor.GOLD)));
+        player.sendMessage(Component.text("Head shown: ", NamedTextColor.GRAY).append(Component.text(GuiLabels.head(plugin, player, id.get()), NamedTextColor.GOLD)));
+        plugin.sounds().play(player, io.github.silentdevelopment.headdb.paper.sound.SoundKey.SHOW_HEAD);
         open(plugin, player, holder.page());
         return true;
     }
@@ -173,7 +180,7 @@ public final class HiddenHeadsMenu {
 
     private static void handleAction(@NotNull HeadDBPlugin plugin, @NotNull Player player, @NotNull HiddenHeadsHolder holder, @NotNull String action) {
         if (action.equals(ACTION_BACK)) {
-            plugin.guis().openMain(player);
+            plugin.guis().openBrowse(player);
             return;
         }
 
@@ -240,6 +247,10 @@ public final class HiddenHeadsMenu {
     private static @NotNull String headIdLabel(@NotNull HeadId id) {
         Objects.requireNonNull(id, "id");
         return id.display();
+    }
+
+    private static @NotNull String title(@NotNull HeadDBPlugin plugin, int page, int pages) {
+        return plugin.guiConfig().text("title.hidden-heads-page", "Hidden Heads %page%/%pages%").replace("%page%", String.valueOf(page + 1)).replace("%pages%", String.valueOf(Math.max(1, pages)));
     }
 
     private static int pageCount(int entries) {

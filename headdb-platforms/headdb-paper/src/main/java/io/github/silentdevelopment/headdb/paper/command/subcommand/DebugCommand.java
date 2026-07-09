@@ -8,6 +8,7 @@ import io.github.silentdevelopment.headdb.paper.permission.Permissions;
 import io.github.silentdevelopment.headdb.paper.runtime.BuildInfo;
 import io.github.silentdevelopment.headdb.paper.runtime.PlatformRequirements;
 import io.github.silentdevelopment.headdb.paper.runtime.RefreshState;
+import io.github.silentdevelopment.headdb.paper.sound.SoundKey;
 import io.github.silentdevelopment.headdb.paper.updater.UpdateCheckResult;
 import io.github.silentdevelopment.relay.command.Command;
 import io.github.silentdevelopment.relay.paper.command.AbstractPaperCommand;
@@ -35,6 +36,10 @@ public final class DebugCommand extends AbstractPaperCommand {
 
     @Override
     protected void handle(@NotNull PaperCommandContext context) {
+        if (context.isPlayer()) {
+            plugin.sounds().play(context.player(), SoundKey.DEBUG);
+        }
+
         BuildInfo buildInfo = BuildInfo.read(plugin);
         DatabaseStatus status = plugin.runtime().database().status();
         DatabaseStats remoteStats = plugin.runtime().database().stats();

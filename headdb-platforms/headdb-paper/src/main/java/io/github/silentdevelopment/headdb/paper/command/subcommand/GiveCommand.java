@@ -7,6 +7,7 @@ import io.github.silentdevelopment.headdb.paper.command.CommandRequirements;
 import io.github.silentdevelopment.headdb.paper.command.Suggestions;
 import io.github.silentdevelopment.headdb.paper.command.search.SearchParser;
 import io.github.silentdevelopment.headdb.paper.permission.Permissions;
+import io.github.silentdevelopment.headdb.paper.sound.SoundKey;
 import io.github.silentdevelopment.relay.argument.Argument;
 import io.github.silentdevelopment.relay.command.Command;
 import io.github.silentdevelopment.relay.paper.argument.PaperArgumentTypes;
@@ -43,6 +44,7 @@ public final class GiveCommand extends AbstractPaperCommand {
             request = request(context);
         } catch (IllegalArgumentException exception) {
             context.reply(plugin.messages().invalidArgument(context.sender(), exception.getMessage()));
+            play(context, SoundKey.INVALID);
             return;
         }
 
@@ -152,17 +154,20 @@ public final class GiveCommand extends AbstractPaperCommand {
 
         if (normalizedTargetName.isEmpty()) {
             context.reply(plugin.messages().targetEmpty(context.sender()));
+            play(context, SoundKey.INVALID);
             return null;
         }
 
         Player target = Bukkit.getPlayerExact(normalizedTargetName);
         if (target == null) {
             context.reply(plugin.messages().playerNotOnline(context.sender(), normalizedTargetName));
+            play(context, SoundKey.INVALID);
             return null;
         }
 
         if (!Permissions.canGiveTo(context.sender(), target)) {
             context.reply(plugin.messages().noGiveOthers(context.sender()));
+            play(context, SoundKey.NO_PERMISSION);
             return null;
         }
 
@@ -181,26 +186,41 @@ public final class GiveCommand extends AbstractPaperCommand {
                 item = plugin.itemFactory().create(head);
             } catch (IllegalArgumentException exception) {
                 context.reply(plugin.messages().invalidArgument(context.sender(), exception.getMessage()));
+                play(context, SoundKey.INVALID);
                 return;
             }
 
             if (target.getInventory().firstEmpty() == -1) {
                 context.reply(plugin.messages().giveInventoryFull(context.sender(), target));
+                play(context, SoundKey.INVALID);
                 return;
             }
 
             Map<Integer, ItemStack> remaining = target.getInventory().addItem(item);
             if (!remaining.isEmpty()) {
                 context.reply(plugin.messages().giveInventoryFull(context.sender(), target));
+                play(context, SoundKey.INVALID);
                 return;
             }
         }
 
         context.reply(plugin.messages().giveSuccess(context.sender(), head, target));
+        plugin.sounds().play(target, SoundKey.GIVE_HEAD);
+        if (context.isPlayer() && !context.player().equals(target)) {
+            plugin.sounds().play(context.player(), SoundKey.GIVE_HEAD);
+        }
 
         if (!context.sender().equals(target)) {
             target.sendMessage(plugin.messages().giveReceived(target, head));
         }
+    }
+
+    private void play(@NotNull PaperCommandContext context, @NotNull SoundKey key) {
+        if (!context.isPlayer()) {
+            return;
+        }
+
+        plugin.sounds().play(context.player(), key);
     }
 
     private static @Nullable HeadId parseOptionalHeadId(@NotNull String raw) {

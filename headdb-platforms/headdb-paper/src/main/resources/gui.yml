@@ -1,4 +1,4 @@
-version: 1
+version: 2
 filler:
   enabled: true
   material: BLACK_STAINED_GLASS_PANE
@@ -30,7 +30,7 @@ icons:
     type: HEAD
     head-id: '38870'
     material: BOOK
-    name: <gold>Information
+    name: <gold>Info
     lore:
     - <gray>View information.
   settings:
@@ -39,7 +39,7 @@ icons:
     material: REPEATER
     name: <gold>Settings
     lore:
-    - <gray>Open HeadDB settings.
+    - <gray>Open Settings
   languages:
     type: HEAD
     head-id: '112081'
@@ -89,20 +89,28 @@ icons:
     name: <red>Close
     lore:
     - <gray>Close this menu.
+  browse:
+    type: HEAD
+    head-id: '220'
+    material: PLAYER_HEAD
+    name: <gold>Browse
+    lore:
+    - <gray>Browse heads.
   browse-all:
     type: HEAD
     head-id: '220'
     material: PLAYER_HEAD
-    name: <gold>Browse All Heads
+    name: <gold>Browse All
     lore:
-    - <gray>Open all heads.
+    - <gray>Click to browse all categories.
   search:
     type: ITEM
     head-id: ''
     material: SPYGLASS
     name: <gold>Search
     lore:
-    - <gray>Search HeadDB using chat input.
+    - <gray>Left-click to search with chat input.
+    - <gray>Right-click for advanced search options.
   player-heads:
     type: ITEM
     head-id: ''
@@ -114,7 +122,7 @@ icons:
     type: ITEM
     head-id: ''
     material: CHEST
-    name: <gold>More Heads
+    name: <gold>Custom Heads
     lore:
     - <gray>Browse local custom heads.
   edit:
@@ -180,6 +188,13 @@ icons:
     name: <gold>Collection Filters
     lore:
     - <gray>Filter results by collections.
+  filter-ids:
+    type: ITEM
+    head-id: ''
+    material: PAPER
+    name: <gold>Head ID Filters
+    lore:
+    - <gray>Filter results by head IDs.
   filter-selected:
     type: ITEM
     head-id: ''
@@ -230,6 +245,174 @@ icons:
     lore:
     - <gray>Browse your favorite heads.
     - <yellow>Right-click heads to favorite or unfavorite them.
+  collections:
+    type: ITEM
+    head-id: ''
+    material: BOOKSHELF
+    name: <gold>Collections
+    lore:
+    - <gray>Browse curated head collections.
+  tags:
+    type: ITEM
+    head-id: ''
+    material: NAME_TAG
+    name: <gold>Tags
+    lore:
+    - <gray>Browse heads by tag.
+  create-tag:
+    type: ITEM
+    head-id: ''
+    material: NAME_TAG
+    name: <gold>Create Tag
+    lore:
+    - <gray>Create a local custom tag.
+  create-collection:
+    type: ITEM
+    head-id: ''
+    material: BOOKSHELF
+    name: <gold>Create Collection
+    lore:
+    - <gray>Create a local custom collection.
+  taxonomy-id:
+    type: ITEM
+    head-id: ''
+    material: PAPER
+    name: <gold>ID
+    lore:
+    - <gray>Set the local entry id.
+  taxonomy-name:
+    type: ITEM
+    head-id: ''
+    material: NAME_TAG
+    name: <gold>Name
+    lore:
+    - <gray>Set the local entry display name.
+  taxonomy-description:
+    type: ITEM
+    head-id: ''
+    material: WRITABLE_BOOK
+    name: <gold>Description
+    lore:
+    - <gray>Set the local entry description.
+  taxonomy-save:
+    type: ITEM
+    head-id: ''
+    material: LIME_CONCRETE
+    name: <green>Save
+    lore:
+    - <gray>Save this local entry.
+  create-category:
+    type: ITEM
+    head-id: ''
+    material: MAP
+    name: <gold>Create Category
+    lore:
+    - <gray>Create a local custom category.
+  category-description:
+    type: ITEM
+    head-id: ''
+    material: WRITABLE_BOOK
+    name: <gold>Description
+    lore:
+    - <gray>Set the category description.
+  category-permission:
+    type: ITEM
+    head-id: ''
+    material: PAPER
+    name: <gold>Permission
+    lore:
+    - <gray>Shows the required category permission.
+  category-save-draft:
+    type: ITEM
+    head-id: ''
+    material: ORANGE_CONCRETE
+    name: <gold>Save Draft
+    lore:
+    - <gray>Save this category as an admin-only draft.
+  category-publish:
+    type: ITEM
+    head-id: ''
+    material: LIME_CONCRETE
+    name: <green>Publish
+    lore:
+    - <gray>Publish this category for permitted users.
+  category-delete:
+    type: ITEM
+    head-id: ''
+    material: RED_CONCRETE
+    name: <red>Delete Category
+    lore:
+    - <gray>Delete this custom category.
+  create-head:
+    type: ITEM
+    head-id: ''
+    material: PLAYER_HEAD
+    name: <gold>Create Head
+    lore:
+    - <gray>Create a local custom head.
+  create-head-held:
+    type: ITEM
+    head-id: ''
+    material: PLAYER_HEAD
+    name: <gold>Use Held Head
+    lore:
+    - <gray>Use the texture from your held player head.
+  create-head-fresh:
+    type: ITEM
+    head-id: ''
+    material: BARRIER
+    name: <red>Reset
+    lore:
+    - <gray>Clear the current create draft.
+  create-head-id:
+    type: ITEM
+    head-id: ''
+    material: NAME_TAG
+    name: <gold>ID
+    lore:
+    - <gray>Set the custom head id.
+  create-head-name:
+    type: ITEM
+    head-id: ''
+    material: WRITABLE_BOOK
+    name: <gold>Name
+    lore:
+    - <gray>Set the custom head name.
+  create-head-texture:
+    type: ITEM
+    head-id: ''
+    material: PLAYER_HEAD
+    name: <gold>Texture
+    lore:
+    - <gray>Set the texture hash, URL, or base64 value.
+  create-head-category:
+    type: ITEM
+    head-id: ''
+    material: CHEST
+    name: <gold>Category
+    lore:
+    - <gray>Open the category selector.
+  create-head-tags:
+    type: ITEM
+    head-id: ''
+    material: NAME_TAG
+    name: <gold>Tags
+    lore:
+    - <gray>Open the tag selector.
+  create-head-collections:
+    type: ITEM
+    head-id: ''
+    material: BOOKSHELF
+    name: <gold>Collections
+    lore:
+    - <gray>Open the collection selector.
+  create-head-save:
+    type: ITEM
+    head-id: ''
+    material: ORANGE_CONCRETE
+    name: <gold>Save Draft
+    lore:
+    - <gray>Save this custom head as an admin-only draft.
   more-categories:
     type: ITEM
     head-id: ''
@@ -420,6 +603,13 @@ icons:
     - <gray>SHOW
     - <green>HIDE
     - <yellow>Click to toggle visibility.
+  edit-publish:
+    type: ITEM
+    head-id: ''
+    material: LIME_CONCRETE
+    name: <green>Publish
+    lore:
+    - <gray>Publish this draft head.
   edit-delete:
     type: ITEM
     head-id: ''
@@ -505,25 +695,108 @@ icons:
     name: <red>Reset
     lore:
     - <gray>Reset this button to its default name, lore, and material.
+  taxonomy-filter-all:
+    type: ITEM
+    head-id: ''
+    material: HOPPER
+    name: <gold>Show All
+    lore:
+    - <gray>Showing remote and custom entries.
+    - <yellow>Click to show custom only.
+  taxonomy-filter-custom:
+    type: ITEM
+    head-id: ''
+    material: HOPPER
+    name: <gold>Show Custom
+    lore:
+    - <gray>Showing custom entries only.
+    - <yellow>Click to show all.
+  taxonomy-search:
+    type: ITEM
+    head-id: ''
+    material: SPYGLASS
+    name: <gold>Search
+    lore:
+    - <gray>Search entries by id or name.
+  edit-price:
+    type: ITEM
+    head-id: ''
+    material: GOLD_INGOT
+    name: <gold>Edit Price
+    lore:
+    - <gray>Edit the economy price.
+  category-price:
+    type: ITEM
+    head-id: ''
+    material: GOLD_INGOT
+    name: <gold>Edit Price
+    lore:
+    - <gray>Edit this category economy price.
 texts:
-  category-count: "%name% (%count%)"
+  category-count: '%name% (%count%)'
+  title.main: HeadDB
+  title.browse: Browse
+  title.collections: Collections
+  title.collections-page: Collections %page%/%pages%
+  title.tags: Tags
+  title.tags-page: Tags %page%/%pages%
+  title.hidden-heads-page: Hidden Heads %page%/%pages%
+  title.custom-heads-page: Custom Heads %page%/%pages%
+  title.player-heads-page: Player Heads %page%/%pages%
+  title.create-head: Create Head
+  title.create-category: Create Category
+  title.create-tag: Create Tag
+  title.create-collection: Create Collection
+  title.settings: Settings
+  title.collections-custom-page: Custom Collections %page%/%pages%
+  title.tags-custom-page: Custom Tags %page%/%pages%
+  title.confirm-refresh: Confirm Refresh
+  title.confirm-reload: Confirm Reload
 slots:
-  main.browse-heads: 31
-  main.player-heads: 37
-  main.custom-heads: 28
-  main.favorites: 40
-  main.hidden-heads: 51
-  main.search: 43
-  main.more-categories: 34
+  main.player-heads: 11
+  main.browse: 13
+  main.favorites: 15
+  main.search: 31
   main.settings: 53
   main.info: 49
-  settings.admin-mode: 13
-  settings.language: 20
-  settings.debug: 24
-  settings.verify: 33
-  settings.reload: 40
-  settings.refresh: 42
+  browse.hidden-heads: 35
+  browse.tags: 2
+  browse.all: 4
+  browse.collections: 6
+  browse.create-category: 18
+  browse.custom-heads: 26
+  browse.create-head: 27
+  browse.search: 53
+  create-head.preview: 4
+  create-head.use-held: 12
+  create-head.reset: 14
+  create-head.id: 20
+  create-head.name: 22
+  create-head.texture: 24
+  create-head.category: 29
+  create-head.tags: 31
+  create-head.collections: 33
+  create-head.save: 40
+  create-category.name: 20
+  create-category.description: 22
+  create-category.material: 24
+  create-category.head-icon: 29
+  create-category.permission: 31
+  create-category.heads: 33
+  create-category.save-draft: 38
+  create-category.publish: 40
+  create-category.delete: 42
+  create-category.back: 45
+  create-head.back: 45
+  settings.admin-mode: 31
+  settings.language: 13
+  settings.debug: 38
+  settings.verify: 39
+  settings.reload: 42
+  settings.refresh: 41
   settings.back: 45
+  settings.language-only-back: 0
+  settings.language-only: 4
   edit.preview: 13
   edit.name: 21
   edit.lore: 23
@@ -533,6 +806,7 @@ slots:
   edit.visibility: 39
   edit.reset: 41
   edit.delete: 41
+  edit.publish: 39
   edit.back: 45
   edit.lore.preview: 4
   edit.lore.add: 48
@@ -540,7 +814,13 @@ slots:
   edit.lore.reset: 53
   edit.lore.back: 45
   hidden.show-all: 53
-
+  tags.create: 27
+  collections.create: 27
+  taxonomy.id: 20
+  taxonomy.name: 22
+  taxonomy.description: 24
+  taxonomy.save: 40
+  taxonomy.back: 45
   more.category-create.name: 20
   more.category-create.material: 23
   more.category-create.head-icon: 24
@@ -550,7 +830,7 @@ slots:
   material.back: 45
   material.previous: 48
   material.type-chat: 49
-  material.next: 53
+  material.next: 50
   gui-button.back: 18
   gui-button.preview: 4
   gui-button.name: 10
@@ -564,3 +844,9 @@ slots:
   gui-button-lore.add: 48
   gui-button-lore.clear: 50
   gui-button-lore.reset: 53
+  tags.filter: 52
+  tags.search: 53
+  collections.filter: 52
+  collections.search: 53
+  edit.price: 35
+  create-category.price: 44

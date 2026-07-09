@@ -15,6 +15,7 @@ import io.github.silentdevelopment.headdb.paper.local.override.HeadOverrideMerge
 import io.github.silentdevelopment.headdb.paper.local.override.RemoteHeadOverride;
 import io.github.silentdevelopment.headdb.paper.local.override.RemoteHeadOverrideStore;
 import io.github.silentdevelopment.headdb.paper.local.player.PlayerHeadService;
+import io.github.silentdevelopment.headdb.paper.local.taxonomy.CustomTaxonomyService;
 import io.github.silentdevelopment.headdb.query.HeadQuery;
 import io.github.silentdevelopment.headdb.query.HeadQueryResult;
 import io.github.silentdevelopment.headdb.query.HeadSort;
@@ -22,10 +23,8 @@ import io.github.silentdevelopment.headdb.query.SortDirection;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -33,6 +32,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Stream;
 
 public final class HeadRegistry implements io.github.silentdevelopment.headdb.registry.HeadRegistry {
@@ -41,14 +41,21 @@ public final class HeadRegistry implements io.github.silentdevelopment.headdb.re
     private final RemoteHeadOverrideStore overrideStore;
     private final CustomHeadStore customHeadStore;
     private final PlayerHeadService playerHeadService;
+    private final CustomTaxonomyService customTagService;
+    private final CustomTaxonomyService customCollectionService;
     private final HeadOverrideMerger merger;
+    private final AtomicLong revision;
+    private volatile RegistrySnapshot snapshot;
 
-    public HeadRegistry(@NotNull DefaultHeadDatabase remoteDatabase, @NotNull RemoteHeadOverrideStore overrideStore, @NotNull CustomHeadStore customHeadStore, @NotNull PlayerHeadService playerHeadService) {
+    public HeadRegistry(@NotNull DefaultHeadDatabase remoteDatabase, @NotNull RemoteHeadOverrideStore overrideStore, @NotNull CustomHeadStore customHeadStore, @NotNull PlayerHeadService playerHeadService, @NotNull CustomTaxonomyService customTagService, @NotNull CustomTaxonomyService customCollectionService) {
         this.remoteDatabase = Objects.requireNonNull(remoteDatabase, "remoteDatabase");
         this.overrideStore = Objects.requireNonNull(overrideStore, "overrideStore");
         this.customHeadStore = Objects.requireNonNull(customHeadStore, "customHeadStore");
         this.playerHeadService = Objects.requireNonNull(playerHeadService, "playerHeadService");
+        this.customTagService = Objects.requireNonNull(customTagService, "customTagService");
+        this.customCollectionService = Objects.requireNonNull(customCollectionService, "customCollectionService");
         this.merger = new HeadOverrideMerger();
+        this.revision = new AtomicLong();
     }
 
     public @NotNull DatabaseStatus status() {
@@ -64,12 +71,8 @@ public final class HeadRegistry implements io.github.silentdevelopment.headdb.re
     public @NotNull Optional<Head> find(@NotNull HeadId id) {
         Objects.requireNonNull(id, "id");
 
-        if (id.isRemote()) {
-            return remoteDatabase.findById(id).map(this::effectiveRemoteHead);
-        }
-
-        if (id.isCustom()) {
-            return customHeadStore.find(id);
+        if (id.isRemote() || id.isCustom()) {
+            return snapshot().head(id);
         }
 
         return playerHeadService.resolveCached(id.key());
@@ -93,7 +96,7 @@ public final class HeadRegistry implements io.github.silentdevelopment.headdb.re
     public @NotNull HeadQueryResult search(@NotNull HeadQuery query) {
         Objects.requireNonNull(query, "query");
 
-        List<Head> matches = filter(searchableHeads(false), query).sorted(comparator(query)).toList();
+        List<Head> matches = searchAll(query, false);
         int from = Math.min(query.offset(), matches.size());
         int to = Math.min(from + query.limit(), matches.size());
         return new HeadQueryResult(matches.subList(from, to), matches.size(), query.offset(), query.limit());
@@ -102,39 +105,28 @@ public final class HeadRegistry implements io.github.silentdevelopment.headdb.re
     public @NotNull HeadQueryResult searchIncludingHidden(@NotNull HeadQuery query) {
         Objects.requireNonNull(query, "query");
 
-        List<Head> matches = filter(searchableHeads(true), query).sorted(comparator(query)).toList();
+        List<Head> matches = searchAll(query, true);
         int from = Math.min(query.offset(), matches.size());
         int to = Math.min(from + query.limit(), matches.size());
         return new HeadQueryResult(matches.subList(from, to), matches.size(), query.offset(), query.limit());
     }
 
+    public @NotNull List<Head> searchAll(@NotNull HeadQuery query, boolean includeHidden) {
+        Objects.requireNonNull(query, "query");
+        return filter(snapshot().heads(includeHidden), query).sorted(comparator(query)).toList();
+    }
+
 
     public @NotNull List<Head> heads(boolean includeHidden) {
-        return searchableHeads(includeHidden);
+        return snapshot().heads(includeHidden);
     }
 
     public @NotNull List<Head> hiddenHeads() {
-        Map<HeadId, RemoteHeadOverride> overrides = remoteOverridesById();
-        List<Head> hidden = new ArrayList<>();
-        for (Head remote : remoteDatabase.heads()) {
-            RemoteHeadOverride override = overrides.get(remote.id());
-            if (override == null || !Boolean.TRUE.equals(override.hidden())) {
-                continue;
-            }
-
-            hidden.add(merger.merge(remote, override));
-        }
-
-        return hidden.stream().sorted(Comparator.comparing(Head::category).thenComparing(Head::name, String.CASE_INSENSITIVE_ORDER)).toList();
+        return snapshot().hiddenHeads();
     }
 
     public @NotNull Map<String, Integer> categoryCounts(boolean includeHidden) {
-        Map<String, Integer> counts = new LinkedHashMap<>();
-        for (Head head : searchableHeads(includeHidden)) {
-            counts.merge(head.category(), 1, Integer::sum);
-        }
-
-        return Map.copyOf(counts);
+        return snapshot().categoryCounts(includeHidden);
     }
 
     public boolean hidden(@NotNull HeadId id) {
@@ -143,88 +135,44 @@ public final class HeadRegistry implements io.github.silentdevelopment.headdb.re
             return false;
         }
 
-        return overrideStore.find(id).map(RemoteHeadOverride::hidden).map(Boolean.TRUE::equals).orElse(false);
+        return snapshot().hidden(id);
     }
 
     public @NotNull Optional<HeadCategory> category(@NotNull String id) {
         String normalized = normalizeId(id);
-        return categories().stream().filter(category -> category.id().equals(normalized)).findFirst();
+        return snapshot().category(normalized);
     }
 
     public @NotNull Optional<HeadTag> tag(@NotNull String id) {
         String normalized = normalizeId(id);
-        return tags().stream().filter(tag -> tag.id().equals(normalized)).findFirst();
+        return snapshot().tag(normalized);
     }
 
     public @NotNull Optional<HeadCollection> collection(@NotNull String id) {
         String normalized = normalizeId(id);
-        return collections().stream().filter(collection -> collection.id().equals(normalized)).findFirst();
+        return snapshot().collection(normalized);
     }
 
     public @NotNull List<HeadCategory> categories() {
-        Map<String, HeadCategory> categories = new LinkedHashMap<>();
-        for (HeadCategory category : remoteDatabase.categories()) {
-            categories.put(category.id(), category);
-        }
-        for (Head head : customHeadStore.list()) {
-            categories.putIfAbsent(head.category(), new HeadCategory(head.category(), displayName(head.category()), "Local custom category."));
-        }
-        for (RemoteHeadOverride override : overrideStore.list()) {
-            if (override.category() != null) {
-                categories.putIfAbsent(override.category(), new HeadCategory(override.category(), displayName(override.category()), "Local override category."));
-            }
-        }
-        return categories.values().stream().sorted(Comparator.comparing(HeadCategory::id)).toList();
+        return snapshot().categories();
     }
 
     public @NotNull List<HeadTag> tags() {
-        Map<String, HeadTag> tags = new LinkedHashMap<>();
-        for (HeadTag tag : remoteDatabase.tags()) {
-            tags.put(tag.id(), tag);
-        }
-        for (Head head : customHeadStore.list()) {
-            for (String tag : head.tags()) {
-                tags.putIfAbsent(tag, new HeadTag(tag, displayName(tag), "Local tag."));
-            }
-        }
-        for (RemoteHeadOverride override : overrideStore.list()) {
-            for (String tag : override.addTags()) {
-                tags.putIfAbsent(tag, new HeadTag(tag, displayName(tag), "Local override tag."));
-            }
-            if (override.replaceTags() != null) {
-                for (String tag : override.replaceTags()) {
-                    tags.putIfAbsent(tag, new HeadTag(tag, displayName(tag), "Local override tag."));
-                }
-            }
-        }
-        return tags.values().stream().sorted(Comparator.comparing(HeadTag::id)).toList();
+        return snapshot().tags();
     }
 
     public @NotNull List<HeadCollection> collections() {
-        Map<String, HeadCollection> collections = new LinkedHashMap<>();
-        for (HeadCollection collection : remoteDatabase.collections()) {
-            collections.put(collection.id(), collection);
-        }
-        for (Head head : customHeadStore.list()) {
-            for (String collection : head.collections()) {
-                collections.putIfAbsent(collection, new HeadCollection(collection, displayName(collection), "Local collection."));
-            }
-        }
-        return collections.values().stream().sorted(Comparator.comparing(HeadCollection::id)).toList();
+        return snapshot().collections();
     }
 
     public @NotNull Optional<List<String>> lore(@NotNull HeadId id) {
         Objects.requireNonNull(id, "id");
 
-        if (id.isRemote()) {
-            return overrideStore.find(id).map(RemoteHeadOverride::lore).filter(Objects::nonNull);
+        if (!id.isRemote() && !id.isCustom()) {
+            return Optional.empty();
         }
 
-        if (id.isCustom()) {
-            return customHeadStore.findStored(id).map(StoredCustomHead::lore);
-        }
-
-        return Optional.empty();
+        return snapshot().lore(id);
     }
 
     public @NotNull RemoteHeadOverrideStore overrides() {
@@ -240,36 +188,212 @@ public final class HeadRegistry implements io.github.silentdevelopment.headdb.re
     }
 
     public void onLocalMutation() {
-        // Hook kept for future in-memory index invalidation.
+        invalidate();
     }
 
-    private @NotNull List<Head> searchableHeads(boolean includeHidden) {
-        Map<HeadId, RemoteHeadOverride> overrides = remoteOverridesById();
+    public synchronized void invalidate() {
+        snapshot = null;
+        revision.incrementAndGet();
+    }
+
+    public long revision() {
+        return revision.get();
+    }
+
+    public void warm() {
+        snapshot();
+    }
+
+    private @NotNull RegistrySnapshot snapshot() {
+        RegistrySnapshot current = snapshot;
+
+        if (current != null) {
+            return current;
+        }
+
+        synchronized (this) {
+            current = snapshot;
+
+            if (current != null) {
+                return current;
+            }
+
+            RegistrySnapshot created = createSnapshot();
+            snapshot = created;
+            return created;
+        }
+    }
+
+    private @NotNull RegistrySnapshot createSnapshot() {
+        List<StoredCustomHead> storedCustomHeads = List.copyOf(customHeadStore.listStored());
+        List<Head> customHeads = storedCustomHeads.stream().filter(head -> !head.draft()).map(StoredCustomHead::toHead).toList();
+        List<RemoteHeadOverride> overrides = List.copyOf(overrideStore.list());
+        Map<HeadId, RemoteHeadOverride> overridesById = remoteOverridesById(overrides);
+        Map<HeadId, Head> headsById = new LinkedHashMap<>();
+        Map<HeadId, List<String>> loreById = new LinkedHashMap<>();
+        Set<HeadId> hiddenIds = new java.util.LinkedHashSet<>();
         List<Head> heads = new ArrayList<>();
+        List<Head> headsIncludingHidden = new ArrayList<>();
+        List<Head> hiddenHeads = new ArrayList<>();
+
+        for (RemoteHeadOverride override : overrides) {
+            if (override.lore() != null) {
+                loreById.put(override.headId(), override.lore());
+            }
+        }
+
+        for (StoredCustomHead head : storedCustomHeads) {
+            loreById.put(head.headId(), head.lore());
+        }
 
         for (Head remote : remoteDatabase.heads()) {
-            RemoteHeadOverride override = overrides.get(remote.id());
-            if (!includeHidden && override != null && Boolean.TRUE.equals(override.hidden())) {
+            RemoteHeadOverride override = overridesById.get(remote.id());
+            Head effective = override == null ? remote : merger.merge(remote, override);
+            boolean hidden = override != null && Boolean.TRUE.equals(override.hidden());
+
+            headsById.put(effective.id(), effective);
+            headsIncludingHidden.add(effective);
+
+            if (hidden) {
+                hiddenIds.add(effective.id());
+                hiddenHeads.add(effective);
                 continue;
             }
 
-            heads.add(override == null ? remote : merger.merge(remote, override));
+            heads.add(effective);
         }
 
-        heads.addAll(customHeadStore.list());
-        return heads;
-    }
-
-    private @NotNull Map<HeadId, RemoteHeadOverride> remoteOverridesById() {
-        Map<HeadId, RemoteHeadOverride> overrides = new LinkedHashMap<>();
-        for (RemoteHeadOverride override : overrideStore.list()) {
-            overrides.put(override.headId(), override);
+        for (Head custom : customHeads) {
+            headsById.put(custom.id(), custom);
         }
-        return overrides;
+        heads.addAll(customHeads);
+        headsIncludingHidden.addAll(customHeads);
+
+        List<HeadCategory> categories = categories(customHeads, overrides);
+        List<HeadTag> tags = tags(customHeads, overrides);
+        List<HeadCollection> collections = collections(customHeads);
+        return new RegistrySnapshot(
+                heads,
+                headsIncludingHidden,
+                hiddenHeads.stream().sorted(Comparator.comparing(Head::category).thenComparing(Head::name, String.CASE_INSENSITIVE_ORDER)).toList(),
+                categoryCounts(heads),
+                categoryCounts(headsIncludingHidden),
+                categories,
+                tags,
+                collections,
+                headsById,
+                loreById,
+                hiddenIds,
+                categoriesById(categories),
+                tagsById(tags),
+                collectionsById(collections)
+        );
     }
 
-    private @NotNull Head effectiveRemoteHead(@NotNull Head head) {
-        return overrideStore.find(head.id()).map(override -> merger.merge(head, override)).orElse(head);
+    private @NotNull Map<String, Integer> categoryCounts(@NotNull List<Head> heads) {
+        Map<String, Integer> counts = new LinkedHashMap<>();
+        for (Head head : heads) {
+            counts.merge(head.category(), 1, Integer::sum);
+        }
+        return Map.copyOf(counts);
+    }
+
+    private @NotNull List<HeadCategory> categories(@NotNull List<Head> customHeads, @NotNull List<RemoteHeadOverride> overrides) {
+        Map<String, HeadCategory> remoteCategories = new LinkedHashMap<>();
+        for (HeadCategory category : remoteDatabase.categories()) {
+            remoteCategories.put(category.id(), category);
+        }
+
+        Map<String, HeadCategory> localCategories = new LinkedHashMap<>();
+        for (Head head : customHeads) {
+            localCategories.putIfAbsent(head.category(), new HeadCategory(head.category(), displayName(head.category()), "Local custom category."));
+        }
+        for (RemoteHeadOverride override : overrides) {
+            if (override.category() == null) {
+                continue;
+            }
+
+            localCategories.putIfAbsent(override.category(), new HeadCategory(override.category(), displayName(override.category()), "Local override category."));
+        }
+
+        List<HeadCategory> categories = new ArrayList<>();
+        categories.addAll(remoteCategories.values().stream().sorted(Comparator.comparing(HeadCategory::id)).toList());
+        categories.addAll(localCategories.values().stream().filter(category -> !remoteCategories.containsKey(category.id())).sorted(Comparator.comparing(HeadCategory::id)).toList());
+        return List.copyOf(categories);
+    }
+
+    private @NotNull List<HeadTag> tags(@NotNull List<Head> customHeads, @NotNull List<RemoteHeadOverride> overrides) {
+        Map<String, HeadTag> tags = new LinkedHashMap<>();
+        for (HeadTag tag : remoteDatabase.tags()) {
+            tags.put(tag.id(), tag);
+        }
+        for (Head head : customHeads) {
+            for (String tag : head.tags()) {
+                tags.putIfAbsent(tag, new HeadTag(tag, displayName(tag), "Local tag."));
+            }
+        }
+        for (RemoteHeadOverride override : overrides) {
+            for (String tag : override.addTags()) {
+                tags.putIfAbsent(tag, new HeadTag(tag, displayName(tag), "Local override tag."));
+            }
+            if (override.replaceTags() != null) {
+                for (String tag : override.replaceTags()) {
+                    tags.putIfAbsent(tag, new HeadTag(tag, displayName(tag), "Local override tag."));
+                }
+            }
+        }
+        for (var tag : customTagService.list()) {
+            tags.put(tag.id(), new HeadTag(tag.id(), tag.name(), tag.description()));
+        }
+        return tags.values().stream().sorted(Comparator.comparing(HeadTag::id)).toList();
+    }
+
+    private @NotNull List<HeadCollection> collections(@NotNull List<Head> customHeads) {
+        Map<String, HeadCollection> collections = new LinkedHashMap<>();
+        for (HeadCollection collection : remoteDatabase.collections()) {
+            collections.put(collection.id(), collection);
+        }
+        for (Head head : customHeads) {
+            for (String collection : head.collections()) {
+                collections.putIfAbsent(collection, new HeadCollection(collection, displayName(collection), "Local collection."));
+            }
+        }
+        for (var collection : customCollectionService.list()) {
+            collections.put(collection.id(), new HeadCollection(collection.id(), collection.name(), collection.description()));
+        }
+        return collections.values().stream().sorted(Comparator.comparing(HeadCollection::id)).toList();
+    }
+
+    private @NotNull Map<HeadId, RemoteHeadOverride> remoteOverridesById(@NotNull List<RemoteHeadOverride> overrides) {
+        Map<HeadId, RemoteHeadOverride> overridesById = new LinkedHashMap<>();
+        for (RemoteHeadOverride override : overrides) {
+            overridesById.put(override.headId(), override);
+        }
+        return overridesById;
+    }
+
+    private @NotNull Map<String, HeadCategory> categoriesById(@NotNull List<HeadCategory> categories) {
+        Map<String, HeadCategory> categoriesById = new LinkedHashMap<>();
+        for (HeadCategory category : categories) {
+            categoriesById.put(category.id(), category);
+        }
+        return categoriesById;
+    }
+
+    private @NotNull Map<String, HeadTag> tagsById(@NotNull List<HeadTag> tags) {
+        Map<String, HeadTag> tagsById = new LinkedHashMap<>();
+        for (HeadTag tag : tags) {
+            tagsById.put(tag.id(), tag);
+        }
+        return tagsById;
+    }
+
+    private @NotNull Map<String, HeadCollection> collectionsById(@NotNull List<HeadCollection> collections) {
+        Map<String, HeadCollection> collectionsById = new LinkedHashMap<>();
+        for (HeadCollection collection : collections) {
+            collectionsById.put(collection.id(), collection);
+        }
+        return collectionsById;
     }
 
     private @NotNull Stream<Head> filter(@NotNull List<Head> heads, @NotNull HeadQuery query) {
@@ -391,6 +515,81 @@ public final class HeadRegistry implements io.github.silentdevelopment.headdb.re
             if (!Character.isDigit(value.charAt(index))) return false;
         }
         return true;
+    }
+
+    private record RegistrySnapshot(
+            @NotNull List<Head> heads,
+            @NotNull List<Head> headsIncludingHidden,
+            @NotNull List<Head> hiddenHeads,
+            @NotNull Map<String, Integer> categoryCounts,
+            @NotNull Map<String, Integer> categoryCountsIncludingHidden,
+            @NotNull List<HeadCategory> categories,
+            @NotNull List<HeadTag> tags,
+            @NotNull List<HeadCollection> collections,
+            @NotNull Map<HeadId, Head> headsById,
+            @NotNull Map<HeadId, List<String>> loreById,
+            @NotNull Set<HeadId> hiddenIds,
+            @NotNull Map<String, HeadCategory> categoriesById,
+            @NotNull Map<String, HeadTag> tagsById,
+            @NotNull Map<String, HeadCollection> collectionsById
+    ) {
+
+        private RegistrySnapshot {
+            heads = List.copyOf(Objects.requireNonNull(heads, "heads"));
+            headsIncludingHidden = List.copyOf(Objects.requireNonNull(headsIncludingHidden, "headsIncludingHidden"));
+            hiddenHeads = List.copyOf(Objects.requireNonNull(hiddenHeads, "hiddenHeads"));
+            categoryCounts = Map.copyOf(Objects.requireNonNull(categoryCounts, "categoryCounts"));
+            categoryCountsIncludingHidden = Map.copyOf(Objects.requireNonNull(categoryCountsIncludingHidden, "categoryCountsIncludingHidden"));
+            categories = List.copyOf(Objects.requireNonNull(categories, "categories"));
+            tags = List.copyOf(Objects.requireNonNull(tags, "tags"));
+            collections = List.copyOf(Objects.requireNonNull(collections, "collections"));
+            headsById = Map.copyOf(Objects.requireNonNull(headsById, "headsById"));
+            loreById = copyLore(Objects.requireNonNull(loreById, "loreById"));
+            hiddenIds = Set.copyOf(Objects.requireNonNull(hiddenIds, "hiddenIds"));
+            categoriesById = Map.copyOf(Objects.requireNonNull(categoriesById, "categoriesById"));
+            tagsById = Map.copyOf(Objects.requireNonNull(tagsById, "tagsById"));
+            collectionsById = Map.copyOf(Objects.requireNonNull(collectionsById, "collectionsById"));
+        }
+
+        private @NotNull List<Head> heads(boolean includeHidden) {
+            return includeHidden ? headsIncludingHidden : heads;
+        }
+
+        private @NotNull Optional<Head> head(@NotNull HeadId id) {
+            return Optional.ofNullable(headsById.get(id));
+        }
+
+        private boolean hidden(@NotNull HeadId id) {
+            return hiddenIds.contains(id);
+        }
+
+        private @NotNull Optional<List<String>> lore(@NotNull HeadId id) {
+            return Optional.ofNullable(loreById.get(id));
+        }
+
+        private @NotNull Optional<HeadCategory> category(@NotNull String id) {
+            return Optional.ofNullable(categoriesById.get(id));
+        }
+
+        private @NotNull Optional<HeadTag> tag(@NotNull String id) {
+            return Optional.ofNullable(tagsById.get(id));
+        }
+
+        private @NotNull Optional<HeadCollection> collection(@NotNull String id) {
+            return Optional.ofNullable(collectionsById.get(id));
+        }
+
+        private @NotNull Map<String, Integer> categoryCounts(boolean includeHidden) {
+            return includeHidden ? categoryCountsIncludingHidden : categoryCounts;
+        }
+
+        private static @NotNull Map<HeadId, List<String>> copyLore(@NotNull Map<HeadId, List<String>> source) {
+            Map<HeadId, List<String>> copy = new LinkedHashMap<>();
+            for (Map.Entry<HeadId, List<String>> entry : source.entrySet()) {
+                copy.put(entry.getKey(), List.copyOf(entry.getValue()));
+            }
+            return Map.copyOf(copy);
+        }
     }
 
     private static @NotNull String normalizeId(@NotNull String id) {

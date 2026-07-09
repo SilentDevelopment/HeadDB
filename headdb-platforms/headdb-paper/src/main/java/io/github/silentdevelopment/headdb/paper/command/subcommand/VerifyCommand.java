@@ -6,6 +6,7 @@ import io.github.silentdevelopment.headdb.paper.HeadDBPlugin;
 import io.github.silentdevelopment.headdb.paper.command.CommandRequirements;
 import io.github.silentdevelopment.headdb.paper.message.MessageKey;
 import io.github.silentdevelopment.headdb.paper.permission.Permissions;
+import io.github.silentdevelopment.headdb.paper.sound.SoundKey;
 import io.github.silentdevelopment.relay.command.Command;
 import io.github.silentdevelopment.relay.paper.command.AbstractPaperCommand;
 import io.github.silentdevelopment.relay.paper.command.PaperCommands;
@@ -29,6 +30,9 @@ public final class VerifyCommand extends AbstractPaperCommand {
     protected void handle(@NotNull PaperCommandContext context) {
         if (!Permissions.has(context.sender(), Permissions.VERIFY)) {
             context.reply(plugin.messages().render(context.sender(), MessageKey.COMMAND_ERROR_NO_PERMISSION));
+            if (context.isPlayer()) {
+                plugin.sounds().play(context.player(), SoundKey.NO_PERMISSION);
+            }
             return;
         }
 
@@ -45,6 +49,9 @@ public final class VerifyCommand extends AbstractPaperCommand {
         }
 
         context.reply(plugin.messages().verifyStarted(context.sender()));
+        if (context.isPlayer()) {
+            plugin.sounds().play(context.player(), SoundKey.VERIFY);
+        }
     }
 
     @Override

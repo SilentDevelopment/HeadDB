@@ -1,6 +1,7 @@
 package io.github.silentdevelopment.headdb.paper.command;
 
 import io.github.silentdevelopment.headdb.paper.HeadDBPlugin;
+import io.github.silentdevelopment.headdb.paper.sound.SoundKey;
 import io.github.silentdevelopment.relay.command.Command;
 import io.github.silentdevelopment.relay.command.Signature;
 import io.github.silentdevelopment.relay.paper.text.PaperCommandResponseRenderer;
@@ -29,26 +30,31 @@ public final class CommandResponseRenderer extends PaperCommandResponseRenderer 
 
     @Override
     public @NotNull Component renderUnknownCommand(@NotNull CommandSender source) {
+        play(source, SoundKey.INVALID);
         return plugin.messages().relayUnknownCommand(source);
     }
 
     @Override
     public @NotNull Component renderNoHandler(@NotNull CommandSender source) {
+        play(source, SoundKey.INVALID);
         return plugin.messages().relayNoHandler(source);
     }
 
     @Override
     public @NotNull Component renderRequirementFailure(@NotNull CommandSender source, @NotNull CommandText message) {
+        play(source, SoundKey.NO_PERMISSION);
         return plugin.messages().render(source, message);
     }
 
     @Override
     public @NotNull Component renderAbort(@NotNull CommandSender source, @NotNull CommandText message) {
+        play(source, SoundKey.INVALID);
         return plugin.messages().render(source, message);
     }
 
     @Override
     public @NotNull Component renderInvalidUsage(@NotNull CommandSender source, @NotNull CommandText message, @NotNull List<String> usages) {
+        play(source, SoundKey.INVALID);
         Component component = plugin.messages().relayInvalidUsage(source, message);
 
         if (usages.isEmpty()) {
@@ -68,6 +74,7 @@ public final class CommandResponseRenderer extends PaperCommandResponseRenderer 
 
     @Override
     public @NotNull Component renderInvalidUsage(@NotNull CommandSender source, @NotNull CommandText message, @NotNull String path, @NotNull Command command) {
+        play(source, SoundKey.INVALID);
         Component component = plugin.messages().relayInvalidUsage(source, message);
 
         if (command.signatures().isEmpty()) {
@@ -83,6 +90,14 @@ public final class CommandResponseRenderer extends PaperCommandResponseRenderer 
         }
 
         return component;
+    }
+
+    private void play(@NotNull CommandSender source, @NotNull SoundKey key) {
+        if (!(source instanceof Player player)) {
+            return;
+        }
+
+        plugin.sounds().play(player, key);
     }
 
     private static @NotNull Component usage(@NotNull CommandSender source, @NotNull String usage) {

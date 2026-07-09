@@ -7,6 +7,7 @@ import io.github.silentdevelopment.grafik.paper.core.element.ItemElement;
 import io.github.silentdevelopment.grafik.paper.page.PaperPage;
 import io.github.silentdevelopment.grafik.paper.page.PaperPageBuilder;
 import io.github.silentdevelopment.grafik.paper.page.PaperPageFactory;
+import io.github.silentdevelopment.headdb.model.Head;
 import io.github.silentdevelopment.headdb.model.HeadCategory;
 import io.github.silentdevelopment.headdb.model.HeadCollection;
 import io.github.silentdevelopment.headdb.model.HeadTag;
@@ -17,7 +18,6 @@ import io.github.silentdevelopment.headdb.paper.gui.common.GuiItems;
 import io.github.silentdevelopment.headdb.paper.gui.common.GuiTitles;
 import io.github.silentdevelopment.headdb.paper.message.MessageKey;
 import io.github.silentdevelopment.headdb.paper.permission.Permissions;
-import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
+import java.util.UUID;
 
 @SuppressWarnings("UnstableApiUsage")
 public final class SearchFilterPageFactory implements PaperPageFactory<SearchMenuState> {
@@ -77,7 +78,7 @@ public final class SearchFilterPageFactory implements PaperPageFactory<SearchMen
 
         set(page, reservedSlots, SLOT_BACK, backButton());
 
-        if (player == null || !Permissions.has(player, Permissions.GUI_FILTER)) {
+        if (player == null || !Permissions.has(player, Permissions.GUI_FILTER) || !Permissions.has(player, mode.permission())) {
             set(page, reservedSlots, 22, deniedButton());
             GuiItems.fillEmpty(plugin, page, ROWS, reservedSlots);
             return page.build();
@@ -91,7 +92,7 @@ public final class SearchFilterPageFactory implements PaperPageFactory<SearchMen
             return page.build();
         }
 
-        List<FilterEntry> entries = entries(player);
+        List<FilterEntry> entries = cachedEntries(context, player);
         int pageIndex = pageIndex(context);
         int fromIndex = pageIndex * ENTRY_SLOTS.length;
 
@@ -226,9 +227,9 @@ public final class SearchFilterPageFactory implements PaperPageFactory<SearchMen
                 "info",
                 GuiItems.name(mode.title(), NamedTextColor.GOLD),
                 List.of(
-                        GuiItems.lore("Entries: " + entries, NamedTextColor.GRAY),
-                        GuiItems.lore("Selected: " + selectedCount(request), NamedTextColor.GRAY),
-                        GuiItems.lore("Page: " + (pageIndex + 1) + " / " + Math.max(1, pages), NamedTextColor.GRAY)
+                        GuiItems.idDetail("Entries", entries),
+                        GuiItems.idDetail("Selected", selectedCount(request)),
+                        GuiItems.idDetail("Page", (pageIndex + 1) + " / " + Math.max(1, pages))
                 ),
                 ignored -> {}
         );
@@ -249,7 +250,7 @@ public final class SearchFilterPageFactory implements PaperPageFactory<SearchMen
                 "filter-category",
                 GuiItems.name("Category Scope", NamedTextColor.GOLD),
                 List.of(
-                        GuiItems.lore("Current: " + request.category(), NamedTextColor.GRAY),
+                        GuiItems.idDetail("Current", request.category()),
                         GuiItems.lore("Use tag or collection filters inside this category.", NamedTextColor.DARK_GRAY)
                 ),
                 ignored -> {}
@@ -285,27 +286,73 @@ public final class SearchFilterPageFactory implements PaperPageFactory<SearchMen
         });
     }
 
-    private @NotNull List<FilterEntry> entries(@NotNull Player player) {
-        return switch (mode) {
-            case CATEGORY -> plugin.headRegistry().categories()
-                    .stream()
+    private @NotNull List<FilterEntry> cachedEntries(@NotNull GuiContext<SearchMenuState> context, @NotNull Player player) {
+        Objects.requireNonNull(context, "context");
+        Objects.requireNonNull(player, "player");
+
+        String stateKey = cacheStateKey();
+        FilterEntryCache cache = context.state().get(stateKey, FilterEntryCache.class);
+        UUID viewerId = player.getUniqueId();
+        long registryRevision = plugin.headRegistry().revision();
+        boolean adminMode = plugin.adminModes().enabled(player);
+
+        if (cache != null && cache.matches(viewerId, registryRevision, adminMode)) {
+            return cache.entries();
+        }
+
+        List<FilterEntry> entries = entries(player, adminMode);
+        context.state().put(stateKey, new FilterEntryCache(viewerId, registryRevision, adminMode, entries));
+        return entries;
+    }
+
+    private @NotNull String cacheStateKey() {
+        return "headdb.search.filter.entries." + mode.name().toLowerCase(Locale.ROOT);
+    }
+
+    private @NotNull List<FilterEntry> entries(@NotNull Player player, boolean adminMode) {
+        if (mode == Mode.CATEGORY) {
+            return plugin.headRegistry().categories().stream()
                     .filter(category -> Permissions.canViewCategory(player, category.id()))
                     .sorted(Comparator.comparing(HeadCategory::name, String.CASE_INSENSITIVE_ORDER))
                     .map(category -> new FilterEntry(category.id(), category.name()))
                     .toList();
+        }
 
-            case TAGS -> plugin.headRegistry().tags()
-                    .stream()
+        if (mode == Mode.TAGS) {
+            Set<String> visibleTags = visibleTagIds(player, adminMode);
+            return plugin.headRegistry().tags().stream()
+                    .filter(tag -> adminMode || visibleTags.contains(tag.id()))
                     .sorted(Comparator.comparing(HeadTag::name, String.CASE_INSENSITIVE_ORDER))
                     .map(tag -> new FilterEntry(tag.id(), tag.name()))
                     .toList();
+        }
 
-            case COLLECTIONS -> plugin.headRegistry().collections()
-                    .stream()
-                    .sorted(Comparator.comparing(HeadCollection::name, String.CASE_INSENSITIVE_ORDER))
-                    .map(collection -> new FilterEntry(collection.id(), collection.name()))
-                    .toList();
-        };
+        Set<String> visibleCollections = visibleCollectionIds(player, adminMode);
+        return plugin.headRegistry().collections().stream()
+                .filter(collection -> adminMode || visibleCollections.contains(collection.id()))
+                .sorted(Comparator.comparing(HeadCollection::name, String.CASE_INSENSITIVE_ORDER))
+                .map(collection -> new FilterEntry(collection.id(), collection.name()))
+                .toList();
+    }
+
+    private @NotNull Set<String> visibleTagIds(@NotNull Player player, boolean adminMode) {
+        Set<String> tags = new HashSet<>();
+        for (Head head : visibleHeads(player, adminMode)) {
+            tags.addAll(head.tags());
+        }
+        return Set.copyOf(tags);
+    }
+
+    private @NotNull Set<String> visibleCollectionIds(@NotNull Player player, boolean adminMode) {
+        Set<String> collections = new HashSet<>();
+        for (Head head : visibleHeads(player, adminMode)) {
+            collections.addAll(head.collections());
+        }
+        return Set.copyOf(collections);
+    }
+
+    private @NotNull List<Head> visibleHeads(@NotNull Player player, boolean adminMode) {
+        return plugin.headRegistry().heads(adminMode).stream().filter(head -> Permissions.canViewCategory(player, head.category())).toList();
     }
 
     private int pageIndex(@NotNull GuiContext<SearchMenuState> context) {
@@ -346,22 +393,36 @@ public final class SearchFilterPageFactory implements PaperPageFactory<SearchMen
 
     private record FilterEntry(@NotNull String id, @NotNull String name) {}
 
+    private record FilterEntryCache(@NotNull UUID viewerId, long registryRevision, boolean adminMode, @NotNull List<FilterEntry> entries) {
+
+        private FilterEntryCache {
+            Objects.requireNonNull(viewerId, "viewerId");
+            entries = List.copyOf(Objects.requireNonNull(entries, "entries"));
+        }
+
+        private boolean matches(@NotNull UUID viewerId, long registryRevision, boolean adminMode) {
+            return this.viewerId.equals(viewerId) && this.registryRevision == registryRevision && this.adminMode == adminMode;
+        }
+    }
+
     public enum Mode {
 
-        CATEGORY(CATEGORY_KEY, "Category Filters", "Categories", "headdb.search.filter.category-page"),
-        TAGS(TAGS_KEY, "Tag Filters", "Tags", "headdb.search.filter.tags-page"),
-        COLLECTIONS(COLLECTIONS_KEY, "Collection Filters", "Collections", "headdb.search.filter.collections-page");
+        CATEGORY(CATEGORY_KEY, "Category Filters", "Categories", "headdb.search.filter.category-page", Permissions.GUI_FILTER_CATEGORIES),
+        TAGS(TAGS_KEY, "Tag Filters", "Tags", "headdb.search.filter.tags-page", Permissions.GUI_FILTER_TAGS),
+        COLLECTIONS(COLLECTIONS_KEY, "Collection Filters", "Collections", "headdb.search.filter.collections-page", Permissions.GUI_FILTER_COLLECTIONS);
 
         private final GKey<PageKey> key;
         private final String title;
         private final String label;
         private final String stateKey;
+        private final String permission;
 
-        Mode(@NotNull GKey<PageKey> key, @NotNull String title, @NotNull String label, @NotNull String stateKey) {
+        Mode(@NotNull GKey<PageKey> key, @NotNull String title, @NotNull String label, @NotNull String stateKey, @NotNull String permission) {
             this.key = key;
             this.title = title;
             this.label = label;
             this.stateKey = stateKey;
+            this.permission = permission;
         }
 
         public @NotNull GKey<PageKey> key() {
@@ -378,6 +439,10 @@ public final class SearchFilterPageFactory implements PaperPageFactory<SearchMen
 
         public @NotNull String stateKey() {
             return stateKey;
+        }
+
+        public @NotNull String permission() {
+            return permission;
         }
     }
 }

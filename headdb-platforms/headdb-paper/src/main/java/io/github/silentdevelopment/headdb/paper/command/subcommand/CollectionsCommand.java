@@ -6,12 +6,15 @@ import io.github.silentdevelopment.headdb.paper.command.CommandRequirements;
 import io.github.silentdevelopment.headdb.paper.command.Suggestions;
 import io.github.silentdevelopment.headdb.paper.command.format.ListFormatter;
 import io.github.silentdevelopment.headdb.paper.permission.Permissions;
+import io.github.silentdevelopment.headdb.paper.local.taxonomy.CustomTaxonomyEntry;
 import io.github.silentdevelopment.relay.argument.Argument;
 import io.github.silentdevelopment.relay.command.Command;
 import io.github.silentdevelopment.relay.paper.argument.PaperArgumentTypes;
 import io.github.silentdevelopment.relay.paper.command.AbstractPaperCommand;
 import io.github.silentdevelopment.relay.paper.command.PaperCommands;
 import io.github.silentdevelopment.relay.paper.command.context.PaperCommandContext;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Comparator;
@@ -23,6 +26,7 @@ public final class CollectionsCommand extends AbstractPaperCommand {
     private static final int PAGE_SIZE = 12;
     private static final Argument<String> QUERY = Argument.optional("query", PaperArgumentTypes.STRING);
     private static final Argument<String> PAGE = Argument.optional("page", PaperArgumentTypes.STRING);
+    private static final Argument<String> VALUE = Argument.optional("value", PaperArgumentTypes.STRING);
 
     private final HeadDBPlugin plugin;
 
@@ -32,6 +36,16 @@ public final class CollectionsCommand extends AbstractPaperCommand {
 
     @Override
     protected void handle(@NotNull PaperCommandContext context) {
+        if (context.has(QUERY) && context.get(QUERY).trim().equalsIgnoreCase("create")) {
+            create(context);
+            return;
+        }
+
+        if (context.has(QUERY) && context.get(QUERY).trim().equalsIgnoreCase("delete")) {
+            delete(context);
+            return;
+        }
+
         ParsedListRequest request = request(context);
 
         var entries = plugin.headRegistry().collections().stream()
@@ -51,11 +65,66 @@ public final class CollectionsCommand extends AbstractPaperCommand {
                 .alias("col")
                 .description("Lists head collections.")
                 .requirement(CommandRequirements.permission(Permissions.SEARCH))
-                .signature(QUERY, PAGE)
-                .suggest(QUERY, Suggestions.collections(plugin))
+                .signature(QUERY, PAGE, VALUE)
+                .suggest(QUERY, Suggestions.taxonomyActions())
                 .suggest(PAGE, Suggestions.pages())
                 .noArgs()
                 .build();
+    }
+
+
+    private void create(@NotNull PaperCommandContext context) {
+        require(context, Permissions.COLLECTION_CREATE);
+        String id = required(context, PAGE, "Usage: /hdb collections create <id> [name]");
+        String name = context.has(VALUE) && !context.get(VALUE).trim().isBlank() ? context.get(VALUE).trim() : displayName(id);
+        java.util.UUID createdBy = context.isPlayer() ? context.player().getUniqueId() : null;
+        CustomTaxonomyEntry entry = plugin.customCollections().create(id, name, createdBy);
+        plugin.headRegistry().onLocalMutation();
+        plugin.clearSearchCache();
+        context.reply(plugin.messages().taxonomyCreated(context.sender(), "collection", entry.name(), entry.id()));
+    }
+
+
+    private void delete(@NotNull PaperCommandContext context) {
+        require(context, Permissions.COLLECTION_DELETE);
+        String id = required(context, PAGE, "Usage: /hdb collections delete <id>");
+        boolean deleted = plugin.customCollections().delete(id);
+        if (!deleted) {
+            context.reply(plugin.messages().taxonomyUnknown(context.sender(), "collection", id));
+            return;
+        }
+
+        plugin.headRegistry().onLocalMutation();
+        plugin.clearSearchCache();
+        context.reply(plugin.messages().taxonomyDeleted(context.sender(), "collection", id));
+    }
+
+    private static void require(@NotNull PaperCommandContext context, @NotNull String permission) {
+        if (!Permissions.has(context.sender(), permission)) {
+            throw new IllegalArgumentException("You do not have permission to do that.");
+        }
+    }
+
+    private static @NotNull String required(@NotNull PaperCommandContext context, @NotNull Argument<String> argument, @NotNull String message) {
+        if (!context.has(argument) || context.get(argument).trim().isBlank()) {
+            throw new IllegalArgumentException(message);
+        }
+        return context.get(argument).trim();
+    }
+
+    private static @NotNull String displayName(@NotNull String id) {
+        String normalized = id.trim().replace('_', '-');
+        if (normalized.isBlank()) {
+            return "Custom Collection";
+        }
+        java.util.List<String> words = new java.util.ArrayList<>();
+        for (String part : normalized.split("-")) {
+            if (part.isBlank()) {
+                continue;
+            }
+            words.add(Character.toUpperCase(part.charAt(0)) + part.substring(1));
+        }
+        return words.isEmpty() ? normalized : String.join(" ", words);
     }
 
     private static boolean matches(@NotNull String id, @NotNull String name, @NotNull String query) {

@@ -5,7 +5,7 @@ website: https://github.com/SilentDevelopment/HeadDB
 
 main: io.github.silentdevelopment.headdb.paper.HeadDBPlugin
 version: '${headdb.build.version}'
-api-version: '1.21'
+api-version: '26.1.2'
 folia-supported: true
 loader: io.github.silentdevelopment.headdb.paper.runtime.HeadDBPluginLoader
 
@@ -38,12 +38,21 @@ permissions:
       headdb.more-heads.give.others: true
       headdb.more-heads.admin: true
       headdb.favorites: true
+      headdb.collections: true
+      headdb.tags: true
       headdb.more-categories: true
       headdb.more-categories.admin: true
       headdb.settings: true
       headdb.admin-mode: true
       headdb.head-edit: true
       headdb.gui-admin: true
+      headdb.gui.create-head: true
+      headdb.gui.create-tag: true
+      headdb.gui.create-collection: true
+      headdb.command.tags.create: true
+      headdb.command.tags.delete: true
+      headdb.command.collections.create: true
+      headdb.command.collections.delete: true
       headdb.database: true
       headdb.admin.update: true
       headdb.category.*: true
@@ -59,7 +68,10 @@ permissions:
       headdb.browse: true
       headdb.search: true
       headdb.favorites: true
+      headdb.collections: true
+      headdb.tags: true
       headdb.head.take: true
+      headdb.category.*: true
 
   headdb.open:
     description: Allows opening the main HeadDB menu.
@@ -71,19 +83,24 @@ permissions:
     description: Allows browsing HeadDB categories and GUI head lists.
     children:
       headdb.gui.browse: true
+      headdb.gui.browse.menu: true
       headdb.gui.category.view: true
       headdb.gui.category.open: true
-      headdb.category.*: true
+      headdb.gui.tags: true
 
   headdb.search:
     description: Allows using HeadDB search command, GUI search, and filters.
     children:
       headdb.command.search: true
       headdb.gui.search: true
+      headdb.gui.search.advanced: true
       headdb.gui.filter: true
+      headdb.gui.filter.ids: true
+      headdb.gui.filter.categories: true
+      headdb.gui.filter.tags: true
+      headdb.gui.filter.collections: true
       headdb.gui.browse: true
       headdb.gui.category.open: true
-      headdb.category.*: true
 
   headdb.head.take:
     description: Allows taking heads from HeadDB GUIs.
@@ -136,15 +153,30 @@ permissions:
   headdb.more-heads.admin:
     description: Allows creating, deleting, and renaming More Heads.
     children:
+      headdb.more-heads: true
       headdb.command.custom.create: true
       headdb.command.custom.delete: true
       headdb.command.custom.rename: true
+      headdb.gui.create-head: true
+      headdb.gui.admin-mode: true
 
   headdb.favorites:
     description: Allows opening Favorites and toggling favorite heads.
     children:
       headdb.gui.favorites: true
       headdb.gui.favorites.toggle: true
+      headdb.gui.browse: true
+
+  headdb.collections:
+    description: Allows opening and browsing Collections.
+    children:
+      headdb.gui.collections: true
+      headdb.gui.browse: true
+
+  headdb.tags:
+    description: Allows opening and browsing Tags.
+    children:
+      headdb.gui.tags: true
       headdb.gui.browse: true
 
   headdb.more-categories:
@@ -191,6 +223,12 @@ permissions:
     children:
       headdb.gui.button-config: true
       headdb.gui.hidden-heads: true
+      headdb.gui.create-tag: true
+      headdb.gui.create-collection: true
+      headdb.command.tags.create: true
+      headdb.command.tags.delete: true
+      headdb.command.collections.create: true
+      headdb.command.collections.delete: true
       headdb.gui.admin-mode: true
 
   headdb.database:
@@ -236,6 +274,18 @@ permissions:
 
   headdb.command.search:
     description: Allows executing HeadDB searches with /hdb search and GUI search input.
+
+  headdb.command.tags.create:
+    description: Allows creating local custom tags with /hdb tags create.
+
+  headdb.command.tags.delete:
+    description: Allows deleting local custom tags with /hdb tags delete.
+
+  headdb.command.collections.create:
+    description: Allows creating local custom collections with /hdb collections create.
+
+  headdb.command.collections.delete:
+    description: Allows deleting local custom collections with /hdb collections delete.
 
   headdb.command.info:
     description: Allows using /hdb info.
@@ -311,11 +361,29 @@ permissions:
   headdb.gui.browse:
     description: Allows browsing head-result GUIs.
 
+  headdb.gui.browse.menu:
+    description: Allows opening the Browse menu.
+
   headdb.gui.search:
     description: Allows viewing and using the GUI search button.
 
+  headdb.gui.search.advanced:
+    description: Allows opening the advanced search menu.
+
   headdb.gui.filter:
     description: Allows opening and using GUI sort/filter controls.
+
+  headdb.gui.filter.ids:
+    description: Allows filtering GUI searches by head IDs.
+
+  headdb.gui.filter.categories:
+    description: Allows filtering GUI searches by categories.
+
+  headdb.gui.filter.tags:
+    description: Allows filtering GUI searches by tags.
+
+  headdb.gui.filter.collections:
+    description: Allows filtering GUI searches by collections.
 
   headdb.gui.head.take:
     description: Allows taking heads from HeadDB GUIs.
@@ -337,6 +405,21 @@ permissions:
 
   headdb.gui.favorites.toggle:
     description: Allows adding and removing favorite heads.
+
+  headdb.gui.collections:
+    description: Allows opening the Collections GUI.
+
+  headdb.gui.tags:
+    description: Allows opening the Tags GUI.
+
+  headdb.gui.create-head:
+    description: Allows opening the custom head creation GUI in Admin Mode.
+
+  headdb.gui.create-tag:
+    description: Allows opening the custom tag creation GUI in Admin Mode.
+
+  headdb.gui.create-collection:
+    description: Allows opening the custom collection creation GUI in Admin Mode.
 
   headdb.gui.more-categories:
     description: Allows opening the More Categories GUI.

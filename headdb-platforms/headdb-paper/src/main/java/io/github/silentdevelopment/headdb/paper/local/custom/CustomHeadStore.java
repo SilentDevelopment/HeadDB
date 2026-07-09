@@ -12,13 +12,13 @@ public interface CustomHeadStore {
     @NotNull Optional<StoredCustomHead> findStored(@NotNull HeadId id);
 
     default @NotNull Optional<Head> find(@NotNull HeadId id) {
-        return findStored(id).map(StoredCustomHead::toHead);
+        return findStored(id).filter(head -> !head.draft()).map(StoredCustomHead::toHead);
     }
 
     @NotNull Collection<StoredCustomHead> listStored();
 
     default @NotNull Collection<Head> list() {
-        return listStored().stream().map(StoredCustomHead::toHead).toList();
+        return listStored().stream().filter(head -> !head.draft()).map(StoredCustomHead::toHead).toList();
     }
 
     void save(@NotNull StoredCustomHead head);

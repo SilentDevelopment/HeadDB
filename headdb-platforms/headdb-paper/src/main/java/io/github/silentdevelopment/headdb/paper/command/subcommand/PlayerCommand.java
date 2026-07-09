@@ -5,6 +5,7 @@ import io.github.silentdevelopment.headdb.paper.HeadDBPlugin;
 import io.github.silentdevelopment.headdb.paper.command.CommandRequirements;
 import io.github.silentdevelopment.headdb.paper.command.Suggestions;
 import io.github.silentdevelopment.headdb.paper.permission.Permissions;
+import io.github.silentdevelopment.headdb.paper.sound.SoundKey;
 import io.github.silentdevelopment.relay.argument.Argument;
 import io.github.silentdevelopment.relay.command.Command;
 import io.github.silentdevelopment.relay.paper.argument.PaperArgumentTypes;
@@ -44,6 +45,7 @@ public final class PlayerCommand extends AbstractPaperCommand {
             parsedTarget = parseTarget(context);
         } catch (IllegalArgumentException exception) {
             context.reply(plugin.messages().invalidArgument(context.sender(), exception.getMessage()));
+            play(context, SoundKey.INVALID);
             return;
         }
 
@@ -54,6 +56,7 @@ public final class PlayerCommand extends AbstractPaperCommand {
 
         if (!Permissions.canPlayerHeadFor(context.sender(), target)) {
             context.reply(plugin.messages().render(context.sender(), io.github.silentdevelopment.headdb.paper.message.MessageKey.COMMAND_ERROR_NO_PERMISSION));
+            play(context, SoundKey.NO_PERMISSION);
             return;
         }
 
@@ -61,6 +64,7 @@ public final class PlayerCommand extends AbstractPaperCommand {
         plugin.headRegistry().playerHeads().resolve(lookup).whenComplete((head, throwable) -> plugin.getServer().getGlobalRegionScheduler().execute(plugin, () -> {
             if (throwable != null) {
                 context.reply(Component.text("Could not resolve player head: ", NamedTextColor.RED).append(Component.text(message(throwable), NamedTextColor.GRAY)));
+                play(context, SoundKey.INVALID);
                 return;
             }
 
@@ -71,11 +75,16 @@ public final class PlayerCommand extends AbstractPaperCommand {
             for (int index = 0; index < parsedTarget.amount(); index++) {
                 if (!give(target, head)) {
                     context.reply(plugin.messages().giveInventoryFull(context.sender(), target));
+                    play(context, SoundKey.INVALID);
                     return;
                 }
             }
 
             context.reply(plugin.messages().giveSuccess(context.sender(), head, target));
+            plugin.sounds().play(target, SoundKey.PLAYER_HEAD);
+            if (context.isPlayer() && !context.player().equals(target)) {
+                plugin.sounds().play(context.player(), SoundKey.PLAYER_HEAD);
+            }
         }));
     }
 
@@ -119,12 +128,14 @@ public final class PlayerCommand extends AbstractPaperCommand {
                 return context.player();
             }
             context.reply(Component.text("Usage: /hdb player <name|uuid> <player> [amount]", NamedTextColor.RED));
+            play(context, SoundKey.INVALID);
             return null;
         }
 
         Player target = Bukkit.getPlayerExact(targetName.trim());
         if (target == null) {
             context.reply(plugin.messages().playerNotOnline(context.sender(), targetName));
+            play(context, SoundKey.INVALID);
             return null;
         }
         return target;
@@ -137,6 +148,14 @@ public final class PlayerCommand extends AbstractPaperCommand {
         }
         Map<Integer, ItemStack> remaining = target.getInventory().addItem(item);
         return remaining.isEmpty();
+    }
+
+    private void play(@NotNull PaperCommandContext context, @NotNull SoundKey key) {
+        if (!context.isPlayer()) {
+            return;
+        }
+
+        plugin.sounds().play(context.player(), key);
     }
 
     private static boolean isAmount(@NotNull String raw) {

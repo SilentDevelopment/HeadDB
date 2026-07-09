@@ -23,8 +23,13 @@ public record StoredCustomHead(
         @NotNull String category,
         @NotNull Instant createdAt,
         @NotNull Instant updatedAt,
-        @Nullable UUID createdBy
+        @Nullable UUID createdBy,
+        boolean draft
 ) {
+
+    public StoredCustomHead(@NotNull String id, @NotNull String name, @NotNull String textureHash, @Nullable String textureSignature, @NotNull List<String> lore, @NotNull Set<String> tags, @NotNull Set<String> collections, @NotNull String category, @NotNull Instant createdAt, @NotNull Instant updatedAt, @Nullable UUID createdBy) {
+        this(id, name, textureHash, textureSignature, lore, tags, collections, category, createdAt, updatedAt, createdBy, false);
+    }
 
     public StoredCustomHead {
         Objects.requireNonNull(id, "id");
@@ -64,11 +69,32 @@ public record StoredCustomHead(
     }
 
     public @NotNull Head toHead() {
-        return new Head(headId(), name, new HeadTexture(textureHash), category, tags, collections);
+        return new Head(headId(), draft ? "[DRAFT] " + name : name, new HeadTexture(textureHash), category, tags, collections);
     }
 
     public @NotNull StoredCustomHead withName(@NotNull String name) {
-        return new StoredCustomHead(id, name, textureHash, textureSignature, lore, tags, collections, category, createdAt, Instant.now(), createdBy);
+        return new StoredCustomHead(id, name, textureHash, textureSignature, lore, tags, collections, category, createdAt, Instant.now(), createdBy, draft);
+    }
+
+
+    public @NotNull StoredCustomHead withDraft(boolean draft) {
+        return new StoredCustomHead(id, name, textureHash, textureSignature, lore, tags, collections, category, createdAt, Instant.now(), createdBy, draft);
+    }
+
+    public @NotNull StoredCustomHead withCategory(@NotNull String category) {
+        return new StoredCustomHead(id, name, textureHash, textureSignature, lore, tags, collections, category, createdAt, Instant.now(), createdBy, draft);
+    }
+
+    public @NotNull StoredCustomHead withTags(@NotNull Set<String> tags) {
+        return new StoredCustomHead(id, name, textureHash, textureSignature, lore, tags, collections, category, createdAt, Instant.now(), createdBy, draft);
+    }
+
+    public @NotNull StoredCustomHead withCollections(@NotNull Set<String> collections) {
+        return new StoredCustomHead(id, name, textureHash, textureSignature, lore, tags, collections, category, createdAt, Instant.now(), createdBy, draft);
+    }
+
+    public @NotNull StoredCustomHead withLore(@NotNull List<String> lore) {
+        return new StoredCustomHead(id, name, textureHash, textureSignature, lore, tags, collections, category, createdAt, Instant.now(), createdBy, draft);
     }
 
     private static @NotNull Set<String> normalizeSet(@NotNull Set<String> values) {

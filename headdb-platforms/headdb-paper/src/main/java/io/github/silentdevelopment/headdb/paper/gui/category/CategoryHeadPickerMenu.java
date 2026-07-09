@@ -7,6 +7,7 @@ import io.github.silentdevelopment.headdb.paper.HeadDBPlugin;
 import io.github.silentdevelopment.headdb.paper.command.search.SearchParser;
 import io.github.silentdevelopment.headdb.paper.gui.common.GuiHeadIcons;
 import io.github.silentdevelopment.headdb.paper.gui.common.GuiItems;
+import io.github.silentdevelopment.headdb.paper.gui.common.GuiLabels;
 import io.github.silentdevelopment.headdb.paper.gui.common.GuiMaterials;
 import io.github.silentdevelopment.headdb.paper.gui.common.GuiTitles;
 import io.github.silentdevelopment.headdb.paper.item.HeadItemIds;
@@ -38,7 +39,7 @@ public final class CategoryHeadPickerMenu {
     private static final int SLOT_BACK = 45;
     private static final int SLOT_PREVIOUS = 48;
     private static final int SLOT_TYPE = 49;
-    private static final int SLOT_NEXT = 53;
+    private static final int SLOT_NEXT = 50;
     private static final String ACTION_BACK = "back";
     private static final String ACTION_PREVIOUS = "previous";
     private static final String ACTION_NEXT = "next";
@@ -77,6 +78,7 @@ public final class CategoryHeadPickerMenu {
         renderHeads(plugin, inventory, heads, page);
         renderControls(plugin, inventory, page, pages);
         player.openInventory(inventory);
+        plugin.sounds().play(player, io.github.silentdevelopment.headdb.paper.sound.SoundKey.MENU_OPEN);
     }
 
     public static boolean handleClick(@NotNull HeadDBPlugin plugin, @NotNull Player player, @NotNull InventoryClickEvent event) {
@@ -102,6 +104,8 @@ public final class CategoryHeadPickerMenu {
         if (action.isEmpty()) {
             return true;
         }
+
+        plugin.sounds().playGuiAction(player, action.get());
 
         handleAction(plugin, player, holder, action.get(), item);
         return true;
@@ -143,7 +147,7 @@ public final class CategoryHeadPickerMenu {
     private static void handleAction(@NotNull HeadDBPlugin plugin, @NotNull Player player, @NotNull Holder holder, @NotNull String action, @NotNull ItemStack item) {
         if (action.equals(ACTION_BACK)) {
             plugin.customCategories().find(holder.categoryId()).ifPresentOrElse(
-                    category -> MoreCategoriesMenu.openEdit(plugin, player, category.id(), category.name(), category.material()),
+                    category -> CreateCategoryMenu.openExisting(plugin, player, category.id()),
                     () -> MoreCategoriesMenu.open(plugin, player)
             );
             return;
@@ -188,7 +192,8 @@ public final class CategoryHeadPickerMenu {
                 return;
             }
 
-            if (plugin.headRegistry().find(id).isEmpty()) {
+            boolean exists = id.isCustom() ? plugin.headRegistry().customHeads().findStored(id).isPresent() : plugin.headRegistry().find(id).isPresent();
+            if (!exists) {
                 player.sendMessage(Component.text("Unknown head: ", NamedTextColor.RED).append(Component.text(id.display(), NamedTextColor.GOLD)));
                 open(plugin, player, categoryId, 0);
                 return;
@@ -200,12 +205,20 @@ public final class CategoryHeadPickerMenu {
 
     private static void add(@NotNull HeadDBPlugin plugin, @NotNull Player player, @NotNull String categoryId, @NotNull HeadId id) {
         plugin.customCategories().addHead(categoryId, id);
-        player.sendMessage(Component.text("Head added: ", NamedTextColor.GRAY).append(Component.text(id.display(), NamedTextColor.GOLD)));
+        player.sendMessage(Component.text("Head added: ", NamedTextColor.GRAY).append(Component.text(GuiLabels.head(plugin, player, id), NamedTextColor.GOLD)));
         CategoryMembersMenu.open(plugin, player, categoryId, 0);
     }
 
     private static @NotNull List<Head> heads(@NotNull HeadDBPlugin plugin, @NotNull Player player) {
-        List<Head> heads = new ArrayList<>(plugin.headRegistry().heads(plugin.adminModes().enabled(player)));
+        boolean adminMode = plugin.adminModes().enabled(player);
+        List<Head> heads = new ArrayList<>(plugin.headRegistry().heads(adminMode));
+        if (adminMode) {
+            for (io.github.silentdevelopment.headdb.paper.local.custom.StoredCustomHead head : plugin.headRegistry().customHeads().listStored()) {
+                if (head.draft()) {
+                    heads.add(head.toHead());
+                }
+            }
+        }
         for (PlayerHeadEntry entry : plugin.headRegistry().playerHeads().knownPlayers()) {
             heads.add(playerHead(entry));
         }

@@ -1,13 +1,23 @@
 package io.github.silentdevelopment.headdb.paper.gui.edit;
 
 import io.github.silentdevelopment.headdb.paper.gui.common.GuiMaterials;
+import io.github.silentdevelopment.headdb.paper.gui.common.GuiLabels;
 import io.github.silentdevelopment.headdb.model.Head;
 import io.github.silentdevelopment.headdb.model.HeadId;
 import io.github.silentdevelopment.headdb.paper.HeadDBPlugin;
 import io.github.silentdevelopment.headdb.paper.gui.hidden.HiddenHeadsMenu;
 import io.github.silentdevelopment.headdb.paper.gui.category.MoreCategoriesMenu;
+import io.github.silentdevelopment.headdb.paper.gui.category.BrowseMenu;
+import io.github.silentdevelopment.headdb.paper.gui.category.CollectionsMenu;
+import io.github.silentdevelopment.headdb.paper.gui.category.TagsMenu;
+import io.github.silentdevelopment.headdb.paper.gui.category.CreateHeadMenu;
+import io.github.silentdevelopment.headdb.paper.gui.category.CreateCategoryMenu;
+import io.github.silentdevelopment.headdb.paper.gui.category.CreateTaxonomyMenu;
+import io.github.silentdevelopment.headdb.paper.gui.category.DeleteCategoryConfirmMenu;
+import io.github.silentdevelopment.headdb.paper.gui.category.CustomCategoryViewMenu;
 import io.github.silentdevelopment.headdb.paper.gui.category.CategoryMembersMenu;
 import io.github.silentdevelopment.headdb.paper.gui.category.CategoryHeadPickerMenu;
+import io.github.silentdevelopment.headdb.paper.gui.settings.CommandConfirmMenu;
 import io.github.silentdevelopment.headdb.paper.gui.favorites.FavoritesMenu;
 import io.github.silentdevelopment.headdb.paper.gui.favorites.FavoriteClickGuard;
 import io.github.silentdevelopment.headdb.paper.gui.config.GuiButtonEditorMenu;
@@ -17,6 +27,7 @@ import io.github.silentdevelopment.headdb.paper.gui.local.LocalHeadListMenu;
 import io.github.silentdevelopment.headdb.paper.local.custom.StoredCustomHead;
 import io.github.silentdevelopment.headdb.paper.local.override.RemoteHeadOverride;
 import io.github.silentdevelopment.headdb.paper.permission.Permissions;
+import io.github.silentdevelopment.headdb.paper.sound.SoundKey;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -27,6 +38,8 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryCloseEvent;
+import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
@@ -38,12 +51,30 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
+import static io.github.silentdevelopment.headdb.paper.gui.favorites.FavoritesMenu.give;
+
 public final class HeadEditListener implements Listener {
 
     private final HeadDBPlugin plugin;
 
     public HeadEditListener(@NotNull HeadDBPlugin plugin) {
         this.plugin = Objects.requireNonNull(plugin, "plugin");
+    }
+
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onInventoryClose(@NotNull InventoryCloseEvent event) {
+        if (!(event.getPlayer() instanceof Player player)) {
+            return;
+        }
+
+        InventoryHolder holder = event.getInventory().getHolder();
+        if (holder == null) {
+            return;
+        }
+
+        CreateHeadMenu.handleClose(plugin, player, holder);
+        CreateCategoryMenu.handleClose(plugin, player, holder);
     }
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = false)
@@ -76,6 +107,50 @@ public final class HeadEditListener implements Listener {
                     return;
                 }
             }
+        }
+
+        if (BrowseMenu.handleClick(plugin, player, event)) {
+            return;
+        }
+
+        if (CollectionsMenu.handleClick(plugin, player, event)) {
+            return;
+        }
+
+        if (TagsMenu.handleClick(plugin, player, event)) {
+            return;
+        }
+
+        if (CommandConfirmMenu.handleClick(plugin, player, event)) {
+            return;
+        }
+
+        if (CreateHeadMenu.handleClick(plugin, player, event)) {
+            return;
+        }
+
+        if (CreateCategoryMenu.handleClick(plugin, player, event)) {
+            return;
+        }
+
+        if (CreateTaxonomyMenu.handleClick(plugin, player, event)) {
+            return;
+        }
+
+        if (CustomCategoryViewMenu.handleClick(plugin, player, event, id -> openEdit(player, id), item -> giveListedHead(player, item))) {
+            return;
+        }
+
+        if (DeleteCategoryConfirmMenu.handleClick(plugin, player, event)) {
+            return;
+        }
+
+        if (DeleteHeadConfirmMenu.handleClick(plugin, player, event)) {
+            return;
+        }
+
+        if (handleAdvancedSearchClick(player, event)) {
+            return;
         }
 
         if (HiddenHeadsMenu.handleClick(plugin, player, event)) {
@@ -147,6 +222,30 @@ public final class HeadEditListener implements Listener {
         }
     }
 
+    private boolean handleAdvancedSearchClick(@NotNull Player player, @NotNull InventoryClickEvent event) {
+        if (event.getClickedInventory() == null || !event.getClickedInventory().equals(event.getView().getTopInventory())) {
+            return false;
+        }
+
+        if (event.getClick() != ClickType.RIGHT && event.getClick() != ClickType.SHIFT_RIGHT) {
+            return false;
+        }
+
+        ItemStack item = event.getCurrentItem();
+        if (item == null || GuiMaterials.isAir(item.getType())) {
+            return false;
+        }
+
+        Optional<String> iconKey = GuiButtonEditorMenu.readIconKey(plugin, item);
+        if (iconKey.isEmpty() || !iconKey.get().equals("search")) {
+            return false;
+        }
+
+        deny(event);
+        plugin.guis().openAdvancedSearch(player);
+        return true;
+    }
+
 
     private void toggleFavorite(@NotNull Player player, @NotNull HeadId id) {
         if (!Permissions.has(player, Permissions.FAVORITES_TOGGLE)) {
@@ -155,7 +254,8 @@ public final class HeadEditListener implements Listener {
         }
 
         boolean added = plugin.favorites().toggle(player.getUniqueId(), id);
-        player.sendMessage(Component.text(added ? "Added favorite: " : "Removed favorite: ", added ? NamedTextColor.YELLOW : NamedTextColor.GRAY).append(Component.text(id.display(), NamedTextColor.GOLD)));
+        player.sendMessage(Component.text(added ? "Added favorite: " : "Removed favorite: ", added ? NamedTextColor.YELLOW : NamedTextColor.GRAY).append(Component.text(GuiLabels.head(plugin, player, id), NamedTextColor.GOLD)));
+        plugin.sounds().play(player, added ? SoundKey.FAVORITE_ADD : SoundKey.FAVORITE_REMOVE);
     }
 
     private void giveListedHead(@NotNull Player player, @NotNull ItemStack item) {
@@ -173,11 +273,13 @@ public final class HeadEditListener implements Listener {
         Optional<Head> head = plugin.headRegistry().find(id);
         if (head.isEmpty()) {
             player.sendMessage(Component.text("Head no longer exists.", NamedTextColor.RED));
+            plugin.sounds().play(player, SoundKey.INVALID);
             return;
         }
 
         if (player.getInventory().firstEmpty() == -1) {
             player.sendMessage(Component.text("Your inventory is full.", NamedTextColor.RED));
+            plugin.sounds().play(player, SoundKey.INVALID);
             return;
         }
 
@@ -188,7 +290,11 @@ public final class HeadEditListener implements Listener {
         java.util.Map<Integer, ItemStack> remaining = player.getInventory().addItem(item.clone());
         if (!remaining.isEmpty()) {
             player.sendMessage(Component.text("Your inventory is full.", NamedTextColor.RED));
+            plugin.sounds().play(player, SoundKey.INVALID);
+            return;
         }
+
+        plugin.sounds().play(player, SoundKey.TAKE_HEAD);
     }
 
     private @NotNull Optional<HeadId> dropTarget(@NotNull InventoryClickEvent event, @NotNull ItemStack item) {
@@ -202,6 +308,7 @@ public final class HeadEditListener implements Listener {
     private void openEdit(@NotNull Player player, @NotNull HeadId id) {
         if (!plugin.adminModes().enabled(player)) {
             player.sendMessage(Component.text("Enable Admin Mode to edit heads.", NamedTextColor.RED));
+            plugin.sounds().play(player, SoundKey.NO_PERMISSION);
             return;
         }
 
@@ -244,6 +351,7 @@ public final class HeadEditListener implements Listener {
 
         if (!plugin.adminModes().enabled(player)) {
             player.sendMessage(Component.text("Enable Admin Mode to edit heads.", NamedTextColor.RED));
+            plugin.sounds().play(player, SoundKey.NO_PERMISSION);
             return;
         }
 
@@ -283,7 +391,17 @@ public final class HeadEditListener implements Listener {
         }
 
         if (action.equals(HeadEditMenu.ACTION_DELETE)) {
-            deleteCustom(player, id);
+            confirmDeleteCustom(player, id);
+            return;
+        }
+
+        if (action.equals(HeadEditMenu.ACTION_PUBLISH)) {
+            publishCustom(player, id);
+            return;
+        }
+
+        if (action.equals(HeadEditMenu.ACTION_PRICE)) {
+            promptPrice(player, id);
             return;
         }
 
@@ -358,6 +476,7 @@ public final class HeadEditListener implements Listener {
             }
 
             mutated(player, id);
+            plugin.sounds().play(player, SoundKey.SAVE);
             player.sendMessage(Component.text("Name Updated", NamedTextColor.GOLD, TextDecoration.BOLD));
             player.sendMessage(Component.text(oldName, NamedTextColor.GRAY).append(Component.text(" > ", NamedTextColor.DARK_GRAY)).append(Component.text(value, NamedTextColor.GREEN)));
             HeadEditMenu.open(plugin, player, id);
@@ -374,11 +493,12 @@ public final class HeadEditListener implements Listener {
             plugin.headRegistry().overrides().save(override.withCategory(category, player.getUniqueId()));
         } else if (id.isCustom()) {
             StoredCustomHead stored = plugin.headRegistry().customHeads().findStored(id).orElseThrow(() -> new IllegalArgumentException("Unknown custom head: " + id));
-            plugin.headRegistry().customHeads().save(new StoredCustomHead(stored.id(), stored.name(), stored.textureHash(), stored.textureSignature(), stored.lore(), stored.tags(), stored.collections(), category, stored.createdAt(), Instant.now(), stored.createdBy()));
+            plugin.headRegistry().customHeads().save(stored.withCategory(category));
         }
 
         mutated(player, id);
-        player.sendMessage(Component.text("Category set to ", NamedTextColor.GRAY).append(Component.text(category, NamedTextColor.GOLD)));
+        plugin.sounds().play(player, SoundKey.SAVE);
+        player.sendMessage(Component.text("Category set to ", NamedTextColor.GRAY).append(Component.text(GuiLabels.category(plugin, player, category), NamedTextColor.GOLD)));
         HeadEditMenu.open(plugin, player, id);
     }
 
@@ -394,10 +514,11 @@ public final class HeadEditListener implements Listener {
         } else if (id.isCustom()) {
             StoredCustomHead stored = plugin.headRegistry().customHeads().findStored(id).orElseThrow(() -> new IllegalArgumentException("Unknown custom head: " + id));
             Set<String> tags = toggle(stored.tags(), tag);
-            plugin.headRegistry().customHeads().save(new StoredCustomHead(stored.id(), stored.name(), stored.textureHash(), stored.textureSignature(), stored.lore(), tags, stored.collections(), stored.category(), stored.createdAt(), Instant.now(), stored.createdBy()));
+            plugin.headRegistry().customHeads().save(stored.withTags(tags));
         }
 
         mutated(player, id);
+        plugin.sounds().play(player, SoundKey.TOGGLE);
         HeadEditMenu.openTags(plugin, player, id, page);
     }
 
@@ -413,10 +534,11 @@ public final class HeadEditListener implements Listener {
         } else if (id.isCustom()) {
             StoredCustomHead stored = plugin.headRegistry().customHeads().findStored(id).orElseThrow(() -> new IllegalArgumentException("Unknown custom head: " + id));
             Set<String> collections = toggle(stored.collections(), collection);
-            plugin.headRegistry().customHeads().save(new StoredCustomHead(stored.id(), stored.name(), stored.textureHash(), stored.textureSignature(), stored.lore(), stored.tags(), collections, stored.category(), stored.createdAt(), Instant.now(), stored.createdBy()));
+            plugin.headRegistry().customHeads().save(stored.withCollections(collections));
         }
 
         mutated(player, id);
+        plugin.sounds().play(player, SoundKey.TOGGLE);
         HeadEditMenu.openCollections(plugin, player, id, page);
     }
 
@@ -430,6 +552,7 @@ public final class HeadEditListener implements Listener {
         RemoteHeadOverride override = plugin.headRegistry().overrides().find(id).orElse(RemoteHeadOverride.empty(id, player.getUniqueId()));
         plugin.headRegistry().overrides().save(override.withHidden(!hidden, player.getUniqueId()));
         mutated(player, id);
+        plugin.sounds().play(player, hidden ? SoundKey.SHOW_HEAD : SoundKey.HIDE_HEAD);
         player.sendMessage(Component.text(hidden ? "Head is now visible." : "Head is now hidden.", hidden ? NamedTextColor.GREEN : NamedTextColor.GRAY));
         HeadEditMenu.open(plugin, player, id);
     }
@@ -442,20 +565,62 @@ public final class HeadEditListener implements Listener {
 
         plugin.headRegistry().overrides().delete(id);
         mutated(player, id);
+        plugin.sounds().play(player, SoundKey.SAVE);
         player.sendMessage(Component.text("Local override reset.", NamedTextColor.GRAY));
         HeadEditMenu.open(plugin, player, id);
     }
 
-    private void deleteCustom(@NotNull Player player, @NotNull HeadId id) {
+    private void confirmDeleteCustom(@NotNull Player player, @NotNull HeadId id) {
         if (!id.isCustom() || !Permissions.has(player, Permissions.CUSTOM_DELETE)) {
             noPermission(player);
             return;
         }
 
-        plugin.headRegistry().customHeads().delete(id);
+        DeleteHeadConfirmMenu.open(plugin, player, id);
+    }
+
+
+    private void publishCustom(@NotNull Player player, @NotNull HeadId id) {
+        if (!id.isCustom() || !Permissions.has(player, Permissions.CUSTOM_CREATE)) {
+            noPermission(player);
+            return;
+        }
+
+        StoredCustomHead stored = plugin.headRegistry().customHeads().findStored(id).orElseThrow(() -> new IllegalArgumentException("Unknown custom head: " + id));
+        plugin.headRegistry().customHeads().save(stored.withDraft(false));
         mutated(player, id);
+        plugin.sounds().play(player, SoundKey.PUBLISH);
+        player.sendMessage(Component.text("Draft published: ", NamedTextColor.GRAY).append(Component.text(GuiLabels.head(plugin, player, id), NamedTextColor.GOLD)));
+        HeadEditMenu.open(plugin, player, id);
+    }
+
+    private void promptPrice(@NotNull Player player, @NotNull HeadId id) {
+        if (!plugin.economy().enabled()) {
+            HeadEditMenu.open(plugin, player, id);
+            return;
+        }
+
+        if (!editable(player, id, Permissions.EDIT)) {
+            return;
+        }
+
         player.closeInventory();
-        player.sendMessage(Component.text("Custom head deleted: ", NamedTextColor.GRAY).append(Component.text(id.display(), NamedTextColor.GOLD)));
+        plugin.prompts().request(player, Component.text("Enter the new head price, or 0 to clear.", NamedTextColor.GOLD), value -> {
+            try {
+                double price = Double.parseDouble(value.trim());
+                plugin.economy().setHeadPrice(id, price);
+                player.sendMessage(plugin.messages().priceUpdated(player, GuiLabels.head(plugin, player, id), plugin.economy().format(price)));
+                plugin.sounds().play(player, SoundKey.PRICE_SUCCESS);
+            } catch (NumberFormatException exception) {
+                player.sendMessage(plugin.messages().priceInvalid(player));
+                plugin.sounds().play(player, SoundKey.PRICE_FAILURE);
+            } catch (RuntimeException exception) {
+                player.sendMessage(Component.text("Failed to update head price: " + exception.getMessage(), NamedTextColor.RED));
+                plugin.sounds().play(player, SoundKey.PRICE_FAILURE);
+            }
+
+            HeadEditMenu.open(plugin, player, id);
+        }, () -> HeadEditMenu.open(plugin, player, id));
     }
 
     private void promptLoreAdd(@NotNull Player player, @NotNull HeadId id) {
@@ -515,10 +680,11 @@ public final class HeadEditListener implements Listener {
             plugin.headRegistry().overrides().save(override.withLore(cleaned, player.getUniqueId()));
         } else if (id.isCustom()) {
             StoredCustomHead stored = plugin.headRegistry().customHeads().findStored(id).orElseThrow(() -> new IllegalArgumentException("Unknown custom head: " + id));
-            plugin.headRegistry().customHeads().save(new StoredCustomHead(stored.id(), stored.name(), stored.textureHash(), stored.textureSignature(), cleaned, stored.tags(), stored.collections(), stored.category(), stored.createdAt(), Instant.now(), stored.createdBy()));
+            plugin.headRegistry().customHeads().save(stored.withLore(cleaned));
         }
 
         mutated(player, id);
+        plugin.sounds().play(player, SoundKey.SAVE);
         player.sendMessage(Component.text(message, NamedTextColor.GRAY));
         HeadEditMenu.openLore(plugin, player, id, 0);
     }
@@ -534,10 +700,11 @@ public final class HeadEditListener implements Listener {
             plugin.headRegistry().overrides().save(override.withLore(null, player.getUniqueId()));
         } else if (id.isCustom()) {
             StoredCustomHead stored = plugin.headRegistry().customHeads().findStored(id).orElseThrow(() -> new IllegalArgumentException("Unknown custom head: " + id));
-            plugin.headRegistry().customHeads().save(new StoredCustomHead(stored.id(), stored.name(), stored.textureHash(), stored.textureSignature(), List.of(), stored.tags(), stored.collections(), stored.category(), stored.createdAt(), Instant.now(), stored.createdBy()));
+            plugin.headRegistry().customHeads().save(stored.withLore(List.of()));
         }
 
         mutated(player, id);
+        plugin.sounds().play(player, SoundKey.SAVE);
         player.sendMessage(Component.text("Lore reset to default.", NamedTextColor.GRAY));
         HeadEditMenu.openLore(plugin, player, id, 0);
     }
@@ -569,6 +736,7 @@ public final class HeadEditListener implements Listener {
 
     private void noPermission(@NotNull Player player) {
         player.sendMessage(plugin.messages().render(player, io.github.silentdevelopment.headdb.paper.message.MessageKey.COMMAND_ERROR_NO_PERMISSION));
+        plugin.sounds().play(player, io.github.silentdevelopment.headdb.paper.sound.SoundKey.NO_PERMISSION);
     }
 
     private static @NotNull Set<String> toggle(@NotNull Set<String> values, @NotNull String value) {

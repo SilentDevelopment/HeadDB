@@ -13,7 +13,9 @@ import io.github.silentdevelopment.headdb.paper.gui.config.GuiIconType;
 import io.github.silentdevelopment.headdb.paper.gui.config.GuiButtonEditorMenu;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextDecoration;
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.NotNull;
@@ -53,6 +55,7 @@ public final class GuiHeadIcons {
                 return;
             }
 
+            play(plugin, viewerId, icon.key());
             action.accept(context);
         });
     }
@@ -82,6 +85,7 @@ public final class GuiHeadIcons {
                 return;
             }
 
+            play(plugin, viewerId, icon.key());
             action.accept(context);
         });
     }
@@ -101,6 +105,7 @@ public final class GuiHeadIcons {
                 return;
             }
 
+            play(plugin, viewerId, icon.key());
             action.accept(context);
         });
     }
@@ -151,6 +156,23 @@ public final class GuiHeadIcons {
         }
 
         return Optional.empty();
+    }
+
+    private static void play(@NotNull HeadDBPlugin plugin, @NotNull Optional<UUID> viewerId, @NotNull String iconKey) {
+        Objects.requireNonNull(plugin, "plugin");
+        Objects.requireNonNull(viewerId, "viewerId");
+        Objects.requireNonNull(iconKey, "iconKey");
+
+        if (viewerId.isEmpty()) {
+            return;
+        }
+
+        Player player = Bukkit.getPlayer(viewerId.get());
+        if (player == null) {
+            return;
+        }
+
+        plugin.sounds().playGuiIcon(player, iconKey);
     }
 
     private static ItemStack configuredHead(@NotNull HeadDBPlugin plugin, @NotNull GuiIconConfig icon) {

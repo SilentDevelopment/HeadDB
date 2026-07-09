@@ -149,7 +149,7 @@ jobs:
           fi
 
           grep -Fq "main: io.github.silentdevelopment.headdb.paper.HeadDBPlugin" /tmp/paper-plugin.yml
-          grep -Fq "api-version: '1.21'" /tmp/paper-plugin.yml
+          grep -Fq "api-version: '26.1.2'" /tmp/paper-plugin.yml
           grep -Fq 'Vault:' /tmp/paper-plugin.yml
           grep -Fq 'required: false' /tmp/paper-plugin.yml
 

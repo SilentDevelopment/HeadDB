@@ -10,6 +10,7 @@ import java.util.Objects;
 public final class Permissions {
 
     public static final String ADMIN = "headdb.admin";
+    public static final String BASIC = "headdb.basic";
 
     public static final String HELP = "headdb.command.help";
     public static final String VERSION = "headdb.command.version";
@@ -21,6 +22,10 @@ public final class Permissions {
     public static final String RELOAD = "headdb.command.reload";
     public static final String UPDATE = "headdb.admin.update";
     public static final String SEARCH = "headdb.command.search";
+    public static final String TAG_CREATE = "headdb.command.tags.create";
+    public static final String TAG_DELETE = "headdb.command.tags.delete";
+    public static final String COLLECTION_CREATE = "headdb.command.collections.create";
+    public static final String COLLECTION_DELETE = "headdb.command.collections.delete";
     public static final String INFO = "headdb.command.info";
     public static final String GIVE = "headdb.command.give";
     public static final String GIVE_OTHERS = "headdb.command.give.others";
@@ -49,8 +54,14 @@ public final class Permissions {
 
     public static final String GUI_MAIN = "headdb.gui.main";
     public static final String GUI_BROWSE = "headdb.gui.browse";
+    public static final String GUI_BROWSE_MENU = "headdb.gui.browse.menu";
     public static final String GUI_SEARCH = "headdb.gui.search";
+    public static final String GUI_SEARCH_ADVANCED = "headdb.gui.search.advanced";
     public static final String GUI_FILTER = "headdb.gui.filter";
+    public static final String GUI_FILTER_IDS = "headdb.gui.filter.ids";
+    public static final String GUI_FILTER_CATEGORIES = "headdb.gui.filter.categories";
+    public static final String GUI_FILTER_TAGS = "headdb.gui.filter.tags";
+    public static final String GUI_FILTER_COLLECTIONS = "headdb.gui.filter.collections";
     public static final String GUI_HEAD_TAKE = "headdb.gui.head.take";
     public static final String GUI_CATEGORY_VIEW = "headdb.gui.category.view";
     public static final String GUI_CATEGORY_OPEN = "headdb.gui.category.open";
@@ -58,6 +69,11 @@ public final class Permissions {
     public static final String GUI_CUSTOM_HEADS = "headdb.gui.custom-heads";
     public static final String GUI_FAVORITES = "headdb.gui.favorites";
     public static final String FAVORITES_TOGGLE = "headdb.gui.favorites.toggle";
+    public static final String GUI_COLLECTIONS = "headdb.gui.collections";
+    public static final String GUI_TAGS = "headdb.gui.tags";
+    public static final String GUI_CREATE_HEAD = "headdb.gui.create-head";
+    public static final String GUI_CREATE_TAG = "headdb.gui.create-tag";
+    public static final String GUI_CREATE_COLLECTION = "headdb.gui.create-collection";
     public static final String GUI_MORE_CATEGORIES = "headdb.gui.more-categories";
     public static final String GUI_CUSTOM_CATEGORIES_ADMIN = "headdb.gui.more-categories.admin";
     public static final String GUI_HIDDEN_HEADS = "headdb.gui.hidden-heads";
@@ -132,7 +148,7 @@ public final class Permissions {
 
     public static boolean canViewAllCategories(@NotNull CommandSender sender) {
         Objects.requireNonNull(sender, "sender");
-        return has(sender, CATEGORY_ALL);
+        return has(sender, CATEGORY_ALL) || has(sender, BASIC);
     }
 
     public static boolean canViewCategory(@NotNull CommandSender sender, @NotNull String categoryId) {
