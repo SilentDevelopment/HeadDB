@@ -8,6 +8,7 @@ import io.github.silentdevelopment.prompts.paper.chat.PaperChatTransport;
 import io.github.silentdevelopment.prompts.paper.text.PaperPromptText;
 import io.github.silentdevelopment.prompts.parser.ParseResult;
 import io.github.silentdevelopment.prompts.result.PromptResult;
+import io.github.silentdevelopment.prompts.result.PromptResultStatus;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.entity.Player;
@@ -45,9 +46,9 @@ public final class PromptInputService {
         Objects.requireNonNull(cancel, "cancel");
 
         Component promptMessage = message.append(Component.text(" Type cancel to abort.", NamedTextColor.GRAY));
-        Prompt<String> prompt = new DefaultPrompt<>(PaperPromptText.of(promptMessage), raw -> ParseResult.success(raw), timeout, PaperChatTransport.DEFAULT_NAME);
+        Prompt<String> prompt = new DefaultPrompt<>(PaperPromptText.of(promptMessage), ParseResult::success, timeout, PaperChatTransport.DEFAULT_NAME);
 
-        prompts.askAndHandleSync(player, prompt, result -> handle(result, input, cancel));
+        prompts.askReplacingAndHandleSync(player, prompt, result -> handle(result, input, cancel));
     }
 
     public void shutdown() {
@@ -58,6 +59,10 @@ public final class PromptInputService {
         Objects.requireNonNull(result, "result");
         Objects.requireNonNull(input, "input");
         Objects.requireNonNull(cancel, "cancel");
+
+        if (result.status() == PromptResultStatus.SUPERSEDED) {
+            return;
+        }
 
         if (!result.successful()) {
             cancel.run();

@@ -34,7 +34,7 @@
         <lib.relay.version>3fc62454e3</lib.relay.version>
         <lib.hermes.version>3505fd1883</lib.hermes.version>
         <lib.grafik.version>d78876b0e2</lib.grafik.version>
-        <lib.prompts.version>9f15982383</lib.prompts.version>
+        <lib.prompts.version>22456310ef</lib.prompts.version>
         <lib.strata.version>403557ff80</lib.strata.version>
 
         <sqlite-jdbc.version>3.53.2.0</sqlite-jdbc.version>
