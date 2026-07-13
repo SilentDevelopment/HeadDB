@@ -26,20 +26,20 @@ public final class ItemCacheCommand extends AbstractPaperCommand {
     @Override
     protected void handle(@NotNull PaperCommandContext context) {
         if (!context.has(ACTION)) {
-            context.reply(plugin.messages().itemCacheUsage(context.sender()));
+            plugin.messages().send(context.sender(), plugin.messages().itemCacheUsage(context.sender()));
             return;
         }
 
         String action = context.get(ACTION).trim();
 
         if (!action.equalsIgnoreCase("clear")) {
-            context.reply(plugin.messages().itemCacheUsage(context.sender()));
+            plugin.messages().send(context.sender(), plugin.messages().itemCacheUsage(context.sender()));
             return;
         }
 
         int before = plugin.itemCacheSize();
         plugin.clearItemCache();
-        context.reply(plugin.messages().itemCacheCleared(context.sender(), before));
+        plugin.messages().send(context.sender(), plugin.messages().itemCacheCleared(context.sender(), before));
     }
 
     @Override

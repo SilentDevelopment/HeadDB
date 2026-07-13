@@ -119,6 +119,46 @@ final class DatabaseRefreshServiceTest {
     }
 
     @Test
+    void skipsArtifactDownloadsWhenManifestResourcesAreUnchanged() throws Exception {
+        FakeRemoteHttpClient httpClient = new FakeRemoteHttpClient();
+        TestDistribution distribution = TestDistribution.create();
+        register(httpClient, distribution);
+        DefaultHeadDatabase database = new DefaultHeadDatabase();
+        DatabaseRefreshService service = service(database, httpClient);
+
+        service.refresh();
+        int artifactRequests = httpClient.byteRequestCount();
+        httpClient.text(TestDistribution.MANIFEST_URI, distribution.manifestJson.replace("\"revision\": 1", "\"revision\": 2"));
+
+        DatabaseRefreshResult result = service.refreshIfChanged();
+
+        assertEquals(DatabaseRefreshResult.UNCHANGED, result);
+        assertEquals(artifactRequests, httpClient.byteRequestCount());
+        assertEquals(2, httpClient.textRequestCount());
+        assertEquals(DatabaseState.LOADED, database.status().state());
+    }
+
+    @Test
+    void downloadsArtifactsWhenManifestResourcesChange() throws Exception {
+        FakeRemoteHttpClient httpClient = new FakeRemoteHttpClient();
+        TestDistribution initial = TestDistribution.create();
+        register(httpClient, initial);
+        DefaultHeadDatabase database = new DefaultHeadDatabase();
+        DatabaseRefreshService service = service(database, httpClient);
+
+        service.refresh();
+        int artifactRequests = httpClient.byteRequestCount();
+
+        TestDistribution updated = TestDistribution.createMultiPart();
+        register(httpClient, updated);
+        DatabaseRefreshResult result = service.refreshIfChanged();
+
+        assertEquals(DatabaseRefreshResult.UPDATED, result);
+        assertTrue(httpClient.byteRequestCount() > artifactRequests);
+        assertEquals(DatabaseState.LOADED, database.status().state());
+    }
+
+    @Test
     void loadsCachedArtifacts() throws Exception {
         FakeRemoteHttpClient httpClient = new FakeRemoteHttpClient();
         InMemoryDatabaseArtifactCache artifactCache = new InMemoryDatabaseArtifactCache();
@@ -253,6 +293,8 @@ final class DatabaseRefreshServiceTest {
         private final Map<URI, String> textResponses = new HashMap<>();
         private final Map<URI, byte[]> byteResponses = new HashMap<>();
         private final Map<URI, IOException> textFailures = new HashMap<>();
+        private int textRequests;
+        private int byteRequests;
 
         private void text(URI uri, String text) {
             textResponses.put(uri, text);
@@ -266,8 +308,18 @@ final class DatabaseRefreshServiceTest {
             textFailures.put(uri, exception);
         }
 
+        private int textRequestCount() {
+            return textRequests;
+        }
+
+        private int byteRequestCount() {
+            return byteRequests;
+        }
+
         @Override
         public @NotNull String getText(@NotNull URI uri) throws IOException {
+            textRequests++;
+
             if (textFailures.containsKey(uri)) {
                 throw textFailures.get(uri);
             }
@@ -279,6 +331,8 @@ final class DatabaseRefreshServiceTest {
 
         @Override
         public byte @NotNull [] getBytes(@NotNull URI uri) throws IOException {
+            byteRequests++;
+
             if (!byteResponses.containsKey(uri)) {
                 throw new IOException("No fake byte response for " + uri);
             }

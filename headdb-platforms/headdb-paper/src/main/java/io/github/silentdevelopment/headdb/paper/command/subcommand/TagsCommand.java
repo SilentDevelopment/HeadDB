@@ -55,7 +55,7 @@ public final class TagsCommand extends AbstractPaperCommand {
                 .toList();
 
         for (var line : ListFormatter.format("Head Tags", entries, request.page(), PAGE_SIZE)) {
-            context.reply(line);
+            plugin.messages().send(context.sender(), line);
         }
     }
 
@@ -81,7 +81,7 @@ public final class TagsCommand extends AbstractPaperCommand {
         CustomTaxonomyEntry entry = plugin.customTags().create(id, name, createdBy);
         plugin.headRegistry().onLocalMutation();
         plugin.clearSearchCache();
-        context.reply(plugin.messages().taxonomyCreated(context.sender(), "tag", entry.name(), entry.id()));
+        plugin.messages().send(context.sender(), plugin.messages().taxonomyCreated(context.sender(), "tag", entry.name(), entry.id()));
     }
 
 
@@ -90,13 +90,13 @@ public final class TagsCommand extends AbstractPaperCommand {
         String id = required(context, PAGE, "Usage: /hdb tags delete <id>");
         boolean deleted = plugin.customTags().delete(id);
         if (!deleted) {
-            context.reply(plugin.messages().taxonomyUnknown(context.sender(), "tag", id));
+            plugin.messages().send(context.sender(), plugin.messages().taxonomyUnknown(context.sender(), "tag", id));
             return;
         }
 
         plugin.headRegistry().onLocalMutation();
         plugin.clearSearchCache();
-        context.reply(plugin.messages().taxonomyDeleted(context.sender(), "tag", id));
+        plugin.messages().send(context.sender(), plugin.messages().taxonomyDeleted(context.sender(), "tag", id));
     }
 
     private static void require(@NotNull PaperCommandContext context, @NotNull String permission) {

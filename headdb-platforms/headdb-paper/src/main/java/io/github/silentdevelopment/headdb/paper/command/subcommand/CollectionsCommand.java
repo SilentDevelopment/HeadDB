@@ -55,7 +55,7 @@ public final class CollectionsCommand extends AbstractPaperCommand {
                 .toList();
 
         for (var line : ListFormatter.format("Head Collections", entries, request.page(), PAGE_SIZE)) {
-            context.reply(line);
+            plugin.messages().send(context.sender(), line);
         }
     }
 
@@ -81,7 +81,7 @@ public final class CollectionsCommand extends AbstractPaperCommand {
         CustomTaxonomyEntry entry = plugin.customCollections().create(id, name, createdBy);
         plugin.headRegistry().onLocalMutation();
         plugin.clearSearchCache();
-        context.reply(plugin.messages().taxonomyCreated(context.sender(), "collection", entry.name(), entry.id()));
+        plugin.messages().send(context.sender(), plugin.messages().taxonomyCreated(context.sender(), "collection", entry.name(), entry.id()));
     }
 
 
@@ -90,13 +90,13 @@ public final class CollectionsCommand extends AbstractPaperCommand {
         String id = required(context, PAGE, "Usage: /hdb collections delete <id>");
         boolean deleted = plugin.customCollections().delete(id);
         if (!deleted) {
-            context.reply(plugin.messages().taxonomyUnknown(context.sender(), "collection", id));
+            plugin.messages().send(context.sender(), plugin.messages().taxonomyUnknown(context.sender(), "collection", id));
             return;
         }
 
         plugin.headRegistry().onLocalMutation();
         plugin.clearSearchCache();
-        context.reply(plugin.messages().taxonomyDeleted(context.sender(), "collection", id));
+        plugin.messages().send(context.sender(), plugin.messages().taxonomyDeleted(context.sender(), "collection", id));
     }
 
     private static void require(@NotNull PaperCommandContext context, @NotNull String permission) {

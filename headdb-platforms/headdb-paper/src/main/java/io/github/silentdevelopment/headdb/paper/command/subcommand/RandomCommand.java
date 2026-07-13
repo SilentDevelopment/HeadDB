@@ -50,7 +50,7 @@ public final class RandomCommand extends AbstractPaperCommand {
         try {
             request = request(context);
         } catch (IllegalArgumentException exception) {
-            context.reply(plugin.messages().invalidArgument(context.sender(), exception.getMessage()));
+            plugin.messages().send(context.sender(), plugin.messages().invalidArgument(context.sender(), exception.getMessage()));
             play(context, SoundKey.INVALID);
             return;
         }
@@ -61,7 +61,7 @@ public final class RandomCommand extends AbstractPaperCommand {
         }
 
         if (!Permissions.canGiveTo(context.sender(), target)) {
-            context.reply(plugin.messages().render(context.sender(), MessageKey.COMMAND_ERROR_NO_PERMISSION));
+            plugin.messages().send(context.sender(), plugin.messages().render(context.sender(), MessageKey.COMMAND_ERROR_NO_PERMISSION));
             play(context, SoundKey.NO_PERMISSION);
             return;
         }
@@ -69,7 +69,7 @@ public final class RandomCommand extends AbstractPaperCommand {
         for (int index = 0; index < request.amount(); index++) {
             Optional<Head> optionalHead = randomHead(request.category());
             if (optionalHead.isEmpty()) {
-                context.reply(plugin.messages().randomEmpty(context.sender()));
+                plugin.messages().send(context.sender(), plugin.messages().randomEmpty(context.sender()));
                 play(context, SoundKey.INVALID);
                 return;
             }
@@ -79,12 +79,12 @@ public final class RandomCommand extends AbstractPaperCommand {
             }
 
             if (!give(target, optionalHead.get())) {
-                context.reply(plugin.messages().giveInventoryFull(context.sender(), target));
+                plugin.messages().send(context.sender(), plugin.messages().giveInventoryFull(context.sender(), target));
                 play(context, SoundKey.INVALID);
                 return;
             }
 
-            context.reply(plugin.messages().giveSuccess(context.sender(), optionalHead.get(), target));
+            plugin.messages().send(context.sender(), plugin.messages().giveSuccess(context.sender(), optionalHead.get(), target));
             plugin.sounds().play(target, SoundKey.GIVE_HEAD);
             if (context.isPlayer() && !context.player().equals(target)) {
                 plugin.sounds().play(context.player(), SoundKey.GIVE_HEAD);
@@ -146,7 +146,7 @@ public final class RandomCommand extends AbstractPaperCommand {
                 return context.player();
             }
 
-            context.reply(plugin.messages().randomConsoleUsage(context.sender()));
+            plugin.messages().send(context.sender(), plugin.messages().randomConsoleUsage(context.sender()));
             play(context, SoundKey.INVALID);
             return null;
         }
@@ -156,7 +156,7 @@ public final class RandomCommand extends AbstractPaperCommand {
             return target;
         }
 
-        context.reply(plugin.messages().playerNotOnline(context.sender(), playerName));
+        plugin.messages().send(context.sender(), plugin.messages().playerNotOnline(context.sender(), playerName));
         play(context, SoundKey.INVALID);
         return null;
     }

@@ -58,6 +58,18 @@ public final class PluginConfig {
     @Comment("Refreshes the remote database during startup.")
     private boolean refreshOnStartup = true;
 
+    @Key("refresh.scheduled.enabled")
+    @Comment("Checks the remote database periodically while the server remains online.")
+    private boolean scheduledRefreshEnabled = true;
+
+    @Key("refresh.scheduled.interval-hours")
+    @Range(min = 1, max = 168)
+    @Comment({
+            "Interval between scheduled remote database checks.",
+            "Unchanged manifests do not re-download catalog or revocation artifacts."
+    })
+    private int scheduledRefreshIntervalHours = 6;
+
     @Key("http.connect-timeout-seconds")
     @Range(min = 1, max = 60)
     @Comment({
@@ -189,6 +201,10 @@ public final class PluginConfig {
             throw new ConfigException("cache.item.max-size must be greater than or equal to 0");
         }
 
+        if (scheduledRefreshIntervalHours < 1 || scheduledRefreshIntervalHours > 168) {
+            throw new ConfigException("refresh.scheduled.interval-hours must be between 1 and 168");
+        }
+
         validateRequired("messages.default-locale", defaultLocale);
         validateRequired("messages.console-locale", consoleLocale);
     }
@@ -224,6 +240,14 @@ public final class PluginConfig {
 
     public boolean refreshOnStartup() {
         return refreshOnStartup;
+    }
+
+    public boolean scheduledRefreshEnabled() {
+        return scheduledRefreshEnabled;
+    }
+
+    public @NotNull Duration scheduledRefreshInterval() {
+        return Duration.ofHours(scheduledRefreshIntervalHours);
     }
 
     public @NotNull Duration connectTimeout() {

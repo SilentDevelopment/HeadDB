@@ -37,7 +37,7 @@ public final class InfoCommand extends AbstractPaperCommand {
     @Override
     protected void handle(@NotNull PaperCommandContext context) {
         if (!Permissions.has(context.sender(), Permissions.INFO)) {
-            context.reply(plugin.messages().render(context.sender(), MessageKey.COMMAND_ERROR_NO_PERMISSION));
+            plugin.messages().send(context.sender(), plugin.messages().render(context.sender(), MessageKey.COMMAND_ERROR_NO_PERMISSION));
             return;
         }
 
@@ -49,18 +49,18 @@ public final class InfoCommand extends AbstractPaperCommand {
         HeadId id = optionalId.get();
         plugin.headRegistry().resolve(id).whenComplete((head, throwable) -> plugin.getServer().getGlobalRegionScheduler().execute(plugin, () -> {
             if (throwable != null || head.isEmpty()) {
-                context.reply(plugin.messages().unknownHead(context.sender(), id));
+                plugin.messages().send(context.sender(), plugin.messages().unknownHead(context.sender(), id));
                 return;
             }
 
             Head resolvedHead = head.get();
             if (!Permissions.canViewCategory(context.sender(), resolvedHead.category())) {
-                context.reply(plugin.messages().render(context.sender(), MessageKey.COMMAND_ERROR_NO_PERMISSION));
+                plugin.messages().send(context.sender(), plugin.messages().render(context.sender(), MessageKey.COMMAND_ERROR_NO_PERMISSION));
                 return;
             }
 
             for (Component line : HeadInfoFormatter.format(resolvedHead)) {
-                context.reply(line);
+                plugin.messages().send(context.sender(), line);
             }
         }));
     }
@@ -83,7 +83,7 @@ public final class InfoCommand extends AbstractPaperCommand {
         }
 
         if (!context.isPlayer()) {
-            context.reply(plugin.messages().infoConsoleUsage(context.sender()));
+            plugin.messages().send(context.sender(), plugin.messages().infoConsoleUsage(context.sender()));
             return Optional.empty();
         }
 
@@ -95,7 +95,7 @@ public final class InfoCommand extends AbstractPaperCommand {
             return itemId;
         }
 
-        context.reply(plugin.messages().heldHeadRequired(context.sender()));
+        plugin.messages().send(context.sender(), plugin.messages().heldHeadRequired(context.sender()));
         return Optional.empty();
     }
 
@@ -103,7 +103,7 @@ public final class InfoCommand extends AbstractPaperCommand {
         try {
             return Optional.of(SearchParser.headId(raw));
         } catch (IllegalArgumentException exception) {
-            context.reply(plugin.messages().invalidArgument(context.sender(), exception.getMessage()));
+            plugin.messages().send(context.sender(), plugin.messages().invalidArgument(context.sender(), exception.getMessage()));
             return Optional.empty();
         }
     }

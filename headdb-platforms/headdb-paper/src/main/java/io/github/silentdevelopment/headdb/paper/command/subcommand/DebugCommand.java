@@ -47,31 +47,31 @@ public final class DebugCommand extends AbstractPaperCommand {
         PlatformRequirements.Compatibility compatibility = PlatformRequirements.inspect(plugin);
         UpdateCheckResult updateResult = plugin.updater().lastResult();
 
-        context.reply(Component.empty());
-        context.reply(Component.text("> ", NamedTextColor.DARK_GRAY).append(Component.text("Debug", NamedTextColor.RED)));
-        context.reply(line("Version", buildInfo.version() + " (" + value(buildInfo.commit()) + ")"));
-        context.reply(line("Runtime", plugin.getServer().getName() + " " + plugin.getServer().getMinecraftVersion() + " | Java " + compatibility.javaFeature()));
-        context.reply(line("Supported", yesNo(compatibility.supported())));
-        context.reply(databaseLine(status));
-        context.reply(line("Heads", remoteStats.heads()));
-        context.reply(line("Categories", remoteStats.categories()));
-        context.reply(line("Tags", remoteStats.tags()));
-        context.reply(line("Collections", remoteStats.collections()));
-        context.reply(line("Revocations", remoteStats.revocations()));
-        context.reply(line("Hidden Heads", plugin.headRegistry().hiddenHeads().size()));
-        context.reply(line("Overrides", plugin.headRegistry().overrides().list().size()));
-        context.reply(line("More Heads", plugin.headRegistry().customHeads().list().size()));
-        context.reply(line("Player Heads", plugin.headRegistry().playerHeads().knownPlayers().size()));
-        context.reply(line("More Categories", plugin.customCategories().list().size()));
-        context.reply(line("Refresh", refreshText(refresh)));
-        context.reply(line("Last Refresh", lastRefreshText(refresh)));
-        context.reply(line("Updater", updateText(updateResult)));
+        plugin.messages().send(context.sender(), Component.empty());
+        plugin.messages().send(context.sender(), Component.text("> ", NamedTextColor.DARK_GRAY).append(Component.text("Debug", NamedTextColor.RED)));
+        plugin.messages().send(context.sender(), line("Version", buildInfo.version() + " (" + value(buildInfo.commit()) + ")"));
+        plugin.messages().send(context.sender(), line("Runtime", plugin.getServer().getName() + " " + plugin.getServer().getMinecraftVersion() + " | Java " + compatibility.javaFeature()));
+        plugin.messages().send(context.sender(), line("Supported", yesNo(compatibility.supported())));
+        plugin.messages().send(context.sender(), databaseLine(status));
+        plugin.messages().send(context.sender(), line("Heads", remoteStats.heads()));
+        plugin.messages().send(context.sender(), line("Categories", remoteStats.categories()));
+        plugin.messages().send(context.sender(), line("Tags", remoteStats.tags()));
+        plugin.messages().send(context.sender(), line("Collections", remoteStats.collections()));
+        plugin.messages().send(context.sender(), line("Revocations", remoteStats.revocations()));
+        plugin.messages().send(context.sender(), line("Hidden Heads", plugin.headRegistry().hiddenHeads().size()));
+        plugin.messages().send(context.sender(), line("Overrides", plugin.headRegistry().overrides().list().size()));
+        plugin.messages().send(context.sender(), line("More Heads", plugin.headRegistry().customHeads().list().size()));
+        plugin.messages().send(context.sender(), line("Player Heads", plugin.headRegistry().playerHeads().knownPlayers().size()));
+        plugin.messages().send(context.sender(), line("More Categories", plugin.customCategories().list().size()));
+        plugin.messages().send(context.sender(), line("Refresh", refreshText(refresh)));
+        plugin.messages().send(context.sender(), line("Last Refresh", lastRefreshText(refresh)));
+        plugin.messages().send(context.sender(), line("Updater", updateText(updateResult)));
 
         if (Permissions.has(context.sender(), Permissions.REPORT)) {
-            context.reply(Component.text("Report: ", NamedTextColor.GRAY).append(Component.text("/hdb report", NamedTextColor.GOLD)));
+            plugin.messages().send(context.sender(), Component.text("Report: ", NamedTextColor.GRAY).append(Component.text("/hdb report", NamedTextColor.GOLD)));
         }
 
-        context.reply(Component.empty());
+        plugin.messages().send(context.sender(), Component.empty());
     }
 
     @Override

@@ -29,7 +29,7 @@ public final class UpdateCommand extends AbstractPaperCommand {
             return;
         }
 
-        context.reply(Component.text("Checking for updates...", NamedTextColor.GRAY));
+        plugin.messages().send(context.sender(), Component.text("Checking for updates...", NamedTextColor.GRAY));
     }
 
     @Override

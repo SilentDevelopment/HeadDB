@@ -22,18 +22,18 @@ public final class ReloadCommand extends AbstractPaperCommand {
 
     @Override
     protected void handle(@NotNull PaperCommandContext context) {
-        context.reply(plugin.messages().reloadStarted(context.sender()));
+        plugin.messages().send(context.sender(), plugin.messages().reloadStarted(context.sender()));
 
         try {
             plugin.reload();
             plugin.startUpdater();
         } catch (Exception exception) {
             plugin.getSLF4JLogger().error("Failed to reload HeadDB.", exception);
-            context.reply(plugin.messages().reloadFailed(context.sender()));
+            plugin.messages().send(context.sender(), plugin.messages().reloadFailed(context.sender()));
             return;
         }
 
-        context.reply(plugin.messages().reloadSuccess(context.sender()));
+        plugin.messages().send(context.sender(), plugin.messages().reloadSuccess(context.sender()));
         if (context.isPlayer()) {
             plugin.sounds().play(context.player(), SoundKey.RELOAD);
         }

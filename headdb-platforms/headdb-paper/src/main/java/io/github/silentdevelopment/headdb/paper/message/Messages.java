@@ -11,8 +11,11 @@ import net.kyori.adventure.text.TextReplacementConfig;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.ConsoleCommandSender;
+import org.bukkit.command.RemoteConsoleCommandSender;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.event.Level;
 
 import java.util.Comparator;
 import java.util.EnumMap;
@@ -32,6 +35,18 @@ public final class Messages {
     public Messages(@NotNull PaperMessenger messenger) {
         this.messenger = Objects.requireNonNull(messenger, "messenger");
         this.fallbackMessages = fallbackMessages();
+    }
+
+    public void send(@NotNull CommandSender receiver, @NotNull Component message) {
+        Objects.requireNonNull(receiver, "receiver");
+        Objects.requireNonNull(message, "message");
+
+        if (receiver instanceof ConsoleCommandSender || receiver instanceof RemoteConsoleCommandSender) {
+            messenger.getConsoleMessageFunction().send(Level.INFO, message);
+            return;
+        }
+
+        receiver.sendMessage(message);
     }
 
     public @NotNull Component invalidArgument(@NotNull CommandSender receiver, @NotNull String message) {

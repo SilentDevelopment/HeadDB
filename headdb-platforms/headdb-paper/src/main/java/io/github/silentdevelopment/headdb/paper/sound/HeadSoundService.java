@@ -2,7 +2,6 @@ package io.github.silentdevelopment.headdb.paper.sound;
 
 import io.github.silentdevelopment.headdb.paper.HeadDBPlugin;
 import org.bukkit.Location;
-import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
@@ -59,17 +58,17 @@ public final class HeadSoundService {
             return;
         }
 
-        if (isNamespacedSound(rawSound)) {
-            player.playSound(location, rawSound.toLowerCase(Locale.ROOT), entry.volume(), entry.pitch());
-            return;
-        }
+        String sound = normalizeSound(rawSound);
 
-        Sound sound;
         try {
-            sound = Sound.valueOf(rawSound.toUpperCase(Locale.ROOT));
+            player.playSound(
+                    location,
+                    sound,
+                    entry.volume(),
+                    entry.pitch()
+            );
         } catch (IllegalArgumentException exception) {
             warnInvalid(key, rawSound);
-            return;
         }
 
         player.playSound(location, sound, entry.volume(), entry.pitch());
@@ -85,6 +84,16 @@ public final class HeadSoundService {
         Objects.requireNonNull(player, "player");
         Objects.requireNonNull(iconKey, "iconKey");
         play(player, SoundKey.fromGuiIcon(iconKey));
+    }
+
+    private static @NotNull String normalizeSound(@NotNull String sound) {
+        String normalized = sound.trim().toLowerCase(Locale.ROOT);
+
+        if (normalized.contains(":") || normalized.contains(".")) {
+            return normalized;
+        }
+
+        return "minecraft:" + normalized.replace('_', '.');
     }
 
     private boolean isDuplicate(@NotNull Player player, @NotNull SoundKey key) {

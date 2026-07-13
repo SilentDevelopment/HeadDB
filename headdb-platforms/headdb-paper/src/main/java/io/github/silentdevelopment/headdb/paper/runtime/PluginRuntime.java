@@ -8,6 +8,7 @@ import io.github.silentdevelopment.headdb.core.database.parse.GsonCatalogIndexPa
 import io.github.silentdevelopment.headdb.core.database.parse.GsonCatalogPartParser;
 import io.github.silentdevelopment.headdb.core.database.parse.GsonRevocationPartParser;
 import io.github.silentdevelopment.headdb.core.database.parse.GsonRevocationsIndexParser;
+import io.github.silentdevelopment.headdb.core.database.refresh.DatabaseRefreshResult;
 import io.github.silentdevelopment.headdb.core.database.refresh.DatabaseRefreshService;
 import io.github.silentdevelopment.headdb.core.hash.Sha256Verifier;
 import io.github.silentdevelopment.headdb.core.remote.ArtifactSelector;
@@ -24,6 +25,7 @@ import java.time.Clock;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
@@ -81,12 +83,17 @@ public final class PluginRuntime {
             throw new IllegalStateException("runtime is closed");
         }
 
-        if (!config.loadCacheOnStartup() && !config.refreshOnStartup()) {
+        if (config.loadCacheOnStartup() || config.refreshOnStartup()) {
+            runAsync("run startup refresh sequence", this::runStartupRefreshSequence);
+        } else {
             plugin.getSLF4JLogger().info("startup cache load and remote refresh are both disabled.");
-            return;
         }
 
-        runAsync("run startup refresh sequence", this::runStartupRefreshSequence);
+        if (config.scheduledRefreshEnabled()) {
+            schedulePeriodicRefresh();
+        } else {
+            plugin.getSLF4JLogger().info("scheduled remote database refresh is disabled.");
+        }
     }
 
     public PluginConfig config() {
@@ -210,7 +217,14 @@ public final class PluginRuntime {
 
     private void refreshRemoteStarted() {
         try {
-            refreshService.refresh();
+            DatabaseRefreshResult result = refreshService.refreshIfChanged();
+
+            if (result == DatabaseRefreshResult.UNCHANGED) {
+                refreshState.markSuccess();
+                plugin.getSLF4JLogger().debug("Remote database artifacts are unchanged.");
+                return;
+            }
+
             plugin.invalidateHeadRegistry();
             plugin.warmHeadRegistry();
             plugin.clearItemCache();
@@ -221,6 +235,39 @@ public final class PluginRuntime {
             refreshState.markFailure(exception);
             logFailure("Failed to refresh remote database.", exception);
         }
+    }
+
+    private void schedulePeriodicRefresh() {
+        long intervalMillis = config.scheduledRefreshInterval().toMillis();
+        ScheduledTask task = plugin.getServer().getAsyncScheduler().runAtFixedRate(
+                plugin,
+                scheduledTask -> runScheduledRefresh(),
+                intervalMillis,
+                intervalMillis,
+                TimeUnit.MILLISECONDS
+        );
+
+        synchronized (scheduledTasks) {
+            scheduledTasks.add(task);
+        }
+
+        plugin.getSLF4JLogger().debug(
+                "Scheduled remote database refresh every {}.",
+                config.scheduledRefreshInterval()
+        );
+    }
+
+    private void runScheduledRefresh() {
+        if (closed.get()) {
+            return;
+        }
+
+        if (!refreshState.begin("scheduled remote refresh")) {
+            plugin.getSLF4JLogger().debug("Skipped scheduled remote database refresh because another refresh operation is running.");
+            return;
+        }
+
+        refreshRemoteStarted();
     }
 
     private void verifyRemoteStarted(@NotNull Consumer<DatabaseSnapshot> success, @NotNull Consumer<Throwable> failure) {

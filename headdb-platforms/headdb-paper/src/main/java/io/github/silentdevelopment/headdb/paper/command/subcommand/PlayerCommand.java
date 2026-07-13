@@ -44,7 +44,7 @@ public final class PlayerCommand extends AbstractPaperCommand {
         try {
             parsedTarget = parseTarget(context);
         } catch (IllegalArgumentException exception) {
-            context.reply(plugin.messages().invalidArgument(context.sender(), exception.getMessage()));
+            plugin.messages().send(context.sender(), plugin.messages().invalidArgument(context.sender(), exception.getMessage()));
             play(context, SoundKey.INVALID);
             return;
         }
@@ -55,15 +55,15 @@ public final class PlayerCommand extends AbstractPaperCommand {
         }
 
         if (!Permissions.canPlayerHeadFor(context.sender(), target)) {
-            context.reply(plugin.messages().render(context.sender(), io.github.silentdevelopment.headdb.paper.message.MessageKey.COMMAND_ERROR_NO_PERMISSION));
+            plugin.messages().send(context.sender(), plugin.messages().render(context.sender(), io.github.silentdevelopment.headdb.paper.message.MessageKey.COMMAND_ERROR_NO_PERMISSION));
             play(context, SoundKey.NO_PERMISSION);
             return;
         }
 
-        context.reply(Component.text("Resolving player head for ", NamedTextColor.GRAY).append(Component.text(lookup, NamedTextColor.GOLD)).append(Component.text("...", NamedTextColor.GRAY)));
+        plugin.messages().send(context.sender(), Component.text("Resolving player head for ", NamedTextColor.GRAY).append(Component.text(lookup, NamedTextColor.GOLD)).append(Component.text("...", NamedTextColor.GRAY)));
         plugin.headRegistry().playerHeads().resolve(lookup).whenComplete((head, throwable) -> plugin.getServer().getGlobalRegionScheduler().execute(plugin, () -> {
             if (throwable != null) {
-                context.reply(Component.text("Could not resolve player head: ", NamedTextColor.RED).append(Component.text(message(throwable), NamedTextColor.GRAY)));
+                plugin.messages().send(context.sender(), Component.text("Could not resolve player head: ", NamedTextColor.RED).append(Component.text(message(throwable), NamedTextColor.GRAY)));
                 play(context, SoundKey.INVALID);
                 return;
             }
@@ -74,13 +74,13 @@ public final class PlayerCommand extends AbstractPaperCommand {
 
             for (int index = 0; index < parsedTarget.amount(); index++) {
                 if (!give(target, head)) {
-                    context.reply(plugin.messages().giveInventoryFull(context.sender(), target));
+                    plugin.messages().send(context.sender(), plugin.messages().giveInventoryFull(context.sender(), target));
                     play(context, SoundKey.INVALID);
                     return;
                 }
             }
 
-            context.reply(plugin.messages().giveSuccess(context.sender(), head, target));
+            plugin.messages().send(context.sender(), plugin.messages().giveSuccess(context.sender(), head, target));
             plugin.sounds().play(target, SoundKey.PLAYER_HEAD);
             if (context.isPlayer() && !context.player().equals(target)) {
                 plugin.sounds().play(context.player(), SoundKey.PLAYER_HEAD);
@@ -127,14 +127,14 @@ public final class PlayerCommand extends AbstractPaperCommand {
             if (context.isPlayer()) {
                 return context.player();
             }
-            context.reply(Component.text("Usage: /hdb player <name|uuid> <player> [amount]", NamedTextColor.RED));
+            plugin.messages().send(context.sender(), Component.text("Usage: /hdb player <name|uuid> <player> [amount]", NamedTextColor.RED));
             play(context, SoundKey.INVALID);
             return null;
         }
 
         Player target = Bukkit.getPlayerExact(targetName.trim());
         if (target == null) {
-            context.reply(plugin.messages().playerNotOnline(context.sender(), targetName));
+            plugin.messages().send(context.sender(), plugin.messages().playerNotOnline(context.sender(), targetName));
             play(context, SoundKey.INVALID);
             return null;
         }

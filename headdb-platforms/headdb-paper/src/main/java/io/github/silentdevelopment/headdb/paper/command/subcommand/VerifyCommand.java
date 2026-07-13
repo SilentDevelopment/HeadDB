@@ -29,7 +29,7 @@ public final class VerifyCommand extends AbstractPaperCommand {
     @Override
     protected void handle(@NotNull PaperCommandContext context) {
         if (!Permissions.has(context.sender(), Permissions.VERIFY)) {
-            context.reply(plugin.messages().render(context.sender(), MessageKey.COMMAND_ERROR_NO_PERMISSION));
+            plugin.messages().send(context.sender(), plugin.messages().render(context.sender(), MessageKey.COMMAND_ERROR_NO_PERMISSION));
             if (context.isPlayer()) {
                 plugin.sounds().play(context.player(), SoundKey.NO_PERMISSION);
             }
@@ -44,11 +44,11 @@ public final class VerifyCommand extends AbstractPaperCommand {
         );
 
         if (!accepted) {
-            context.reply(plugin.messages().verifyAlreadyRunning(context.sender()));
+            plugin.messages().send(context.sender(), plugin.messages().verifyAlreadyRunning(context.sender()));
             return;
         }
 
-        context.reply(plugin.messages().verifyStarted(context.sender()));
+        plugin.messages().send(context.sender(), plugin.messages().verifyStarted(context.sender()));
         if (context.isPlayer()) {
             plugin.sounds().play(context.player(), SoundKey.VERIFY);
         }
@@ -64,7 +64,7 @@ public final class VerifyCommand extends AbstractPaperCommand {
     }
 
     private void reply(@NotNull CommandSender sender, @NotNull Component message) {
-        plugin.getServer().getGlobalRegionScheduler().execute(plugin, () -> sender.sendMessage(message));
+        plugin.getServer().getGlobalRegionScheduler().execute(plugin, () -> plugin.messages().send(sender, message));
     }
 
     private @NotNull Component success(@NotNull CommandSender sender, @NotNull DatabaseSnapshot snapshot) {

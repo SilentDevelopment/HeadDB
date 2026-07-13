@@ -45,17 +45,17 @@ public final class EditCommand extends AbstractPaperCommand {
         try {
             id = SearchParser.headId(context.get(ID));
         } catch (IllegalArgumentException exception) {
-            context.reply(plugin.messages().invalidArgument(context.sender(), exception.getMessage()));
+            plugin.messages().send(context.sender(), plugin.messages().invalidArgument(context.sender(), exception.getMessage()));
             return;
         }
 
         if (!id.isRemote()) {
-            context.reply(Component.text("Only remote heads can be edited with /hdb edit. Use /hdb custom for custom heads.", NamedTextColor.RED));
+            plugin.messages().send(context.sender(), Component.text("Only remote heads can be edited with /hdb edit. Use /hdb custom for custom heads.", NamedTextColor.RED));
             return;
         }
 
         if (plugin.runtime().database().findById(id).isEmpty()) {
-            context.reply(plugin.messages().unknownHead(context.sender(), id));
+            plugin.messages().send(context.sender(), plugin.messages().unknownHead(context.sender(), id));
             return;
         }
 
@@ -77,7 +77,7 @@ public final class EditCommand extends AbstractPaperCommand {
                 default -> usage(context);
             }
         } catch (IllegalArgumentException exception) {
-            context.reply(plugin.messages().invalidArgument(context.sender(), exception.getMessage()));
+            plugin.messages().send(context.sender(), plugin.messages().invalidArgument(context.sender(), exception.getMessage()));
         }
     }
 
@@ -97,11 +97,11 @@ public final class EditCommand extends AbstractPaperCommand {
         require(context, Permissions.EDIT);
         Head head = plugin.headRegistry().find(id).orElseThrow(() -> new IllegalArgumentException("Unknown head: " + id));
         for (Component line : HeadInfoFormatter.format(head)) {
-            context.reply(line);
+            plugin.messages().send(context.sender(), line);
         }
         plugin.headRegistry().overrides().find(id).ifPresentOrElse(
-                override -> context.reply(Component.text("Local override: present", NamedTextColor.GOLD)),
-                () -> context.reply(Component.text("Local override: none", NamedTextColor.GRAY))
+                override -> plugin.messages().send(context.sender(), Component.text("Local override: present", NamedTextColor.GOLD)),
+                () -> plugin.messages().send(context.sender(), Component.text("Local override: none", NamedTextColor.GRAY))
         );
     }
 
@@ -152,7 +152,7 @@ public final class EditCommand extends AbstractPaperCommand {
         require(context, Permissions.EDIT_RESET);
         boolean deleted = plugin.headRegistry().overrides().delete(id);
         changed();
-        context.reply(Component.text(deleted ? "Reset local override for " : "No local override existed for ", deleted ? NamedTextColor.GRAY : NamedTextColor.RED).append(Component.text(id.display(), NamedTextColor.GOLD)));
+        plugin.messages().send(context.sender(), Component.text(deleted ? "Reset local override for " : "No local override existed for ", deleted ? NamedTextColor.GRAY : NamedTextColor.RED).append(Component.text(id.display(), NamedTextColor.GOLD)));
     }
 
     private @NotNull RemoteHeadOverride override(@NotNull PaperCommandContext context, @NotNull HeadId id) {
@@ -162,7 +162,7 @@ public final class EditCommand extends AbstractPaperCommand {
     private void save(@NotNull PaperCommandContext context, @NotNull RemoteHeadOverride override) {
         plugin.headRegistry().overrides().save(override);
         changed();
-        context.reply(Component.text("Saved local override for ", NamedTextColor.GRAY).append(Component.text(override.headId().display(), NamedTextColor.GOLD)));
+        plugin.messages().send(context.sender(), Component.text("Saved local override for ", NamedTextColor.GRAY).append(Component.text(override.headId().display(), NamedTextColor.GOLD)));
     }
 
     private void require(@NotNull PaperCommandContext context, @NotNull String permission) {
@@ -189,6 +189,6 @@ public final class EditCommand extends AbstractPaperCommand {
     }
 
     private void usage(@NotNull PaperCommandContext context) {
-        context.reply(Component.text("Usage: /hdb edit <remote-id> <info|name|lore-set|lore-clear|tag-add|tag-remove|tags-replace|category|hide|show|reset> ...", NamedTextColor.RED));
+        plugin.messages().send(context.sender(), Component.text("Usage: /hdb edit <remote-id> <info|name|lore-set|lore-clear|tag-add|tag-remove|tags-replace|category|hide|show|reset> ...", NamedTextColor.RED));
     }
 }

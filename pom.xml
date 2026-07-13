@@ -7,7 +7,7 @@
 
     <groupId>io.github.silentdevelopment.headdb</groupId>
     <artifactId>HeadDB</artifactId>
-    <version>7.0.0-rc.5</version>
+    <version>7.0.0-rc.6</version>
     <packaging>pom</packaging>
 
     <name>HeadDB</name>

@@ -16,7 +16,10 @@ public final class Commands {
     }
 
     public void register() {
-        PaperCommandManager manager = new PaperCommandManager(builder -> builder.responseRenderer(new CommandResponseRenderer(plugin)));
+        PaperCommandManager manager = new PaperCommandManager(builder -> builder
+                .responseRenderer(new CommandResponseRenderer(plugin))
+                .responseFunction((receiver, message) -> plugin.messages().send(receiver, message))
+        );
         PaperLifecycleCommandRegistrar registrar = new PaperLifecycleCommandRegistrar(plugin, manager);
 
         registrar.register(new RootCommand(plugin));

@@ -35,6 +35,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import org.jetbrains.annotations.NotNull;
 
 public final class DatabaseRefreshService {
@@ -53,6 +54,7 @@ public final class DatabaseRefreshService {
     private final Clock clock;
     private final DatabaseArtifactCache artifactCache;
     private final AtomicBoolean running;
+    private final AtomicReference<RemoteManifest> activeManifest;
 
     public DatabaseRefreshService(@NotNull DefaultHeadDatabase database, @NotNull URI manifestUri, @NotNull RemoteHttpClient httpClient, @NotNull RemoteManifestParser manifestParser, @NotNull ArtifactSelector artifactSelector, @NotNull Sha256Verifier sha256Verifier, @NotNull ZstdArtifactDecoder zstdDecoder, @NotNull GsonCatalogIndexParser catalogIndexParser, @NotNull GsonCatalogPartParser catalogPartParser, @NotNull GsonRevocationsIndexParser revocationsIndexParser, @NotNull GsonRevocationPartParser revocationPartParser, @NotNull Clock clock, @NotNull DatabaseArtifactCache artifactCache) {
         this.database = Objects.requireNonNull(database, "database");
@@ -69,6 +71,7 @@ public final class DatabaseRefreshService {
         this.clock = Objects.requireNonNull(clock, "clock");
         this.artifactCache = Objects.requireNonNull(artifactCache, "artifactCache");
         this.running = new AtomicBoolean(false);
+        this.activeManifest = new AtomicReference<>();
         if (!manifestUri.isAbsolute()) {
             throw new IllegalArgumentException("Manifest URI must be absolute.");
         }
@@ -87,6 +90,7 @@ public final class DatabaseRefreshService {
             try {
                 DatabaseSnapshot snapshot = parseArtifacts(cached.get(), DatabaseSource.CACHE);
                 database.replace(snapshot);
+                activeManifest.set(cached.get().manifest());
                 return true;
             } catch (IOException | RuntimeException exception) {
                 database.markFailed(refreshError(exception));
@@ -107,7 +111,60 @@ public final class DatabaseRefreshService {
                 DatabaseSnapshot snapshot = parseArtifacts(artifacts, DatabaseSource.REMOTE);
                 artifactCache.save(artifacts);
                 database.replace(snapshot);
+                activeManifest.set(artifacts.manifest());
                 return snapshot;
+            } catch (InterruptedException exception) {
+                Thread.currentThread().interrupt();
+                database.markFailed("Database refresh was interrupted.");
+                throw exception;
+            } catch (IOException | RuntimeException exception) {
+                database.markFailed(refreshError(exception));
+                throw exception;
+            }
+        } finally {
+            running.set(false);
+        }
+    }
+
+    public @NotNull DatabaseRefreshResult refreshIfChanged() throws IOException, InterruptedException {
+        begin();
+
+        try {
+            RemoteManifestDocument document;
+
+            try {
+                document = loadRemoteManifest();
+            } catch (InterruptedException exception) {
+                Thread.currentThread().interrupt();
+
+                if (activeManifest.get() == null) {
+                    database.markFailed("Database refresh was interrupted.");
+                }
+
+                throw exception;
+            } catch (IOException | RuntimeException exception) {
+                if (activeManifest.get() == null) {
+                    database.markFailed(refreshError(exception));
+                }
+
+                throw exception;
+            }
+
+            RemoteManifest currentManifest = activeManifest.get();
+            if (currentManifest != null && sameDatabaseResources(currentManifest, document.manifest())) {
+                activeManifest.set(document.manifest());
+                return DatabaseRefreshResult.UNCHANGED;
+            }
+
+            database.markLoading(DatabaseSource.REMOTE);
+
+            try {
+                CachedDatabaseArtifacts artifacts = loadRemoteArtifacts(document);
+                DatabaseSnapshot snapshot = parseArtifacts(artifacts, DatabaseSource.REMOTE);
+                artifactCache.save(artifacts);
+                database.replace(snapshot);
+                activeManifest.set(artifacts.manifest());
+                return DatabaseRefreshResult.UPDATED;
             } catch (InterruptedException exception) {
                 Thread.currentThread().interrupt();
                 database.markFailed("Database refresh was interrupted.");
@@ -139,9 +196,20 @@ public final class DatabaseRefreshService {
         throw new IllegalStateException("Database load or refresh is already running.");
     }
 
-    private @NotNull CachedDatabaseArtifacts loadRemoteArtifacts() throws IOException, InterruptedException {
+    private @NotNull RemoteManifestDocument loadRemoteManifest() throws IOException, InterruptedException {
         String manifestJson = httpClient.getText(manifestUri);
         RemoteManifest manifest = manifestParser.parse(manifestJson);
+        return new RemoteManifestDocument(manifestJson, manifest);
+    }
+
+    private @NotNull CachedDatabaseArtifacts loadRemoteArtifacts() throws IOException, InterruptedException {
+        return loadRemoteArtifacts(loadRemoteManifest());
+    }
+
+    private @NotNull CachedDatabaseArtifacts loadRemoteArtifacts(@NotNull RemoteManifestDocument document) throws IOException, InterruptedException {
+        Objects.requireNonNull(document, "document");
+        String manifestJson = document.json();
+        RemoteManifest manifest = document.manifest();
         CachedArtifact catalogIndex = downloadSelected(artifactSelector.selectCatalogIndex(manifest), RemoteContentTypes.CATALOG_INDEX);
         ParsedCatalogIndex parsedCatalogIndex = catalogIndexParser.parse(decode(catalogIndex.selection().artifact(), catalogIndex.bytes()));
         List<CachedArtifact> catalogParts = downloadParts(manifest, RemoteResourceId.CATALOG, parsedCatalogIndex.artifacts(), RemoteContentTypes.CATALOG_PART);
@@ -149,6 +217,12 @@ public final class DatabaseRefreshService {
         ParsedRevocationsIndex parsedRevocationsIndex = revocationsIndexParser.parse(decode(revocationsIndex.selection().artifact(), revocationsIndex.bytes()));
         List<CachedArtifact> revocationParts = downloadParts(manifest, RemoteResourceId.REVOCATIONS, parsedRevocationsIndex.artifacts(), RemoteContentTypes.REVOCATIONS_PART);
         return new CachedDatabaseArtifacts(manifestJson, manifest, catalogIndex, catalogParts, revocationsIndex, revocationParts);
+    }
+
+    private boolean sameDatabaseResources(@NotNull RemoteManifest current, @NotNull RemoteManifest remote) {
+        return current.id().equals(remote.id())
+                && current.catalogResource().index().equals(remote.catalogResource().index())
+                && current.revocationsResource().index().equals(remote.revocationsResource().index());
     }
 
     private @NotNull DatabaseSnapshot parseArtifacts(@NotNull CachedDatabaseArtifacts artifacts, @NotNull DatabaseSource source) throws IOException {
@@ -248,5 +322,13 @@ public final class DatabaseRefreshService {
             return throwable.getClass().getSimpleName();
         }
         return message;
+    }
+
+    private record RemoteManifestDocument(@NotNull String json, @NotNull RemoteManifest manifest) {
+
+        private RemoteManifestDocument {
+            Objects.requireNonNull(json, "json");
+            Objects.requireNonNull(manifest, "manifest");
+        }
     }
 }

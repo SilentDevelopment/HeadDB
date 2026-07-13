@@ -584,7 +584,7 @@ public final class UpdateService {
             }
 
             if (requester != null) {
-                requester.sendMessage(formatResult(result));
+                plugin.messages().send(requester, formatResult(result));
                 return;
             }
 
@@ -699,7 +699,7 @@ public final class UpdateService {
     }
 
     private void reply(@NotNull CommandSender sender, @NotNull Component message) {
-        plugin.getServer().getGlobalRegionScheduler().execute(plugin, () -> sender.sendMessage(message));
+        plugin.getServer().getGlobalRegionScheduler().execute(plugin, () -> plugin.messages().send(sender, message));
     }
 
     private @NotNull String currentVersion() {

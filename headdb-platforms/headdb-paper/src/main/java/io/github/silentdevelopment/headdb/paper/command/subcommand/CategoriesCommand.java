@@ -39,7 +39,7 @@ public final class CategoriesCommand extends AbstractPaperCommand {
                 .toList();
 
         for (var line : ListFormatter.format("Head Categories", entries, page, PAGE_SIZE)) {
-            context.reply(line);
+            plugin.messages().send(context.sender(), line);
         }
     }
 

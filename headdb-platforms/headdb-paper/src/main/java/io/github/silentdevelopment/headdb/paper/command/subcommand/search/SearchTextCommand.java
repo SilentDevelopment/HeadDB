@@ -36,7 +36,7 @@ public final class SearchTextCommand extends AbstractPaperCommand {
             SearchRequest request = SearchOptions.advancedRequest(context, context.get(QUERY).trim());
             execute(context, request);
         } catch (IllegalArgumentException exception) {
-            context.reply(plugin.messages().invalidArgument(context.sender(), exception.getMessage()));
+            plugin.messages().send(context.sender(), plugin.messages().invalidArgument(context.sender(), exception.getMessage()));
         }
     }
 
@@ -70,7 +70,7 @@ public final class SearchTextCommand extends AbstractPaperCommand {
 
     private void execute(@NotNull PaperCommandContext context, @NotNull SearchRequest request) {
         if (context.isPlayer()) {
-            context.reply(plugin.messages().searchGuiNotReady(context.sender()));
+            plugin.messages().send(context.sender(), plugin.messages().searchGuiNotReady(context.sender()));
             return;
         }
 
@@ -82,7 +82,7 @@ public final class SearchTextCommand extends AbstractPaperCommand {
         }
 
         for (Component line : SearchFormatter.format(context.sender(), request, result)) {
-            context.reply(line);
+            plugin.messages().send(context.sender(), line);
         }
     }
 

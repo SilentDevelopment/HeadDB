@@ -25,12 +25,12 @@ public final class HelpCommand extends AbstractPaperCommand {
     @Override
     protected void handle(@NotNull PaperCommandContext context) {
         if (!Permissions.has(context.sender(), Permissions.HELP)) {
-            context.reply(plugin.messages().render(context.sender(), MessageKey.COMMAND_ERROR_NO_PERMISSION));
+            plugin.messages().send(context.sender(), plugin.messages().render(context.sender(), MessageKey.COMMAND_ERROR_NO_PERMISSION));
             return;
         }
 
         for (Component line : HelpFormatter.format(context.sender())) {
-            context.reply(line);
+            plugin.messages().send(context.sender(), line);
         }
     }
 

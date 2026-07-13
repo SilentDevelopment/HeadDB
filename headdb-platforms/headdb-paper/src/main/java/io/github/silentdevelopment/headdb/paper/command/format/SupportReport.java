@@ -104,6 +104,8 @@ public final class SupportReport {
         line(report, "Last successful operation", formatInstant(refresh.lastSuccessfulRefresh()));
         line(report, "Last failed operation", formatInstant(refresh.lastFailedRefresh()));
         line(report, "Last failure", value(refresh.lastFailureMessage()));
+        line(report, "Scheduled refresh enabled", yesNo(config.scheduledRefreshEnabled()));
+        line(report, "Scheduled refresh interval", config.scheduledRefreshInterval());
 
         section(report, "Remote config");
         line(report, "Manifest URL", config.remoteManifestUri());

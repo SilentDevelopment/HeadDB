@@ -77,7 +77,7 @@ public final class RootCommand extends AbstractPaperCommandGroup {
     protected void handle(@NotNull PaperCommandContext context) {
         if (plugin.config().guiOpenMainCommand() && context.sender() instanceof Player player) {
             if (!Permissions.has(player, Permissions.OPEN) || !Permissions.has(player, Permissions.GUI_MAIN)) {
-                context.reply(plugin.messages().render(context.sender(), io.github.silentdevelopment.headdb.paper.message.MessageKey.COMMAND_ERROR_NO_PERMISSION));
+                plugin.messages().send(context.sender(), plugin.messages().render(context.sender(), io.github.silentdevelopment.headdb.paper.message.MessageKey.COMMAND_ERROR_NO_PERMISSION));
                 return;
             }
 
@@ -88,7 +88,7 @@ public final class RootCommand extends AbstractPaperCommandGroup {
         CommandSender sender = context.source();
 
         for (Component line : RootFormatter.format(plugin, context.sender())) {
-            sender.sendMessage(line);
+            plugin.messages().send(sender, line);
         }
     }
 

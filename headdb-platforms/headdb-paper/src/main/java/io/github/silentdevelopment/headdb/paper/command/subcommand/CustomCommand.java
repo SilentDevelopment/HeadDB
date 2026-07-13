@@ -68,7 +68,7 @@ public final class CustomCommand extends AbstractPaperCommand {
                 default -> usage(context);
             }
         } catch (IllegalArgumentException exception) {
-            context.reply(plugin.messages().invalidArgument(context.sender(), exception.getMessage()));
+            plugin.messages().send(context.sender(), plugin.messages().invalidArgument(context.sender(), exception.getMessage()));
         }
     }
 
@@ -94,25 +94,25 @@ public final class CustomCommand extends AbstractPaperCommand {
         int to = Math.min(from + 10, heads.size());
         int totalPages = Math.max(1, (int) Math.ceil(heads.size() / 10.0));
 
-        context.reply(Component.text("Custom Heads ", NamedTextColor.GOLD).append(Component.text(page + "/" + totalPages, NamedTextColor.GRAY)));
+        plugin.messages().send(context.sender(), Component.text("Custom Heads ", NamedTextColor.GOLD).append(Component.text(page + "/" + totalPages, NamedTextColor.GRAY)));
         if (heads.isEmpty()) {
-            context.reply(Component.text("No custom heads are stored.", NamedTextColor.GRAY));
+            plugin.messages().send(context.sender(), Component.text("No custom heads are stored.", NamedTextColor.GRAY));
             return;
         }
         for (StoredCustomHead head : heads.subList(from, to)) {
-            context.reply(Component.text("- ", NamedTextColor.DARK_GRAY).append(Component.text("custom:" + head.id(), NamedTextColor.GOLD)).append(Component.text(" - " + head.name(), NamedTextColor.GRAY)));
+            plugin.messages().send(context.sender(), Component.text("- ", NamedTextColor.DARK_GRAY).append(Component.text("custom:" + head.id(), NamedTextColor.GOLD)).append(Component.text(" - " + head.name(), NamedTextColor.GRAY)));
         }
     }
 
     private void info(@NotNull PaperCommandContext context) {
         require(context, Permissions.CUSTOM_INFO);
         StoredCustomHead head = stored(id(context));
-        context.reply(Component.text("Custom Head: ", NamedTextColor.GRAY).append(Component.text(head.name(), NamedTextColor.GOLD)));
-        context.reply(line("ID", "custom:" + head.id()));
-        context.reply(line("Category", head.category()));
-        context.reply(line("Tags", head.tags().isEmpty() ? "none" : String.join(", ", head.tags())));
-        context.reply(line("Collections", head.collections().isEmpty() ? "none" : String.join(", ", head.collections())));
-        context.reply(line("Texture", head.textureHash()));
+        plugin.messages().send(context.sender(), Component.text("Custom Head: ", NamedTextColor.GRAY).append(Component.text(head.name(), NamedTextColor.GOLD)));
+        plugin.messages().send(context.sender(), line("ID", "custom:" + head.id()));
+        plugin.messages().send(context.sender(), line("Category", head.category()));
+        plugin.messages().send(context.sender(), line("Tags", head.tags().isEmpty() ? "none" : String.join(", ", head.tags())));
+        plugin.messages().send(context.sender(), line("Collections", head.collections().isEmpty() ? "none" : String.join(", ", head.collections())));
+        plugin.messages().send(context.sender(), line("Texture", head.textureHash()));
     }
 
     private void create(@NotNull PaperCommandContext context) {
@@ -125,7 +125,7 @@ public final class CustomCommand extends AbstractPaperCommand {
         StoredCustomHead head = new StoredCustomHead(id, name, texture.hash(), null, List.of(), Set.of("custom"), Set.of(), "custom", Instant.now(), Instant.now(), createdBy);
         plugin.headRegistry().customHeads().save(head);
         changed();
-        context.reply(Component.text("Created custom head ", NamedTextColor.GRAY).append(Component.text("custom:" + head.id(), NamedTextColor.GOLD)).append(Component.text(".", NamedTextColor.GRAY)));
+        plugin.messages().send(context.sender(), Component.text("Created custom head ", NamedTextColor.GRAY).append(Component.text("custom:" + head.id(), NamedTextColor.GOLD)).append(Component.text(".", NamedTextColor.GRAY)));
     }
 
     private void createHeld(@NotNull PaperCommandContext context) {
@@ -139,7 +139,7 @@ public final class CustomCommand extends AbstractPaperCommand {
         StoredCustomHead head = new StoredCustomHead(id, name, texture.hash(), null, List.of(), Set.of("custom"), Set.of(), "custom", Instant.now(), Instant.now(), context.player().getUniqueId());
         plugin.headRegistry().customHeads().save(head);
         changed();
-        context.reply(Component.text("Created custom head from held item: ", NamedTextColor.GRAY).append(Component.text("custom:" + head.id(), NamedTextColor.GOLD)));
+        plugin.messages().send(context.sender(), Component.text("Created custom head from held item: ", NamedTextColor.GRAY).append(Component.text("custom:" + head.id(), NamedTextColor.GOLD)));
     }
 
     private void delete(@NotNull PaperCommandContext context) {
@@ -147,7 +147,7 @@ public final class CustomCommand extends AbstractPaperCommand {
         HeadId id = id(context);
         boolean deleted = plugin.headRegistry().customHeads().delete(id);
         changed();
-        context.reply(Component.text(deleted ? "Deleted " : "No custom head existed for ", deleted ? NamedTextColor.GRAY : NamedTextColor.RED).append(Component.text(id.display(), NamedTextColor.GOLD)));
+        plugin.messages().send(context.sender(), Component.text(deleted ? "Deleted " : "No custom head existed for ", deleted ? NamedTextColor.GRAY : NamedTextColor.RED).append(Component.text(id.display(), NamedTextColor.GOLD)));
     }
 
     private void rename(@NotNull PaperCommandContext context) {
@@ -156,7 +156,7 @@ public final class CustomCommand extends AbstractPaperCommand {
         String name = required(context, SECOND, "Usage: /hdb custom rename <id> <name>");
         plugin.headRegistry().customHeads().save(head.withName(name));
         changed();
-        context.reply(Component.text("Renamed ", NamedTextColor.GRAY).append(Component.text("custom:" + head.id(), NamedTextColor.GOLD)).append(Component.text(" to ", NamedTextColor.GRAY)).append(Component.text(name, NamedTextColor.GOLD)));
+        plugin.messages().send(context.sender(), Component.text("Renamed ", NamedTextColor.GRAY).append(Component.text("custom:" + head.id(), NamedTextColor.GOLD)).append(Component.text(" to ", NamedTextColor.GRAY)).append(Component.text(name, NamedTextColor.GOLD)));
     }
 
     private void give(@NotNull PaperCommandContext context) {
@@ -166,7 +166,7 @@ public final class CustomCommand extends AbstractPaperCommand {
         Player target = target(context, parsedTarget.targetName());
         int amount = parsedTarget.amount();
         if (!Permissions.canCustomGiveTo(context.sender(), target)) {
-            context.reply(plugin.messages().render(context.sender(), io.github.silentdevelopment.headdb.paper.message.MessageKey.COMMAND_ERROR_NO_PERMISSION));
+            plugin.messages().send(context.sender(), plugin.messages().render(context.sender(), io.github.silentdevelopment.headdb.paper.message.MessageKey.COMMAND_ERROR_NO_PERMISSION));
             return;
         }
         if (context.isPlayer() && !plugin.economy().charge(context.player(), head, amount)) {
@@ -174,17 +174,17 @@ public final class CustomCommand extends AbstractPaperCommand {
         }
         for (int index = 0; index < amount; index++) {
             if (target.getInventory().firstEmpty() == -1) {
-                context.reply(plugin.messages().giveInventoryFull(context.sender(), target));
+                plugin.messages().send(context.sender(), plugin.messages().giveInventoryFull(context.sender(), target));
                 return;
             }
 
             ItemStack item = plugin.itemFactory().create(head);
             if (!target.getInventory().addItem(item).isEmpty()) {
-                context.reply(plugin.messages().giveInventoryFull(context.sender(), target));
+                plugin.messages().send(context.sender(), plugin.messages().giveInventoryFull(context.sender(), target));
                 return;
             }
         }
-        context.reply(plugin.messages().giveSuccess(context.sender(), head, target));
+        plugin.messages().send(context.sender(), plugin.messages().giveSuccess(context.sender(), head, target));
     }
 
     private @NotNull ParsedTarget parsedGiveTarget(@NotNull PaperCommandContext context) {
@@ -288,7 +288,7 @@ public final class CustomCommand extends AbstractPaperCommand {
     }
 
     private void usage(@NotNull PaperCommandContext context) {
-        context.reply(Component.text("Usage: /hdb custom <list|info|create|createheld|delete|rename|give> ...", NamedTextColor.RED));
+        plugin.messages().send(context.sender(), Component.text("Usage: /hdb custom <list|info|create|createheld|delete|rename|give> ...", NamedTextColor.RED));
     }
 
     private static @NotNull Component line(@NotNull String key, @NotNull String value) {

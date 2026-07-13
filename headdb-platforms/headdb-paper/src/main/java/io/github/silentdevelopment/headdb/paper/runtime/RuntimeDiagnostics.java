@@ -17,12 +17,14 @@ public final class RuntimeDiagnostics {
         Objects.requireNonNull(plugin, "plugin");
         Objects.requireNonNull(config, "config");
 
-        plugin.getSLF4JLogger().info(
-                "Config: manifest={}, preferredMirror={}, loadCacheOnStartup={}, refreshOnStartup={}, startupChecks={}",
+        plugin.getSLF4JLogger().debug(
+                "Config: manifest={}, preferredMirror={}, loadCacheOnStartup={}, refreshOnStartup={}, scheduledRefreshEnabled={}, scheduledRefreshInterval={}, startupChecks={}",
                 config.remoteManifestUri(),
                 config.preferredMirrorId(),
                 config.loadCacheOnStartup(),
                 config.refreshOnStartup(),
+                config.scheduledRefreshEnabled(),
+                config.scheduledRefreshInterval(),
                 config.isDebug()
         );
     }
@@ -34,7 +36,7 @@ public final class RuntimeDiagnostics {
         DatabaseStatus status = runtime.database().status();
         DatabaseStats stats = runtime.database().stats();
 
-        plugin.getSLF4JLogger().info(
+        plugin.getSLF4JLogger().debug(
                 "Database: state={}, source={}, heads={}, categories={}, tags={}, collections={}, revocations={}",
                 status.state(),
                 status.source(),

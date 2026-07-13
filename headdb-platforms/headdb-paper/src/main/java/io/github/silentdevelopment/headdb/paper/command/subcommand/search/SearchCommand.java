@@ -43,7 +43,7 @@ public final class SearchCommand extends AbstractPaperCommandGroup {
     @Override
     protected void handle(@NotNull PaperCommandContext context) {
         if (!Permissions.has(context.sender(), Permissions.SEARCH)) {
-            context.reply(plugin.messages().render(context.sender(), MessageKey.COMMAND_ERROR_NO_PERMISSION));
+            plugin.messages().send(context.sender(), plugin.messages().render(context.sender(), MessageKey.COMMAND_ERROR_NO_PERMISSION));
             return;
         }
 
@@ -53,17 +53,17 @@ public final class SearchCommand extends AbstractPaperCommandGroup {
             String query = context.has(QUERY) ? context.get(QUERY).trim() : "";
             request = SearchOptions.advancedRequest(context, query);
         } catch (IllegalArgumentException exception) {
-            context.reply(plugin.messages().invalidArgument(context.sender(), exception.getMessage()));
+            plugin.messages().send(context.sender(), plugin.messages().invalidArgument(context.sender(), exception.getMessage()));
             return;
         }
 
         if (!canSearch(context, request)) {
-            context.reply(plugin.messages().render(context.sender(), MessageKey.COMMAND_ERROR_NO_PERMISSION));
+            plugin.messages().send(context.sender(), plugin.messages().render(context.sender(), MessageKey.COMMAND_ERROR_NO_PERMISSION));
             return;
         }
 
         if (request.isEmpty()) {
-            context.reply(plugin.messages().searchUsage(context.sender()));
+            plugin.messages().send(context.sender(), plugin.messages().searchUsage(context.sender()));
             return;
         }
 
@@ -110,7 +110,7 @@ public final class SearchCommand extends AbstractPaperCommandGroup {
         }
 
         for (Component line : SearchFormatter.format(context.sender(), request, result)) {
-            context.reply(line);
+            plugin.messages().send(context.sender(), line);
         }
     }
 

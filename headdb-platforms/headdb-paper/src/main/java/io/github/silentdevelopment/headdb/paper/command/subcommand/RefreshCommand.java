@@ -25,11 +25,11 @@ public final class RefreshCommand extends AbstractPaperCommand {
         boolean accepted = plugin.runtime().refreshAsync();
 
         if (!accepted) {
-            context.reply(plugin.messages().refreshAlreadyRunning(context.sender()));
+            plugin.messages().send(context.sender(), plugin.messages().refreshAlreadyRunning(context.sender()));
             return;
         }
 
-        context.reply(plugin.messages().refreshStarted(context.sender()));
+        plugin.messages().send(context.sender(), plugin.messages().refreshStarted(context.sender()));
         if (context.isPlayer()) {
             plugin.sounds().play(context.player(), SoundKey.REFRESH);
         }

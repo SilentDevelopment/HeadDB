@@ -43,29 +43,29 @@ public final class ReportCommand extends AbstractPaperCommand {
         return PaperCommands.literal("report").alias("rpt").description("Creates a full support report.").requirement(CommandRequirements.permission(Permissions.REPORT)).noArgs().build();
     }
 
-    private static void sendPlayerReport(@NotNull PaperCommandContext context, @NotNull String report) {
+    private void sendPlayerReport(@NotNull PaperCommandContext context, @NotNull String report) {
         Component copy = Component.text("HERE", NamedTextColor.GOLD).decorate(TextDecoration.BOLD).clickEvent(ClickEvent.copyToClipboard(report)).hoverEvent(HoverEvent.showText(Component.text("Copy the full support report.", NamedTextColor.GRAY)));
 
-        context.reply(Component.empty());
-        context.reply(Component.text("> ", NamedTextColor.DARK_GRAY).append(Component.text("Report", NamedTextColor.RED)));
-        context.reply(Component.text("Click ", NamedTextColor.GRAY).append(copy).append(Component.text(" to copy the full support report.", NamedTextColor.GRAY)));
-        context.reply(Component.text("Paste this report when asking for support.", NamedTextColor.GRAY));
-        context.reply(Component.empty());
+        plugin.messages().send(context.sender(), Component.empty());
+        plugin.messages().send(context.sender(), Component.text("> ", NamedTextColor.DARK_GRAY).append(Component.text("Report", NamedTextColor.RED)));
+        plugin.messages().send(context.sender(), Component.text("Click ", NamedTextColor.GRAY).append(copy).append(Component.text(" to copy the full support report.", NamedTextColor.GRAY)));
+        plugin.messages().send(context.sender(), Component.text("Paste this report when asking for support.", NamedTextColor.GRAY));
+        plugin.messages().send(context.sender(), Component.empty());
     }
 
-    private static void sendConsoleReport(@NotNull PaperCommandContext context, @NotNull String report) {
-        context.reply(Component.empty());
+    private void sendConsoleReport(@NotNull PaperCommandContext context, @NotNull String report) {
+        plugin.messages().send(context.sender(), Component.empty());
 
         for (String line : report.split("\\R", -1)) {
             if (line.isBlank()) {
-                context.reply(Component.empty());
+                plugin.messages().send(context.sender(), Component.empty());
                 continue;
             }
 
-            context.reply(Component.text(line, NamedTextColor.GRAY));
+            plugin.messages().send(context.sender(), Component.text(line, NamedTextColor.GRAY));
         }
 
-        context.reply(Component.empty());
+        plugin.messages().send(context.sender(), Component.empty());
     }
 
 }

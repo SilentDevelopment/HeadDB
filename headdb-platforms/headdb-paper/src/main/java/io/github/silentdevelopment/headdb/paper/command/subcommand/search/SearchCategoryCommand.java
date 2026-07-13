@@ -37,14 +37,14 @@ public final class SearchCategoryCommand extends AbstractPaperCommand {
             String category = SearchParser.singleId(context.get(CATEGORY), "category");
 
             if (!Permissions.canViewCategory(context.sender(), category)) {
-                context.reply(plugin.messages().render(context.sender(), io.github.silentdevelopment.headdb.paper.message.MessageKey.COMMAND_ERROR_NO_PERMISSION));
+                plugin.messages().send(context.sender(), plugin.messages().render(context.sender(), io.github.silentdevelopment.headdb.paper.message.MessageKey.COMMAND_ERROR_NO_PERMISSION));
                 return;
             }
 
             SearchRequest request = SearchOptions.categoryRequest(context, category);
             execute(context, request);
         } catch (IllegalArgumentException exception) {
-            context.reply(plugin.messages().invalidArgument(context.sender(), exception.getMessage()));
+            plugin.messages().send(context.sender(), plugin.messages().invalidArgument(context.sender(), exception.getMessage()));
         }
     }
 
@@ -71,7 +71,7 @@ public final class SearchCategoryCommand extends AbstractPaperCommand {
 
     private void execute(@NotNull PaperCommandContext context, @NotNull SearchRequest request) {
         if (context.isPlayer()) {
-            context.reply(plugin.messages().searchGuiNotReady(context.sender()));
+            plugin.messages().send(context.sender(), plugin.messages().searchGuiNotReady(context.sender()));
             return;
         }
 
@@ -83,7 +83,7 @@ public final class SearchCategoryCommand extends AbstractPaperCommand {
         }
 
         for (Component line : SearchFormatter.format(context.sender(), request, result)) {
-            context.reply(line);
+            plugin.messages().send(context.sender(), line);
         }
     }
 

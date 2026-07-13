@@ -48,7 +48,7 @@ public final class OpenCommand extends AbstractPaperCommand {
         Optional<HeadCategory> optionalCategory = plugin.headRegistry().category(category);
 
         if (optionalCategory.isEmpty()) {
-            context.reply(plugin.messages().unknownCategory(context.sender(), category));
+            plugin.messages().send(context.sender(), plugin.messages().unknownCategory(context.sender(), category));
             return;
         }
 
@@ -58,12 +58,12 @@ public final class OpenCommand extends AbstractPaperCommand {
         }
 
         if (!Permissions.canOpenFor(context.sender(), target)) {
-            context.reply(plugin.messages().render(context.sender(), MessageKey.COMMAND_ERROR_NO_PERMISSION));
+            plugin.messages().send(context.sender(), plugin.messages().render(context.sender(), MessageKey.COMMAND_ERROR_NO_PERMISSION));
             return;
         }
 
         if (!Permissions.has(target, Permissions.GUI_CATEGORY_OPEN) || !Permissions.canViewCategory(target, optionalCategory.get().id())) {
-            context.reply(plugin.messages().render(context.sender(), MessageKey.COMMAND_ERROR_NO_PERMISSION));
+            plugin.messages().send(context.sender(), plugin.messages().render(context.sender(), MessageKey.COMMAND_ERROR_NO_PERMISSION));
             return;
         }
 
@@ -86,14 +86,14 @@ public final class OpenCommand extends AbstractPaperCommand {
 
     private void openMain(@NotNull PaperCommandContext context) {
         if (!context.isPlayer()) {
-            context.reply(plugin.messages().openConsoleSelfUsage(context.sender()));
+            plugin.messages().send(context.sender(), plugin.messages().openConsoleSelfUsage(context.sender()));
             return;
         }
 
         Player player = context.player();
 
         if (!Permissions.has(player, Permissions.OPEN) || !Permissions.has(player, Permissions.GUI_MAIN)) {
-            context.reply(plugin.messages().render(context.sender(), MessageKey.COMMAND_ERROR_NO_PERMISSION));
+            plugin.messages().send(context.sender(), plugin.messages().render(context.sender(), MessageKey.COMMAND_ERROR_NO_PERMISSION));
             return;
         }
 
@@ -106,13 +106,13 @@ public final class OpenCommand extends AbstractPaperCommand {
                 return context.player();
             }
 
-            context.reply(plugin.messages().openConsoleTargetUsage(context.sender()));
+            plugin.messages().send(context.sender(), plugin.messages().openConsoleTargetUsage(context.sender()));
             return null;
         }
 
         String name = context.get(PLAYER).trim();
         if (name.isEmpty()) {
-            context.reply(plugin.messages().targetEmpty(context.sender()));
+            plugin.messages().send(context.sender(), plugin.messages().targetEmpty(context.sender()));
             return null;
         }
 
@@ -121,7 +121,7 @@ public final class OpenCommand extends AbstractPaperCommand {
             return player;
         }
 
-        context.reply(plugin.messages().playerNotOnline(context.sender(), name));
+        plugin.messages().send(context.sender(), plugin.messages().playerNotOnline(context.sender(), name));
         return null;
     }
 }
