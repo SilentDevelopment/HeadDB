@@ -1,13 +1,13 @@
 {
   "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
   "bootstrap-sha": "45733cd4e64b227ade4f42c30f6b4bdd27e5d88d",
-  "release-type": "maven",
+  "release-type": "simple",
   "include-v-in-tag": false,
   "include-component-in-tag": false,
-  "skip-snapshot": true,
+  "versioning": "prerelease",
   "prerelease": true,
   "prerelease-type": "rc",
-  "versioning-strategy": "prerelease",
+  "release-as": "7.0.0-rc.7",
   "draft": true,
   "force-tag-creation": true,
   "pull-request-title-pattern": "chore${scope}: release ${version}",
@@ -51,14 +51,35 @@
       "hidden": true
     }
   ],
-  "plugins": [
-    {
-      "type": "maven-workspace"
-    }
-  ],
   "packages": {
     ".": {
-      "package-name": "HeadDB"
+      "package-name": "HeadDB",
+      "extra-files": [
+        {
+          "type": "generic",
+          "path": "pom.xml"
+        },
+        {
+          "type": "generic",
+          "path": "headdb-api/pom.xml"
+        },
+        {
+          "type": "generic",
+          "path": "headdb-core/pom.xml"
+        },
+        {
+          "type": "generic",
+          "path": "headdb-platforms/pom.xml"
+        },
+        {
+          "type": "generic",
+          "path": "headdb-platforms/headdb-paper/pom.xml"
+        },
+        {
+          "type": "generic",
+          "path": "version.txt"
+        }
+      ]
     }
   }
 }
