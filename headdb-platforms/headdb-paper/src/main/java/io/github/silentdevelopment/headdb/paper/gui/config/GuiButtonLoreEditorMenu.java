@@ -70,7 +70,7 @@ public final class GuiButtonLoreEditorMenu {
     }
 
     public static boolean handleClick(@NotNull HeadDBPlugin plugin, @NotNull Player player, @NotNull InventoryClickEvent event) {
-        if (!(event.getView().getTopInventory().getHolder() instanceof GuiButtonLoreHolder holder)) {
+        if (!(event.getView().getTopInventory().getHolder(false) instanceof GuiButtonLoreHolder holder)) {
             return false;
         }
 

@@ -88,7 +88,7 @@ public final class DeleteHeadConfirmMenu {
         Objects.requireNonNull(player, "player");
         Objects.requireNonNull(event, "event");
 
-        if (!(event.getView().getTopInventory().getHolder() instanceof ConfirmHolder holder)) {
+        if (!(event.getView().getTopInventory().getHolder(false) instanceof ConfirmHolder holder)) {
             return false;
         }
 

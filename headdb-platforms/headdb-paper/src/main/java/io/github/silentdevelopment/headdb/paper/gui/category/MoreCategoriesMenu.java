@@ -118,7 +118,7 @@ public final class MoreCategoriesMenu {
     }
 
     public static boolean handleClick(@NotNull HeadDBPlugin plugin, @NotNull Player player, @NotNull InventoryClickEvent event) {
-        if (event.getView().getTopInventory().getHolder() instanceof CategoryEditorHolder editor) {
+        if (event.getView().getTopInventory().getHolder(false) instanceof CategoryEditorHolder editor) {
             event.setCancelled(true);
             if (event.getClickedInventory() == null || !event.getClickedInventory().equals(event.getView().getTopInventory())) {
                 return true;
@@ -137,7 +137,7 @@ public final class MoreCategoriesMenu {
             return true;
         }
 
-        if (!(event.getView().getTopInventory().getHolder() instanceof MoreCategoriesHolder holder)) {
+        if (!(event.getView().getTopInventory().getHolder(false) instanceof MoreCategoriesHolder holder)) {
             return false;
         }
 
