@@ -121,7 +121,7 @@ public final class CreateHeadMenu {
         Objects.requireNonNull(player, "player");
         Objects.requireNonNull(event, "event");
 
-        InventoryHolder holder = event.getView().getTopInventory().getHolder();
+        InventoryHolder holder = event.getView().getTopInventory().getHolder(false);
         if (!(holder instanceof CreateHeadHolder) && !(holder instanceof CreateHeadSelectorHolder)) {
             return false;
         }

@@ -81,7 +81,7 @@ public final class FavoritesMenu {
         Objects.requireNonNull(player, "player");
         Objects.requireNonNull(event, "event");
 
-        if (!(event.getView().getTopInventory().getHolder() instanceof FavoritesHolder holder)) {
+        if (!(event.getView().getTopInventory().getHolder(false) instanceof FavoritesHolder holder)) {
             return false;
         }
 
