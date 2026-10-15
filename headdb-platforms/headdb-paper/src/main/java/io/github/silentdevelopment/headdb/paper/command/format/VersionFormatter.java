@@ -22,6 +22,7 @@ public final class VersionFormatter {
     private static final String HEADDB_URL = "https://github.com/SilentDevelopment/HeadDB";
     private static final String SILENT_DEVELOPMENT_URL = "https://github.com/SilentDevelopment";
     private static final String THE_SILENT_PRO_URL = "https://github.com/TheSilentPro";
+    private static final String SUPPORT_URL = "https://support.headsdb.com";
 
     private VersionFormatter() {
         throw new UnsupportedOperationException("This class cannot be instantiated.");
@@ -43,6 +44,7 @@ public final class VersionFormatter {
         lines.add(startupRunningLine(plugin));
         lines.add(Component.empty());
         lines.add(versionLine(buildInfo.version(), updateResult));
+        lines.add(supportLine());
 
         if (plugin.config().isDebug()) {
             lines.add(field("Build", buildInfo.displayBuild()));
@@ -67,6 +69,7 @@ public final class VersionFormatter {
 
         lines.add(Component.empty());
         lines.add(commandRunningLine(meta, buildInfo));
+        lines.add(supportLine());
         lines.add(Component.empty());
         lines.add(helpLine());
 
@@ -152,6 +155,13 @@ public final class VersionFormatter {
         }
 
         return Component.text("Latest", NamedTextColor.GOLD);
+    }
+
+    private static @NotNull Component supportLine() {
+        return Component.text("Donate: ", NamedTextColor.GRAY)
+                .append(Component.text("support.headsdb.com", NamedTextColor.GOLD)
+                        .clickEvent(ClickEvent.openUrl(SUPPORT_URL))
+                        .hoverEvent(HoverEvent.showText(Component.text("Support HeadDB", NamedTextColor.GRAY))));
     }
 
     private static @NotNull Component section(@NotNull String title) {
