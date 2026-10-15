@@ -4,6 +4,7 @@ import io.github.silentdevelopment.headdb.model.Head;
 import io.github.silentdevelopment.headdb.model.HeadId;
 import io.github.silentdevelopment.headdb.paper.HeadDBPlugin;
 import io.github.silentdevelopment.headdb.paper.gui.common.GuiHeadIcons;
+import io.github.silentdevelopment.headdb.paper.gui.common.HeadPriceLore;
 import io.github.silentdevelopment.headdb.paper.gui.common.GuiItems;
 import io.github.silentdevelopment.headdb.paper.gui.common.GuiMaterials;
 import io.github.silentdevelopment.headdb.paper.gui.common.GuiTitles;
@@ -30,6 +31,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 public final class CustomCategoryViewMenu {
@@ -91,7 +93,7 @@ public final class CustomCategoryViewMenu {
         plugin.sounds().play(player, io.github.silentdevelopment.headdb.paper.sound.SoundKey.MENU_OPEN);
     }
 
-    public static boolean handleClick(@NotNull HeadDBPlugin plugin, @NotNull Player player, @NotNull InventoryClickEvent event, @NotNull Consumer<HeadId> edit, @NotNull Consumer<ItemStack> give) {
+    public static boolean handleClick(@NotNull HeadDBPlugin plugin, @NotNull Player player, @NotNull InventoryClickEvent event, @NotNull Consumer<HeadId> edit, @NotNull BiConsumer<HeadId, String> give) {
         if (!(event.getView().getTopInventory().getHolder(false) instanceof Holder holder)) {
             return false;
         }
@@ -134,7 +136,7 @@ public final class CustomCategoryViewMenu {
             return true;
         }
 
-        give.accept(item);
+        give.accept(id.get(), holder.categoryId());
         return true;
     }
 
@@ -163,6 +165,7 @@ public final class CustomCategoryViewMenu {
         for (int index = fromIndex; index < toIndex; index++) {
             Head head = heads.get(index);
             ItemStack item = plugin.itemFactory().create(head);
+            HeadPriceLore.decorate(plugin, item, head, categoryId(inventory));
             plugin.favorites().decorate(player.getUniqueId(), head.id(), item);
             if (adminMode) {
                 item.editMeta(meta -> {
@@ -177,6 +180,15 @@ public final class CustomCategoryViewMenu {
             inventory.setItem(HEAD_SLOTS[slotIndex], item);
             slotIndex++;
         }
+    }
+
+    private static @NotNull String categoryId(@NotNull Inventory inventory) {
+        InventoryHolder holder = inventory.getHolder(false);
+        if (holder instanceof Holder customHolder) {
+            return customHolder.categoryId();
+        }
+
+        return "";
     }
 
     private static void renderControls(@NotNull HeadDBPlugin plugin, @NotNull Player player, @NotNull Inventory inventory, @NotNull CustomCategory category, int totalHeads, int page, int pages) {
