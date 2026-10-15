@@ -69,7 +69,6 @@ public final class VersionFormatter {
 
         lines.add(Component.empty());
         lines.add(commandRunningLine(meta, buildInfo));
-        lines.add(supportLine());
         lines.add(Component.empty());
         lines.add(helpLine());
 
