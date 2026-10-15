@@ -5,6 +5,7 @@ import io.github.silentdevelopment.headdb.model.Head;
 import io.github.silentdevelopment.headdb.model.HeadId;
 import io.github.silentdevelopment.headdb.paper.HeadDBPlugin;
 import io.github.silentdevelopment.headdb.paper.gui.common.GuiHeadIcons;
+import io.github.silentdevelopment.headdb.paper.gui.common.HeadPriceLore;
 import io.github.silentdevelopment.headdb.paper.gui.common.GuiItems;
 import io.github.silentdevelopment.headdb.paper.gui.common.GuiTitles;
 import io.github.silentdevelopment.headdb.paper.item.HeadItemIds;
@@ -152,6 +153,7 @@ public final class FavoritesMenu {
         for (int index = fromIndex; index < toIndex; index++) {
             Head head = heads.get(index);
             ItemStack item = plugin.itemFactory().create(head);
+            HeadPriceLore.decorate(plugin, item, head);
             plugin.favorites().decorate(player.getUniqueId(), head.id(), item);
             if (plugin.adminModes().enabled(player)) {
                 item.editMeta(meta -> {
