@@ -29,11 +29,11 @@ class BuildInfoTest {
         BuildInfo buildInfo = BuildInfo.from("7.0.0-rc.7", buildProperties, gitProperties);
 
         assertEquals("7.0.0-rc.7", buildInfo.version());
-        assertEquals("ci", buildInfo.channel());
+        assertEquals("CI", buildInfo.channel());
         assertEquals("412", buildInfo.buildNumber());
         assertEquals("2", buildInfo.buildAttempt());
         assertEquals("22018457391", buildInfo.runId());
-        assertEquals("CI #412.2", buildInfo.displayBuild());
+        assertEquals("412.2", buildInfo.displayBuild());
         assertEquals("45733cd", buildInfo.commit());
         assertEquals("45733cd4e64b227ade4f42c30f6b4bdd27e5d88d", buildInfo.fullCommit());
         assertEquals("master", buildInfo.branch());
@@ -56,7 +56,7 @@ class BuildInfoTest {
         BuildInfo buildInfo = BuildInfo.from("7.0.0-rc.7", buildProperties, new Properties());
 
         assertEquals("7.0.0-rc.7", buildInfo.version());
-        assertEquals("local", buildInfo.channel());
+        assertEquals("Local", buildInfo.channel());
         assertEquals("Local", buildInfo.displayBuild());
         assertNull(buildInfo.buildNumber());
         assertNull(buildInfo.buildAttempt());
