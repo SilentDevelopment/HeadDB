@@ -28,7 +28,7 @@ public record BuildInfo(@NotNull String version, @NotNull String channel, @Nulla
         Objects.requireNonNull(buildProperties, "buildProperties");
         Objects.requireNonNull(gitProperties, "gitProperties");
 
-        String channel = channel(buildProperties.getProperty("headdb.build.channel"));
+        String channel = channelLabel(buildProperties.getProperty("headdb.build.channel"));
         String buildNumber = optionalValue(buildProperties.getProperty("headdb.build.number"));
         String buildAttempt = buildNumber == null ? null : optionalValue(buildProperties.getProperty("headdb.build.attempt"));
         String runId = buildNumber == null ? null : optionalValue(buildProperties.getProperty("headdb.build.run-id"));
@@ -41,17 +41,15 @@ public record BuildInfo(@NotNull String version, @NotNull String channel, @Nulla
     }
 
     public @NotNull String displayBuild() {
-        String label = channelLabel();
-
         if (buildNumber == null) {
-            return label;
+            return channel;
         }
 
         if (buildAttempt == null || buildAttempt.equals("1")) {
-            return label + " #" + buildNumber;
+            return buildNumber;
         }
 
-        return label + " #" + buildNumber + "." + buildAttempt;
+        return buildNumber + "." + buildAttempt;
     }
 
     public boolean hasGitInfo() {
@@ -60,18 +58,6 @@ public record BuildInfo(@NotNull String version, @NotNull String channel, @Nulla
 
     public boolean hasCiBuildInfo() {
         return channel.equalsIgnoreCase("ci") && buildNumber != null;
-    }
-
-    private @NotNull String channelLabel() {
-        if (channel.equalsIgnoreCase("ci")) {
-            return "CI";
-        }
-
-        if (channel.length() == 1) {
-            return channel.toUpperCase(Locale.ROOT);
-        }
-
-        return Character.toUpperCase(channel.charAt(0)) + channel.substring(1).toLowerCase(Locale.ROOT);
     }
 
     private static @NotNull Properties readProperties(@NotNull JavaPlugin plugin, @NotNull String resource) {
@@ -90,13 +76,22 @@ public record BuildInfo(@NotNull String version, @NotNull String channel, @Nulla
         return properties;
     }
 
-    private static @NotNull String channel(@Nullable String value) {
+    private static @NotNull String channelLabel(@Nullable String value) {
         String normalized = optionalValue(value);
         if (normalized == null) {
-            return "local";
+            return "Local";
         }
 
-        return normalized.toLowerCase(Locale.ROOT);
+        if (normalized.equalsIgnoreCase("ci")) {
+            return "CI";
+        }
+
+        if (normalized.length() == 1) {
+            return normalized.toUpperCase(Locale.ROOT);
+        }
+
+        return Character.toUpperCase(normalized.charAt(0))
+                + normalized.substring(1).toLowerCase(Locale.ROOT);
     }
 
     private static @Nullable String firstPresent(@Nullable String first, @Nullable String second) {
