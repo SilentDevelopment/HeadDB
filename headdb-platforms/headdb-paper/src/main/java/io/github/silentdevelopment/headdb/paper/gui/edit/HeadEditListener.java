@@ -202,7 +202,9 @@ public final class HeadEditListener implements Listener {
         }
 
         Optional<HeadId> clickedHeadId = io.github.silentdevelopment.headdb.paper.item.HeadItemIds.read(plugin, item);
-        if (clickedHeadId.isPresent() && (event.getClick() == ClickType.RIGHT || event.getClick() == ClickType.SHIFT_RIGHT)) {
+        boolean clickedTopInventory = event.getClickedInventory() != null && event.getClickedInventory().equals(event.getView().getTopInventory());
+        boolean favoriteToggleItem = io.github.silentdevelopment.headdb.paper.gui.search.SearchPageFactory.supportsFavoriteToggle(plugin, item);
+        if (clickedTopInventory && favoriteToggleItem && clickedHeadId.isPresent() && (event.getClick() == ClickType.RIGHT || event.getClick() == ClickType.SHIFT_RIGHT)) {
             deny(event);
             FavoriteClickGuard.mark(player, clickedHeadId.get());
             toggleFavorite(player, clickedHeadId.get());
