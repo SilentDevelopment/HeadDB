@@ -434,6 +434,13 @@ icons:
     name: <gold>Category
     lore:
     - <gray>Default category button icon settings.
+  category-style:
+    type: ITEM
+    head-id: ''
+    material: BOOKSHELF
+    name: <gold>Browse by Style
+    lore:
+    - <gray>Browse this category by material or style.
   category-add:
     type: ITEM
     head-id: ''
@@ -750,6 +757,7 @@ texts:
   title.settings: Settings
   title.collections-custom-page: Custom Collections %page%/%pages%
   title.tags-custom-page: Custom Tags %page%/%pages%
+  title.category-styles-page: '%name% %page%/%pages%'
   title.confirm-refresh: Confirm Refresh
   title.confirm-reload: Confirm Reload
 slots:
@@ -767,6 +775,7 @@ slots:
   browse.custom-heads: 26
   browse.create-head: 27
   browse.search: 53
+  search.category-style-browser: 4
   create-head.preview: 4
   create-head.use-held: 12
   create-head.reset: 14

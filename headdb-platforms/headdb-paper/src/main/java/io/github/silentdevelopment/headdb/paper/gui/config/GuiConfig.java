@@ -57,6 +57,7 @@ public final class GuiConfig {
             "more-categories",
             "more-category",
             "category",
+            "category-style",
             "category-add",
             "category-remove",
             "category-name",

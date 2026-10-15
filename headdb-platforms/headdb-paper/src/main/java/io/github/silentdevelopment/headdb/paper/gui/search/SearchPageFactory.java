@@ -13,6 +13,9 @@ import io.github.silentdevelopment.headdb.model.HeadCollection;
 import io.github.silentdevelopment.headdb.model.HeadTag;
 import io.github.silentdevelopment.headdb.model.HeadId;
 import io.github.silentdevelopment.headdb.paper.HeadDBPlugin;
+import io.github.silentdevelopment.headdb.paper.gui.category.CategoryFacet;
+import io.github.silentdevelopment.headdb.paper.gui.category.CategoryFacetMenu;
+import io.github.silentdevelopment.headdb.paper.gui.category.CategoryFacetRegistry;
 import io.github.silentdevelopment.headdb.paper.gui.common.GuiHeadIcons;
 import io.github.silentdevelopment.headdb.paper.gui.common.GuiItems;
 import io.github.silentdevelopment.headdb.paper.gui.common.GuiTitles;
@@ -39,6 +42,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 
 @SuppressWarnings("UnstableApiUsage")
@@ -52,6 +56,7 @@ public final class SearchPageFactory implements PaperPageFactory<SearchMenuState
     private static final int SLOT_PREVIOUS = 48;
     private static final int SLOT_SUMMARY = 49;
     private static final int SLOT_NEXT = 50;
+    private static final int SLOT_CATEGORY_FACET = 4;
     private static final int SLOT_SORT_FILTER = 52;
     private static final int SLOT_EMPTY = 22;
     private static final String NO_VISIBLE_CATEGORY = "__headdb_no_visible_category__";
@@ -134,6 +139,13 @@ public final class SearchPageFactory implements PaperPageFactory<SearchMenuState
 
         set(page, reservedSlots, SLOT_SUMMARY, summaryButton(request, result, currentPage));
 
+        categoryFacet(request).ifPresent(facet -> set(
+                page,
+                reservedSlots,
+                plugin.guiConfig().slot("search.category-style-browser", SLOT_CATEGORY_FACET),
+                categoryFacetButton(facet)
+        ));
+
         if (currentPage < result.totalPages()) {
             set(page, reservedSlots, SLOT_NEXT, nextButton(currentPage));
         }
@@ -142,6 +154,22 @@ public final class SearchPageFactory implements PaperPageFactory<SearchMenuState
         if (player != null && Permissions.has(player, Permissions.GUI_FILTER)) {
             set(page, reservedSlots, SLOT_SORT_FILTER, sortFilterButton(request));
         }
+    }
+
+    private @NotNull ItemElement<SearchMenuState> categoryFacetButton(@NotNull CategoryFacet facet) {
+        Objects.requireNonNull(facet, "facet");
+
+        return GuiHeadIcons.<SearchMenuState>button(
+                plugin,
+                "category_facet",
+                "category-style",
+                context -> {
+                    Player player = player(context);
+                    if (player != null) {
+                        CategoryFacetMenu.open(plugin, player, facet);
+                    }
+                }
+        );
     }
 
     private @NotNull ItemElement<SearchMenuState> sortFilterButton(@NotNull SearchRequest request) {
@@ -200,6 +228,7 @@ public final class SearchPageFactory implements PaperPageFactory<SearchMenuState
 
         switch (target) {
             case BROWSE -> plugin.guis().openBrowse(player);
+            case CATEGORY_FACET -> openCategoryFacetBack(player, SearchState.request(context));
             case COLLECTIONS -> plugin.guis().openCollections(player);
             case TAGS -> plugin.guis().openTags(player);
             case RESULTS -> context.openPage(SearchPageFactory.KEY);
@@ -342,7 +371,18 @@ public final class SearchPageFactory implements PaperPageFactory<SearchMenuState
         Objects.requireNonNull(request, "request");
 
         if (request.categoryLocked() && request.category() != null) {
-            return categoryName(request.category());
+            String categoryName = categoryName(request.category());
+
+            if (request.tags().size() == 1) {
+                Optional<CategoryFacet> facet = CategoryFacetRegistry.find(request.category());
+                String tagId = request.tags().iterator().next();
+
+                if (facet.isPresent() && facet.get().matchesTag(tagId)) {
+                    return categoryName + " · " + facet.get().displayName(tagId, tagName(tagId));
+                }
+            }
+
+            return categoryName;
         }
 
         if (!request.query().isBlank()) {
@@ -434,6 +474,44 @@ public final class SearchPageFactory implements PaperPageFactory<SearchMenuState
     private static @NotNull NamespacedKey favoriteToggleKey(@NotNull HeadDBPlugin plugin) {
         Objects.requireNonNull(plugin, "plugin");
         return new NamespacedKey(plugin, FAVORITE_TOGGLE_MARKER);
+    }
+
+    private @NotNull Optional<CategoryFacet> categoryFacet(@NotNull SearchRequest request) {
+        Objects.requireNonNull(request, "request");
+
+        if (!request.categoryLocked() || request.category() == null) {
+            return Optional.empty();
+        }
+
+        if (!request.query().isBlank() || !request.ids().isEmpty() || !request.tags().isEmpty() || !request.collections().isEmpty()) {
+            return Optional.empty();
+        }
+
+        return CategoryFacetRegistry.find(request.category());
+    }
+
+    private void openCategoryFacetBack(@NotNull Player player, @NotNull SearchRequest request) {
+        Objects.requireNonNull(player, "player");
+        Objects.requireNonNull(request, "request");
+
+        String categoryId = request.category();
+        if (categoryId == null) {
+            plugin.guis().openBrowse(player);
+            return;
+        }
+
+        Optional<CategoryFacet> facet = CategoryFacetRegistry.find(categoryId);
+        if (facet.isEmpty()) {
+            plugin.guis().openSearch(
+                    player,
+                    SearchRequest.lockedCategory("", Set.of(), categoryId, Set.of(), Set.of(), io.github.silentdevelopment.headdb.query.HeadSort.ID, io.github.silentdevelopment.headdb.query.SortDirection.ASCENDING, 1, PAGE_SIZE),
+                    SearchMenuState.BackTarget.BROWSE
+            );
+            return;
+        }
+
+        String tagId = request.tags().size() == 1 ? request.tags().iterator().next() : "";
+        CategoryFacetMenu.openForTag(plugin, player, facet.get(), tagId);
     }
 
     private static @NotNull String headIdLabel(@NotNull HeadId id) {

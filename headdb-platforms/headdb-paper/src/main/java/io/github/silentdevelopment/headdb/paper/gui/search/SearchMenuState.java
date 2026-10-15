@@ -27,6 +27,7 @@ public record SearchMenuState(
     public enum BackTarget {
         MAIN,
         BROWSE,
+        CATEGORY_FACET,
         COLLECTIONS,
         TAGS,
         RESULTS
