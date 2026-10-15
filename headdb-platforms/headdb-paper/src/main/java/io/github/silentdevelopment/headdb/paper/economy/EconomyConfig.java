@@ -18,6 +18,7 @@ import java.util.Objects;
 public record EconomyConfig(
         boolean enabled,
         @NotNull String provider,
+        @NotNull ItemEconomyConfig item,
         double anyHeadPrice,
         @NotNull Map<String, Double> categoryPrices,
         @NotNull Map<String, Double> customCategoryPrices,
@@ -27,6 +28,7 @@ public record EconomyConfig(
 
     public EconomyConfig {
         Objects.requireNonNull(provider, "provider");
+        Objects.requireNonNull(item, "item");
         Objects.requireNonNull(categoryPrices, "categoryPrices");
         Objects.requireNonNull(customCategoryPrices, "customCategoryPrices");
         Objects.requireNonNull(headPrices, "headPrices");
@@ -55,6 +57,12 @@ public record EconomyConfig(
         return new EconomyConfig(
                 yaml.getBoolean("enabled", false),
                 yaml.getString("provider", "vault"),
+                new ItemEconomyConfig(
+                        yaml.getString("item.match", ItemEconomyProvider.MATCH_MATERIAL),
+                        yaml.getString("item.material", "DIAMOND"),
+                        yaml.getString("item.singular", ""),
+                        yaml.getString("item.plural", "")
+                ),
                 yaml.getDouble("prices.any-head", 0.0D),
                 prices(yaml.getConfigurationSection("prices.categories")),
                 prices(yaml.getConfigurationSection("prices.custom-categories")),
@@ -144,10 +152,19 @@ public record EconomyConfig(
 
     private static @NotNull String defaultConfig() {
         return "enabled: false\n"
+                + "# Supported providers: vault, item\n"
                 + "provider: vault\n"
+                + "\n"
+                + "item:\n"
+                + "  # Item economy currently supports material-only matching.\n"
+                + "  match: material\n"
+                + "  material: DIAMOND\n"
+                + "  singular: Diamond\n"
+                + "  plural: Diamonds\n"
                 + "\n"
                 + "prices:\n"
                 + "  # Fallback price for every head. Set to 0 to make heads free.\n"
+                + "  # Item economy prices must be whole numbers.\n"
                 + "  any-head: 0.0\n"
                 + "\n"
                 + "  # Price for player heads. If omitted, any-head is used.\n"
