@@ -1,8 +1,17 @@
 enabled: false
+# Supported providers: vault, item
 provider: vault
+
+item:
+  # Item economy currently supports material-only matching.
+  match: material
+  material: DIAMOND
+  singular: Diamond
+  plural: Diamonds
 
 prices:
   # Fallback price for every head. Set to 0 to make heads free.
+  # Item economy prices must be whole numbers.
   any-head: 0.0
 
   # Price for player heads. If omitted, any-head is used.

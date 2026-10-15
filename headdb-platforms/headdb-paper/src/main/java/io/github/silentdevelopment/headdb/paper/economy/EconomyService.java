@@ -3,6 +3,7 @@ package io.github.silentdevelopment.headdb.paper.economy;
 import io.github.silentdevelopment.headdb.model.Head;
 import io.github.silentdevelopment.headdb.paper.HeadDBPlugin;
 import net.milkbowl.vault.economy.Economy;
+import org.bukkit.Material;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.RegisteredServiceProvider;
@@ -36,23 +37,111 @@ public final class EconomyService {
             return new EconomyService(plugin, config, new DisabledEconomyProvider());
         }
 
-        if (!config.provider().equalsIgnoreCase("vault")) {
-            plugin.getSLF4JLogger().warn("Unsupported economy provider '{}'. Economy integration is disabled.", config.provider());
-            return new EconomyService(plugin, config, new DisabledEconomyProvider());
-        }
+        return switch (config.provider()) {
+            case "vault" -> createVault(plugin, config);
+            case "item" -> createItem(plugin, config);
+            default -> {
+                plugin.getSLF4JLogger().warn("Unsupported economy provider '{}'. Economy integration is disabled.", config.provider());
+                yield new EconomyService(plugin, config, new DisabledEconomyProvider());
+            }
+        };
+    }
 
+    private static @NotNull EconomyService createVault(@NotNull HeadDBPlugin plugin, @NotNull EconomyConfig config) {
         if (plugin.getServer().getPluginManager().getPlugin("Vault") == null) {
-            plugin.getSLF4JLogger().warn("Economy is enabled but Vault is not loaded.");
+            plugin.getSLF4JLogger().warn("Economy is enabled with provider 'vault' but Vault is not loaded.");
             return new EconomyService(plugin, config, new DisabledEconomyProvider());
         }
 
         RegisteredServiceProvider<Economy> registration = plugin.getServer().getServicesManager().getRegistration(Economy.class);
         if (registration == null || registration.getProvider() == null) {
-            plugin.getSLF4JLogger().warn("Economy is enabled but Vault did not provide an Economy service.");
+            plugin.getSLF4JLogger().warn("Economy is enabled with provider 'vault' but Vault did not provide an Economy service.");
             return new EconomyService(plugin, config, new DisabledEconomyProvider());
         }
 
         return new EconomyService(plugin, config, new VaultEconomyProvider(registration.getProvider()));
+    }
+
+    private static @NotNull EconomyService createItem(@NotNull HeadDBPlugin plugin, @NotNull EconomyConfig config) {
+        ItemEconomyConfig itemConfig = config.item();
+
+        if (!itemConfig.match().equals(ItemEconomyProvider.MATCH_MATERIAL)) {
+            plugin.getSLF4JLogger().warn(
+                    "Unsupported item economy match mode '{}'. Only 'material' is supported. Economy integration is disabled.",
+                    itemConfig.match()
+            );
+            return new EconomyService(plugin, config, new DisabledEconomyProvider());
+        }
+
+        Material material = Material.matchMaterial(itemConfig.material());
+        if (material == null || material.isAir() || !material.isItem()) {
+            plugin.getSLF4JLogger().warn(
+                    "Invalid item economy material '{}'. Economy integration is disabled.",
+                    itemConfig.material()
+            );
+            return new EconomyService(plugin, config, new DisabledEconomyProvider());
+        }
+
+        if (!wholeItemPrices(config)) {
+            plugin.getSLF4JLogger().warn(
+                    "Item economy requires whole-number prices. Economy integration is disabled until fractional prices are removed."
+            );
+            return new EconomyService(plugin, config, new DisabledEconomyProvider());
+        }
+
+        String fallbackName = displayName(material);
+        String singular = itemConfig.singularOr(fallbackName);
+        String plural = itemConfig.pluralOr(singular + "s");
+        return new EconomyService(plugin, config, new ItemEconomyProvider(material, singular, plural));
+    }
+
+    private static boolean wholeItemPrices(@NotNull EconomyConfig config) {
+        if (!ItemEconomyProvider.isWholeAmount(config.anyHeadPrice())) {
+            return false;
+        }
+
+        if (config.playerHeadPrice() != null && !ItemEconomyProvider.isWholeAmount(config.playerHeadPrice())) {
+            return false;
+        }
+
+        for (double price : config.categoryPrices().values()) {
+            if (!ItemEconomyProvider.isWholeAmount(price)) {
+                return false;
+            }
+        }
+
+        for (double price : config.customCategoryPrices().values()) {
+            if (!ItemEconomyProvider.isWholeAmount(price)) {
+                return false;
+            }
+        }
+
+        for (double price : config.headPrices().values()) {
+            if (!ItemEconomyProvider.isWholeAmount(price)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static @NotNull String displayName(@NotNull Material material) {
+        String[] parts = material.name().toLowerCase(Locale.ROOT).split("_");
+        StringBuilder result = new StringBuilder();
+
+        for (String part : parts) {
+            if (part.isBlank()) {
+                continue;
+            }
+
+            if (!result.isEmpty()) {
+                result.append(' ');
+            }
+
+            result.append(Character.toUpperCase(part.charAt(0))).append(part.substring(1));
+        }
+
+        return result.toString();
     }
 
     public boolean enabled() {
@@ -137,8 +226,12 @@ public final class EconomyService {
     }
 
     private void setPrice(@NotNull String path, double price) {
-        if (price < 0.0D) {
-            throw new IllegalArgumentException("Price cannot be negative.");
+        if (!Double.isFinite(price) || price < 0.0D) {
+            throw new IllegalArgumentException("Price must be a finite non-negative number.");
+        }
+
+        if (config.provider().equals("item") && !ItemEconomyProvider.isWholeAmount(price)) {
+            throw new IllegalArgumentException("Item economy prices must be whole numbers.");
         }
 
         Path file = plugin.getDataFolder().toPath().resolve("economy.yml");
