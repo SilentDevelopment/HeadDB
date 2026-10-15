@@ -29,9 +29,11 @@ import io.github.silentdevelopment.headdb.query.HeadQueryResult;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
+import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.MenuType;
+import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.HashSet;
@@ -53,6 +55,7 @@ public final class SearchPageFactory implements PaperPageFactory<SearchMenuState
     private static final int SLOT_SORT_FILTER = 52;
     private static final int SLOT_EMPTY = 22;
     private static final String NO_VISIBLE_CATEGORY = "__headdb_no_visible_category__";
+    private static final String FAVORITE_TOGGLE_MARKER = "search_favorite_toggle";
     private static final int[] RESULT_SLOTS = {
             10, 11, 12, 13, 14, 15, 16,
             19, 20, 21, 22, 23, 24, 25,
@@ -165,6 +168,7 @@ public final class SearchPageFactory implements PaperPageFactory<SearchMenuState
         Objects.requireNonNull(head, "head");
 
         ItemStack item = itemFactory.create(head);
+        markFavoriteToggleItem(item);
         Player player = player(context);
         if (player != null) {
             plugin.favorites().decorate(player.getUniqueId(), head.id(), item);
@@ -413,6 +417,24 @@ public final class SearchPageFactory implements PaperPageFactory<SearchMenuState
         return String.valueOf(request.categories().size());
     }
 
+
+    public static boolean supportsFavoriteToggle(@NotNull HeadDBPlugin plugin, @NotNull ItemStack item) {
+        Objects.requireNonNull(plugin, "plugin");
+        Objects.requireNonNull(item, "item");
+
+        Byte marker = item.getPersistentDataContainer().get(favoriteToggleKey(plugin), PersistentDataType.BYTE);
+        return marker != null && marker == (byte) 1;
+    }
+
+    private void markFavoriteToggleItem(@NotNull ItemStack item) {
+        Objects.requireNonNull(item, "item");
+        item.editMeta(meta -> meta.getPersistentDataContainer().set(favoriteToggleKey(plugin), PersistentDataType.BYTE, (byte) 1));
+    }
+
+    private static @NotNull NamespacedKey favoriteToggleKey(@NotNull HeadDBPlugin plugin) {
+        Objects.requireNonNull(plugin, "plugin");
+        return new NamespacedKey(plugin, FAVORITE_TOGGLE_MARKER);
+    }
 
     private static @NotNull String headIdLabel(@NotNull HeadId id) {
         Objects.requireNonNull(id, "id");
