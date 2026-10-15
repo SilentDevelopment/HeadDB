@@ -42,7 +42,12 @@ public final class HeadPriceLore {
             return item;
         }
 
-        String formattedPrice = plugin.economy().format(plugin.economy().price(head, customCategoryId));
+        double price = plugin.economy().price(head, customCategoryId);
+        if (price <= 0.0D) {
+            return item;
+        }
+
+        String formattedPrice = plugin.economy().format(price);
         Component priceLine = MINI_MESSAGE.deserialize(
                 template.replace("%price%", "<price>"),
                 Placeholder.unparsed("price", formattedPrice)
