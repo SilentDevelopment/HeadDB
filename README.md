@@ -1,3 +1,5 @@
+[![Revivenode Hosting](.github/assets/Revivenode_Banner.gif)](https://billing.revivenode.com/aff.php?aff=121)
+
 # HeadDB
 
 HeadDB is a Paper/Folia plugin for browsing, searching, and giving Minecraft head items from a public remote database.

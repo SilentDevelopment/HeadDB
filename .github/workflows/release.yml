@@ -36,8 +36,8 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  release_please:
-    name: Prepare or create release
+  prepare_release_pr:
+    name: Prepare release PR
     if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -47,7 +47,7 @@ jobs:
       pull-requests: write
 
     steps:
-      - name: Run Release Please
+      - name: Prepare release PR
         uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
         with:
           token: ${{ secrets.RELEASE_PLEASE_TOKEN || github.token }}

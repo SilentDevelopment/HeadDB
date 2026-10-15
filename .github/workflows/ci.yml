@@ -65,8 +65,8 @@ jobs:
           branch="${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}"
           timestamp="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
           build_id="${GITHUB_RUN_NUMBER}.${GITHUB_RUN_ATTEMPT}"
-          artifact_name="HeadDB-ci-${build_id}-${short_sha}"
-          jar_name="HeadDB-${version}-ci-build-${build_id}-${short_sha}.jar"
+          artifact_name="HeadDB-${version}+ci.${build_id}.${short_sha}"
+          jar_name="${artifact_name}.jar"
 
           echo "version=${version}" >> "$GITHUB_OUTPUT"
           echo "short_sha=${short_sha}" >> "$GITHUB_OUTPUT"
