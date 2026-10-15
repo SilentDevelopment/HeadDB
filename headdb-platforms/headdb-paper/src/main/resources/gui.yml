@@ -741,6 +741,7 @@ icons:
     - <gray>Edit this category economy price.
 texts:
   category-count: '%name% (%count%)'
+  head-price-lore: '<gray>Price: <gold>%price%'
   title.main: HeadDB
   title.browse: Browse
   title.collections: Collections
