@@ -142,7 +142,7 @@ public final class HeadEditListener implements Listener {
             return;
         }
 
-        if (CustomCategoryViewMenu.handleClick(plugin, player, event, id -> openEdit(player, id), item -> giveListedHead(player, item))) {
+        if (CustomCategoryViewMenu.handleClick(plugin, player, event, id -> openEdit(player, id), (id, categoryId) -> giveListedHead(player, id, categoryId))) {
             return;
         }
 
@@ -178,7 +178,7 @@ public final class HeadEditListener implements Listener {
             return;
         }
 
-        if (LocalHeadListMenu.handleClick(plugin, player, event, id -> openEdit(player, id), item -> giveListedHead(player, item))) {
+        if (LocalHeadListMenu.handleClick(plugin, player, event, id -> openEdit(player, id), id -> giveListedHead(player, id, null))) {
             return;
         }
 
@@ -265,13 +265,9 @@ public final class HeadEditListener implements Listener {
         plugin.sounds().play(player, added ? SoundKey.FAVORITE_ADD : SoundKey.FAVORITE_REMOVE);
     }
 
-    private void giveListedHead(@NotNull Player player, @NotNull ItemStack item) {
-        Optional<HeadId> headId = io.github.silentdevelopment.headdb.paper.item.HeadItemIds.read(plugin, item);
-        if (headId.isEmpty()) {
-            return;
-        }
-
-        HeadId id = headId.get();
+    private void giveListedHead(@NotNull Player player, @NotNull HeadId id, String customCategoryId) {
+        Objects.requireNonNull(player, "player");
+        Objects.requireNonNull(id, "id");
         if (!Permissions.has(player, Permissions.GUI_HEAD_TAKE)) {
             noPermission(player);
             return;
@@ -290,11 +286,20 @@ public final class HeadEditListener implements Listener {
             return;
         }
 
-        if (!plugin.economy().charge(player, head.get(), 1)) {
+        if (!plugin.economy().charge(player, head.get(), 1, customCategoryId)) {
             return;
         }
 
-        java.util.Map<Integer, ItemStack> remaining = player.getInventory().addItem(item.clone());
+        ItemStack item;
+        try {
+            item = plugin.itemFactory().create(head.get());
+        } catch (IllegalArgumentException exception) {
+            player.sendMessage(plugin.messages().invalidArgument(player, exception.getMessage()));
+            plugin.sounds().play(player, SoundKey.INVALID);
+            return;
+        }
+
+        java.util.Map<Integer, ItemStack> remaining = player.getInventory().addItem(item);
         if (!remaining.isEmpty()) {
             player.sendMessage(Component.text("Your inventory is full.", NamedTextColor.RED));
             plugin.sounds().play(player, SoundKey.INVALID);

@@ -6,6 +6,7 @@ import io.github.silentdevelopment.headdb.model.HeadId;
 import io.github.silentdevelopment.headdb.model.HeadTexture;
 import io.github.silentdevelopment.headdb.paper.HeadDBPlugin;
 import io.github.silentdevelopment.headdb.paper.gui.common.GuiHeadIcons;
+import io.github.silentdevelopment.headdb.paper.gui.common.HeadPriceLore;
 import io.github.silentdevelopment.headdb.paper.gui.common.GuiItems;
 import io.github.silentdevelopment.headdb.paper.gui.common.GuiTitles;
 import io.github.silentdevelopment.headdb.paper.item.HeadItemIds;
@@ -84,7 +85,7 @@ public final class LocalHeadListMenu {
         open(plugin, player, LocalHeadListType.PLAYER, heads, page);
     }
 
-    public static boolean handleClick(@NotNull HeadDBPlugin plugin, @NotNull Player player, @NotNull InventoryClickEvent event, @NotNull Consumer<HeadId> edit, @NotNull Consumer<ItemStack> give) {
+    public static boolean handleClick(@NotNull HeadDBPlugin plugin, @NotNull Player player, @NotNull InventoryClickEvent event, @NotNull Consumer<HeadId> edit, @NotNull Consumer<HeadId> give) {
         Objects.requireNonNull(plugin, "plugin");
         Objects.requireNonNull(player, "player");
         Objects.requireNonNull(event, "event");
@@ -136,7 +137,7 @@ public final class LocalHeadListMenu {
             return true;
         }
 
-        give.accept(item);
+        give.accept(id.get());
         return true;
     }
 
@@ -169,6 +170,7 @@ public final class LocalHeadListMenu {
         for (int index = fromIndex; index < toIndex; index++) {
             Head head = heads.get(index);
             ItemStack item = plugin.itemFactory().create(head);
+            HeadPriceLore.decorate(plugin, item, head);
             plugin.favorites().decorate(player.getUniqueId(), head.id(), item);
             if (adminMode) {
                 item.editMeta(meta -> {

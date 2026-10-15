@@ -4,6 +4,7 @@ import io.github.silentdevelopment.headdb.model.Head;
 import io.github.silentdevelopment.headdb.model.HeadId;
 import io.github.silentdevelopment.headdb.paper.HeadDBPlugin;
 import io.github.silentdevelopment.headdb.paper.gui.common.GuiHeadIcons;
+import io.github.silentdevelopment.headdb.paper.gui.common.HeadPriceLore;
 import io.github.silentdevelopment.headdb.paper.gui.common.GuiItems;
 import io.github.silentdevelopment.headdb.paper.gui.common.GuiMaterials;
 import io.github.silentdevelopment.headdb.paper.gui.common.GuiTitles;
@@ -30,6 +31,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 public final class CustomCategoryViewMenu {
@@ -85,13 +87,13 @@ public final class CustomCategoryViewMenu {
         holder.inventory(inventory);
 
         fillBorder(plugin, inventory);
-        renderHeads(plugin, player, inventory, heads, page, adminMode);
+        renderHeads(plugin, player, inventory, heads, page, adminMode, category.id());
         renderControls(plugin, player, inventory, category, heads.size(), page, pages);
         player.openInventory(inventory);
         plugin.sounds().play(player, io.github.silentdevelopment.headdb.paper.sound.SoundKey.MENU_OPEN);
     }
 
-    public static boolean handleClick(@NotNull HeadDBPlugin plugin, @NotNull Player player, @NotNull InventoryClickEvent event, @NotNull Consumer<HeadId> edit, @NotNull Consumer<ItemStack> give) {
+    public static boolean handleClick(@NotNull HeadDBPlugin plugin, @NotNull Player player, @NotNull InventoryClickEvent event, @NotNull Consumer<HeadId> edit, @NotNull BiConsumer<HeadId, String> give) {
         if (!(event.getView().getTopInventory().getHolder(false) instanceof Holder holder)) {
             return false;
         }
@@ -134,7 +136,7 @@ public final class CustomCategoryViewMenu {
             return true;
         }
 
-        give.accept(item);
+        give.accept(id.get(), holder.categoryId());
         return true;
     }
 
@@ -155,7 +157,7 @@ public final class CustomCategoryViewMenu {
         }
     }
 
-    private static void renderHeads(@NotNull HeadDBPlugin plugin, @NotNull Player player, @NotNull Inventory inventory, @NotNull List<Head> heads, int page, boolean adminMode) {
+    private static void renderHeads(@NotNull HeadDBPlugin plugin, @NotNull Player player, @NotNull Inventory inventory, @NotNull List<Head> heads, int page, boolean adminMode, @NotNull String categoryId) {
         int fromIndex = page * HEAD_SLOTS.length;
         int toIndex = Math.min(heads.size(), fromIndex + HEAD_SLOTS.length);
         int slotIndex = 0;
@@ -163,6 +165,7 @@ public final class CustomCategoryViewMenu {
         for (int index = fromIndex; index < toIndex; index++) {
             Head head = heads.get(index);
             ItemStack item = plugin.itemFactory().create(head);
+            HeadPriceLore.decorate(plugin, item, head, categoryId);
             plugin.favorites().decorate(player.getUniqueId(), head.id(), item);
             if (adminMode) {
                 item.editMeta(meta -> {
