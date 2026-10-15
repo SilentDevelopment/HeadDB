@@ -68,7 +68,7 @@ public final class HeadEditListener implements Listener {
             return;
         }
 
-        InventoryHolder holder = event.getInventory().getHolder();
+        InventoryHolder holder = event.getInventory().getHolder(false);
         if (holder == null) {
             return;
         }
@@ -217,7 +217,7 @@ public final class HeadEditListener implements Listener {
             return;
         }
 
-        if (event.getView().getTopInventory().getHolder() instanceof HeadEditMenu.EditHolder) {
+        if (event.getView().getTopInventory().getHolder(false) instanceof HeadEditMenu.EditHolder) {
             deny(event);
         }
     }
@@ -323,7 +323,7 @@ public final class HeadEditListener implements Listener {
     private void handleAction(@NotNull Player player, @NotNull InventoryClickEvent event, @NotNull HeadEditMenu.ActionTarget target) {
         String action = target.action();
         HeadId id = target.id();
-        HeadEditMenu.EditHolder holder = event.getView().getTopInventory().getHolder() instanceof HeadEditMenu.EditHolder editHolder ? editHolder : null;
+        HeadEditMenu.EditHolder holder = event.getView().getTopInventory().getHolder(false) instanceof HeadEditMenu.EditHolder editHolder ? editHolder : null;
 
         if (action.equals(HeadEditMenu.ACTION_PREVIEW)) {
             return;

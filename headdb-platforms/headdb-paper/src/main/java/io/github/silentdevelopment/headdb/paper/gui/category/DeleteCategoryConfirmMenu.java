@@ -61,7 +61,7 @@ public final class DeleteCategoryConfirmMenu {
     }
 
     public static boolean handleClick(@NotNull HeadDBPlugin plugin, @NotNull Player player, @NotNull InventoryClickEvent event) {
-        if (!(event.getView().getTopInventory().getHolder() instanceof Holder holder)) {
+        if (!(event.getView().getTopInventory().getHolder(false) instanceof Holder holder)) {
             return false;
         }
 

@@ -63,7 +63,7 @@ public final class CommandConfirmMenu {
         Objects.requireNonNull(player, "player");
         Objects.requireNonNull(event, "event");
 
-        if (!(event.getView().getTopInventory().getHolder() instanceof Holder holder)) {
+        if (!(event.getView().getTopInventory().getHolder(false) instanceof Holder holder)) {
             return false;
         }
 

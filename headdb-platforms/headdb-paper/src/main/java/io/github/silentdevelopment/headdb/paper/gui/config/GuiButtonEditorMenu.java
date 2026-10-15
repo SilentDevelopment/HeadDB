@@ -102,7 +102,7 @@ public final class GuiButtonEditorMenu {
         Objects.requireNonNull(player, "player");
         Objects.requireNonNull(event, "event");
 
-        if (!(event.getView().getTopInventory().getHolder() instanceof GuiButtonEditorHolder holder)) {
+        if (!(event.getView().getTopInventory().getHolder(false) instanceof GuiButtonEditorHolder holder)) {
             return false;
         }
 

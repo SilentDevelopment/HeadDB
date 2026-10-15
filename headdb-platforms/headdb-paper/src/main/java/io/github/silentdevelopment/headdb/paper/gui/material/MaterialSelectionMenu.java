@@ -82,7 +82,7 @@ public final class MaterialSelectionMenu {
         Objects.requireNonNull(player, "player");
         Objects.requireNonNull(event, "event");
 
-        if (!(event.getView().getTopInventory().getHolder() instanceof MaterialSelectionHolder holder)) {
+        if (!(event.getView().getTopInventory().getHolder(false) instanceof MaterialSelectionHolder holder)) {
             return false;
         }
 

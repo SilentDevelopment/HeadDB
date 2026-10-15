@@ -91,7 +91,7 @@ public final class LocalHeadListMenu {
         Objects.requireNonNull(edit, "edit");
         Objects.requireNonNull(give, "give");
 
-        if (!(event.getView().getTopInventory().getHolder() instanceof LocalHeadListHolder holder)) {
+        if (!(event.getView().getTopInventory().getHolder(false) instanceof LocalHeadListHolder holder)) {
             return false;
         }
 

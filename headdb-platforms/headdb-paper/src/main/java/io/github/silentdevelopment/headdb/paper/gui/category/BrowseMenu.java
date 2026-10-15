@@ -107,7 +107,7 @@ public final class BrowseMenu {
         Objects.requireNonNull(player, "player");
         Objects.requireNonNull(event, "event");
 
-        if (!(event.getView().getTopInventory().getHolder() instanceof BrowseHolder holder)) {
+        if (!(event.getView().getTopInventory().getHolder(false) instanceof BrowseHolder holder)) {
             return false;
         }
 

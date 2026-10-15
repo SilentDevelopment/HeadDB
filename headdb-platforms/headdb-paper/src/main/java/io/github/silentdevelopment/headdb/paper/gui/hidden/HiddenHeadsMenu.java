@@ -86,7 +86,7 @@ public final class HiddenHeadsMenu {
         Objects.requireNonNull(player, "player");
         Objects.requireNonNull(event, "event");
 
-        if (!(event.getView().getTopInventory().getHolder() instanceof HiddenHeadsHolder holder)) {
+        if (!(event.getView().getTopInventory().getHolder(false) instanceof HiddenHeadsHolder holder)) {
             return false;
         }
 

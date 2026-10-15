@@ -92,7 +92,7 @@ public final class CustomCategoryViewMenu {
     }
 
     public static boolean handleClick(@NotNull HeadDBPlugin plugin, @NotNull Player player, @NotNull InventoryClickEvent event, @NotNull Consumer<HeadId> edit, @NotNull Consumer<ItemStack> give) {
-        if (!(event.getView().getTopInventory().getHolder() instanceof Holder holder)) {
+        if (!(event.getView().getTopInventory().getHolder(false) instanceof Holder holder)) {
             return false;
         }
 
