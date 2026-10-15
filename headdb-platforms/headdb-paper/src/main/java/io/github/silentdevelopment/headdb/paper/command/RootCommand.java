@@ -1,7 +1,6 @@
 package io.github.silentdevelopment.headdb.paper.command;
 
 import io.github.silentdevelopment.headdb.paper.HeadDBPlugin;
-import io.github.silentdevelopment.headdb.paper.command.format.RootFormatter;
 import io.github.silentdevelopment.headdb.paper.command.subcommand.CategoriesCommand;
 import io.github.silentdevelopment.headdb.paper.command.subcommand.CollectionsCommand;
 import io.github.silentdevelopment.headdb.paper.command.subcommand.PlayerCommand;
@@ -28,7 +27,6 @@ import io.github.silentdevelopment.relay.command.CommandDefinition;
 import io.github.silentdevelopment.relay.core.command.builder.CommandBuilder;
 import io.github.silentdevelopment.relay.paper.command.AbstractPaperCommandGroup;
 import io.github.silentdevelopment.relay.paper.command.context.PaperCommandContext;
-import net.kyori.adventure.text.Component;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
@@ -85,11 +83,7 @@ public final class RootCommand extends AbstractPaperCommandGroup {
             return;
         }
 
-        CommandSender sender = context.source();
-
-        for (Component line : RootFormatter.format(plugin, context.sender())) {
-            plugin.messages().send(sender, line);
-        }
+        VersionCommand.send(plugin, context.sender());
     }
 
     @Override
