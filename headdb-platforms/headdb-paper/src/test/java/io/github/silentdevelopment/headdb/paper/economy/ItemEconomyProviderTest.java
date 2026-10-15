@@ -1,9 +1,9 @@
 package io.github.silentdevelopment.headdb.paper.economy;
 
 import org.bukkit.Material;
-import org.bukkit.inventory.ItemStack;
 import org.junit.jupiter.api.Test;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -28,35 +28,22 @@ class ItemEconomyProviderTest {
     }
 
     @Test
-    void withdrawsAcrossMultipleStacksWithoutTouchingOtherItems() {
-        ItemStack[] storage = {
-                new ItemStack(Material.DIAMOND, 1),
-                new ItemStack(Material.STONE, 32),
-                new ItemStack(Material.DIAMOND, 4)
-        };
+    void withdrawsAcrossMultipleStacks() {
+        int[] amounts = {1, 0, 4};
 
-        ItemStack[] updated = ItemEconomyProvider.withdrawStorage(storage, Material.DIAMOND, 3);
+        int[] updated = ItemEconomyProvider.withdrawAmounts(amounts, 3);
 
-        assertEquals(1, storage[0].getAmount());
-        assertEquals(4, storage[2].getAmount());
-        assertNull(updated[0]);
-        assertEquals(Material.STONE, updated[1].getType());
-        assertEquals(32, updated[1].getAmount());
-        assertEquals(Material.DIAMOND, updated[2].getType());
-        assertEquals(2, updated[2].getAmount());
+        assertArrayEquals(new int[]{0, 0, 2}, updated);
+        assertArrayEquals(new int[]{1, 0, 4}, amounts);
     }
 
     @Test
-    void insufficientCurrencyDoesNotProduceModifiedStorage() {
-        ItemStack[] storage = {
-                new ItemStack(Material.DIAMOND, 2),
-                new ItemStack(Material.EMERALD, 5)
-        };
+    void insufficientCurrencyDoesNotProduceModifiedAmounts() {
+        int[] amounts = {2, 0, 0};
 
-        ItemStack[] updated = ItemEconomyProvider.withdrawStorage(storage, Material.DIAMOND, 3);
+        int[] updated = ItemEconomyProvider.withdrawAmounts(amounts, 3);
 
         assertNull(updated);
-        assertEquals(2, storage[0].getAmount());
-        assertEquals(5, storage[1].getAmount());
+        assertArrayEquals(new int[]{2, 0, 0}, amounts);
     }
 }
