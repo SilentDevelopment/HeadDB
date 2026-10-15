@@ -148,6 +148,10 @@ public enum SoundKey {
             return OPEN_INPUT;
         }
 
+        if (key.equals("category-style")) {
+            return SELECTOR_OPEN;
+        }
+
         if (key.equals("category-add") || key.equals("create-category")) {
             return CATEGORY_CREATE;
         }
