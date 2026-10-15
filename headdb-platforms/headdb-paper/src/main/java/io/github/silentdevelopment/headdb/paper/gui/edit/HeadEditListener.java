@@ -9,6 +9,7 @@ import io.github.silentdevelopment.headdb.paper.gui.hidden.HiddenHeadsMenu;
 import io.github.silentdevelopment.headdb.paper.gui.category.MoreCategoriesMenu;
 import io.github.silentdevelopment.headdb.paper.gui.category.BrowseMenu;
 import io.github.silentdevelopment.headdb.paper.gui.category.CollectionsMenu;
+import io.github.silentdevelopment.headdb.paper.gui.category.CategoryFacetMenu;
 import io.github.silentdevelopment.headdb.paper.gui.category.TagsMenu;
 import io.github.silentdevelopment.headdb.paper.gui.category.CreateHeadMenu;
 import io.github.silentdevelopment.headdb.paper.gui.category.CreateCategoryMenu;
@@ -118,6 +119,10 @@ public final class HeadEditListener implements Listener {
         }
 
         if (TagsMenu.handleClick(plugin, player, event)) {
+            return;
+        }
+
+        if (CategoryFacetMenu.handleClick(plugin, player, event)) {
             return;
         }
 
