@@ -74,13 +74,53 @@ public final class ItemEconomyProvider implements EconomyProvider {
             throw new IllegalArgumentException("Required amount cannot be negative.");
         }
 
-        long available = 0L;
-        for (ItemStack item : storage) {
+        int[] matchingAmounts = new int[storage.length];
+        for (int index = 0; index < storage.length; index++) {
+            ItemStack item = storage[index];
+            if (item != null && item.getType() == material) {
+                matchingAmounts[index] = item.getAmount();
+            }
+        }
+
+        int[] remainingAmounts = withdrawAmounts(matchingAmounts, required);
+        if (remainingAmounts == null) {
+            return null;
+        }
+
+        ItemStack[] updated = new ItemStack[storage.length];
+        for (int index = 0; index < storage.length; index++) {
+            ItemStack item = storage[index];
+            updated[index] = item == null ? null : item.clone();
+
             if (item == null || item.getType() != material) {
                 continue;
             }
 
-            available += item.getAmount();
+            int remaining = remainingAmounts[index];
+            if (remaining <= 0) {
+                updated[index] = null;
+            } else {
+                updated[index].setAmount(remaining);
+            }
+        }
+
+        return updated;
+    }
+
+    static @Nullable int[] withdrawAmounts(@NotNull int[] amounts, long required) {
+        Objects.requireNonNull(amounts, "amounts");
+
+        if (required < 0L) {
+            throw new IllegalArgumentException("Required amount cannot be negative.");
+        }
+
+        long available = 0L;
+        for (int amount : amounts) {
+            if (amount < 0) {
+                throw new IllegalArgumentException("Stack amount cannot be negative.");
+            }
+
+            available += amount;
             if (available >= required) {
                 break;
             }
@@ -90,28 +130,13 @@ public final class ItemEconomyProvider implements EconomyProvider {
             return null;
         }
 
-        ItemStack[] updated = new ItemStack[storage.length];
-        for (int index = 0; index < storage.length; index++) {
-            ItemStack item = storage[index];
-            updated[index] = item == null ? null : item.clone();
-        }
-
+        int[] updated = amounts.clone();
         long remaining = required;
+
         for (int index = 0; index < updated.length && remaining > 0L; index++) {
-            ItemStack item = updated[index];
-            if (item == null || item.getType() != material) {
-                continue;
-            }
-
-            int remove = (int) Math.min(remaining, item.getAmount());
-            int left = item.getAmount() - remove;
+            int remove = (int) Math.min(remaining, updated[index]);
+            updated[index] -= remove;
             remaining -= remove;
-
-            if (left <= 0) {
-                updated[index] = null;
-            } else {
-                item.setAmount(left);
-            }
         }
 
         return updated;
