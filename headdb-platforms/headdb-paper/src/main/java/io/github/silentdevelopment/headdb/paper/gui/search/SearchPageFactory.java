@@ -502,7 +502,11 @@ public final class SearchPageFactory implements PaperPageFactory<SearchMenuState
 
         Optional<CategoryFacet> facet = CategoryFacetRegistry.find(categoryId);
         if (facet.isEmpty()) {
-            plugin.guis().openSearch(player, request.withLockedCategory(categoryId), SearchMenuState.BackTarget.BROWSE);
+            plugin.guis().openSearch(
+                    player,
+                    SearchRequest.lockedCategory("", Set.of(), categoryId, Set.of(), Set.of(), io.github.silentdevelopment.headdb.query.HeadSort.ID, io.github.silentdevelopment.headdb.query.SortDirection.ASCENDING, 1, PAGE_SIZE),
+                    SearchMenuState.BackTarget.BROWSE
+            );
             return;
         }
 
