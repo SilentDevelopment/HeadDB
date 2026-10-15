@@ -17,6 +17,7 @@ import io.github.silentdevelopment.headdb.paper.gui.category.CategoryFacet;
 import io.github.silentdevelopment.headdb.paper.gui.category.CategoryFacetMenu;
 import io.github.silentdevelopment.headdb.paper.gui.category.CategoryFacetRegistry;
 import io.github.silentdevelopment.headdb.paper.gui.common.GuiHeadIcons;
+import io.github.silentdevelopment.headdb.paper.gui.common.HeadPriceLore;
 import io.github.silentdevelopment.headdb.paper.gui.common.GuiItems;
 import io.github.silentdevelopment.headdb.paper.gui.common.GuiTitles;
 import io.github.silentdevelopment.headdb.paper.gui.edit.HeadEditDropGuard;
@@ -196,6 +197,7 @@ public final class SearchPageFactory implements PaperPageFactory<SearchMenuState
         Objects.requireNonNull(head, "head");
 
         ItemStack item = itemFactory.create(head);
+        HeadPriceLore.decorate(plugin, item, head);
         markFavoriteToggleItem(item);
         Player player = player(context);
         if (player != null) {
