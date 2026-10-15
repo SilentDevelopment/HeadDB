@@ -9,6 +9,7 @@ import io.github.silentdevelopment.relay.paper.command.AbstractPaperCommand;
 import io.github.silentdevelopment.relay.paper.command.PaperCommands;
 import io.github.silentdevelopment.relay.paper.command.context.PaperCommandContext;
 import net.kyori.adventure.text.Component;
+import org.bukkit.command.CommandSender;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Objects;
@@ -23,8 +24,15 @@ public final class VersionCommand extends AbstractPaperCommand {
 
     @Override
     protected void handle(@NotNull PaperCommandContext context) {
-        for (Component line : VersionFormatter.command(plugin)) {
-            plugin.messages().send(context.sender(), line);
+        send(plugin, context.sender());
+    }
+
+    public static void send(@NotNull HeadDBPlugin plugin, @NotNull CommandSender sender) {
+        Objects.requireNonNull(plugin, "plugin");
+        Objects.requireNonNull(sender, "sender");
+
+        for (Component line : VersionFormatter.command(plugin, sender)) {
+            plugin.messages().send(sender, line);
         }
     }
 
